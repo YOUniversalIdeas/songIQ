@@ -50,7 +50,7 @@ router.get('/compare/:songId', async (req, res) => {
       }
     ]
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         similarSongs,
@@ -70,7 +70,7 @@ router.get('/compare/:songId', async (req, res) => {
     })
   } catch (error) {
     console.error('Get market comparison error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get market comparison'
     })
@@ -91,13 +91,13 @@ router.get('/trends/:genre', async (req, res) => {
       popularMoods: ['energetic', 'happy', 'uplifting', 'confident']
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: trends
     })
   } catch (error) {
     console.error('Get trends error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get trends'
     })
@@ -137,13 +137,13 @@ router.get('/predictions/:songId', async (req, res) => {
       ]
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: predictions
     })
   } catch (error) {
     console.error('Get predictions error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get predictions'
     })
@@ -163,13 +163,13 @@ router.get('/performance/:songId', async (req, res) => {
       })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: performance
     })
   } catch (error) {
     console.error('Get performance error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get performance metrics'
     })
@@ -188,13 +188,13 @@ router.post('/performance/update/:songId', async (req, res) => {
       { new: true, upsert: true }
     )
 
-    res.json({
+    return res.json({
       success: true,
       data: performance
     })
   } catch (error) {
     console.error('Update performance error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update performance metrics'
     })
@@ -217,13 +217,13 @@ router.get('/top-songs', async (req, res) => {
       .limit(limit)
       .populate('songId', 'title artist')
 
-    res.json({
+    return res.json({
       success: true,
       data: topSongs
     })
   } catch (error) {
     console.error('Get top songs error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get top songs'
     })

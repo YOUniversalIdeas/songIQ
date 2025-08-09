@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { Upload, Music, Calendar, Globe, AlertCircle } from 'lucide-react'
+import { Upload, Music, Globe, AlertCircle } from 'lucide-react'
 import AudioUpload from '@/components/AudioUpload'
 import { UploadFormData } from '@/types'
 
@@ -10,7 +10,7 @@ const UploadPage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [isReleased, setIsReleased] = useState(false)
+
 
   const {
     register,
@@ -29,7 +29,7 @@ const UploadPage = () => {
 
   const handleRemoveFile = () => {
     setSelectedFile(null)
-    setValue('audioFile', undefined)
+    setValue('audioFile', undefined as any)
   }
 
   const onSubmit = async (data: UploadFormData) => {
@@ -58,7 +58,7 @@ const UploadPage = () => {
       formData.append('audioFile', selectedFile)
       formData.append('title', data.title)
       formData.append('artist', data.artist)
-      formData.append('isReleased', data.isReleased.toString())
+      formData.append('isReleased', String(data.isReleased))
       
       if (data.isReleased && data.releaseDate) {
         formData.append('releaseDate', data.releaseDate.toISOString())
@@ -110,8 +110,8 @@ const UploadPage = () => {
             <Upload className="h-8 w-8 text-primary-600" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Upload Your Song</h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Upload Your Song</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           Upload your audio file and provide song information to get started with your analysis.
           Our AI will analyze your music and provide insights about its potential success.
         </p>
@@ -124,7 +124,7 @@ const UploadPage = () => {
             <div className="p-2 bg-primary-100 rounded-lg">
               <Music className="h-5 w-5 text-primary-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Audio File</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Audio File</h2>
           </div>
           
           <AudioUpload
@@ -142,12 +142,12 @@ const UploadPage = () => {
             <div className="p-2 bg-primary-100 rounded-lg">
               <Music className="h-5 w-5 text-primary-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Song Information</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Song Information</h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Song Title *
               </label>
               <input
@@ -169,7 +169,7 @@ const UploadPage = () => {
             </div>
 
             <div>
-              <label htmlFor="artist" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="artist" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Artist Name *
               </label>
               <input
@@ -198,12 +198,12 @@ const UploadPage = () => {
             <div className="p-2 bg-primary-100 rounded-lg">
               <Globe className="h-5 w-5 text-primary-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Release Status</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Release Status</h2>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
                 Has this song been released? *
               </label>
               <div className="space-y-3">
@@ -214,7 +214,7 @@ const UploadPage = () => {
                     {...register('isReleased', { required: 'Please select release status' })}
                     className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
                   />
-                  <span className="text-gray-900">Not yet released</span>
+                  <span className="text-gray-900 dark:text-white">Not yet released</span>
                 </label>
                 <label className="flex items-center space-x-3 cursor-pointer">
                   <input
@@ -223,7 +223,7 @@ const UploadPage = () => {
                     {...register('isReleased', { required: 'Please select release status' })}
                     className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
                   />
-                  <span className="text-gray-900">Already released</span>
+                  <span className="text-gray-900 dark:text-white">Already released</span>
                 </label>
               </div>
               {errors.isReleased && (
@@ -235,12 +235,12 @@ const UploadPage = () => {
             </div>
 
             {/* Conditional fields for released songs */}
-            {watchedIsReleased === 'true' && (
+            {watchedIsReleased === true && (
               <div className="space-y-6 pt-4 border-t border-gray-200">
                 <div>
-                  <label htmlFor="releaseDate" className="block text-sm font-medium text-gray-700 mb-2">
-                    Release Date
-                  </label>
+                                  <label htmlFor="releaseDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Release Date
+                </label>
                   <input
                     type="date"
                     id="releaseDate"
@@ -250,7 +250,7 @@ const UploadPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     Platforms (select all that apply)
                   </label>
                   <div className="grid md:grid-cols-2 gap-3">
@@ -262,7 +262,7 @@ const UploadPage = () => {
                           {...register('platforms')}
                           className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                         />
-                        <span className="text-gray-900">{platform.label}</span>
+                        <span className="text-gray-900 dark:text-white">{platform.label}</span>
                       </label>
                     ))}
                   </div>

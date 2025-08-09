@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Play, Pause, Volume2, AlertCircle, CheckCircle } from 'lucide-react'
-import { UploadFormData } from '@/types'
+
 
 interface AudioUploadProps {
   onFileSelect: (file: File) => void
@@ -89,10 +89,10 @@ const AudioUpload = ({
           className={`
             border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors duration-200
             ${isDragActive && !isDragReject 
-              ? 'border-primary-500 bg-primary-50' 
+              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
               : isDragReject 
-                ? 'border-error-500 bg-error-50' 
-                : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
+                ? 'border-error-500 bg-error-50 dark:bg-error-900/20' 
+                : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-primary-400 dark:hover:bg-gray-800'
             }
           `}
         >
@@ -102,10 +102,10 @@ const AudioUpload = ({
               <div className={`
                 p-4 rounded-full
                 ${isDragActive && !isDragReject 
-                  ? 'bg-primary-100 text-primary-600' 
+                  ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30' 
                   : isDragReject 
-                    ? 'bg-error-100 text-error-600' 
-                    : 'bg-gray-100 text-gray-600'
+                    ? 'bg-error-100 text-error-600 dark:bg-error-900/30' 
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                 }
               `}>
                 <Upload className="h-8 w-8" />
@@ -113,7 +113,7 @@ const AudioUpload = ({
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {isDragActive 
                   ? isDragReject 
                     ? 'Invalid file type' 
@@ -121,7 +121,7 @@ const AudioUpload = ({
                   : 'Upload your song'
                 }
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 {isDragReject 
                   ? 'Please upload a valid audio file (MP3, WAV, FLAC, M4A)'
                   : 'Drag & drop your audio file here, or click to browse'
@@ -129,7 +129,7 @@ const AudioUpload = ({
               </p>
             </div>
 
-            <div className="text-sm text-gray-500 space-y-1">
+            <div className="text-sm text-gray-500 dark:text-gray-500 space-y-1">
               <p>Supported formats: MP3, WAV, FLAC, M4A</p>
               <p>Maximum file size: 50MB</p>
             </div>
@@ -146,8 +146,8 @@ const AudioUpload = ({
                 <Volume2 className="h-5 w-5 text-primary-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">{selectedFile.name}</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">{selectedFile.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {getFileType(selectedFile.name)} • {getFileSize(selectedFile.size)}
                 </p>
               </div>
@@ -155,7 +155,7 @@ const AudioUpload = ({
             
             <button
               onClick={onRemoveFile}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               disabled={isUploading}
             >
               <X className="h-5 w-5" />
@@ -182,11 +182,11 @@ const AudioUpload = ({
               </button>
               
               <div className="flex-1 space-y-1">
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div 
                     className="bg-primary-600 h-2 rounded-full transition-all duration-200"
                     style={{ width: `${(currentTime / duration) * 100}%` }}
@@ -200,10 +200,10 @@ const AudioUpload = ({
           {isUploading && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Uploading...</span>
-                <span className="text-gray-600">{uploadProgress}%</span>
+                <span className="text-gray-600 dark:text-gray-400">Uploading...</span>
+                <span className="text-gray-600 dark:text-gray-400">{uploadProgress}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div 
                   className="bg-primary-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}

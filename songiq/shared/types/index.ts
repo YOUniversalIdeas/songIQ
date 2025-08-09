@@ -3,19 +3,44 @@ export interface Song {
   id: string;
   title: string;
   artist: string;
+  duration: number; // Duration in seconds
+  audioFeatures?: AudioFeatures;
   uploadDate: Date;
-  audioFile: string;
+  fileUrl: string;
+  analysisResults?: Analysis;
+  userId?: string;
   isReleased: boolean;
   releaseDate?: Date;
   platforms?: string[];
-  analysisResults?: AnalysisResults;
   performanceMetrics?: PerformanceMetrics;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Analysis results types
+// Analysis results types (new comprehensive Analysis model)
+export interface Analysis {
+  songId: string;
+  // Prediction Results
+  successScore: number; // 0-100 overall success prediction
+  marketPotential: number; // 0-100 market viability score
+  socialScore: number; // 0-100 social media/viral potential
+  recommendations: Recommendation[];
+  // Detailed Analysis
+  genreAnalysis: GenreAnalysis;
+  audienceAnalysis: AudienceAnalysis;
+  competitiveAnalysis: CompetitiveAnalysis;
+  // Technical Analysis
+  productionQuality: ProductionQuality;
+  // Release Strategy
+  releaseRecommendations: ReleaseRecommendations;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Legacy AnalysisResults (keeping for backward compatibility)
 export interface AnalysisResults {
   songId: string;
-  audioFeatures: AudioFeatures;
+  audioFeatures: LegacyAudioFeatures;
   vocalCharacteristics: VocalCharacteristics;
   instrumentation: string[];
   lyricalThemes: string[];
@@ -24,7 +49,28 @@ export interface AnalysisResults {
   updatedAt: Date;
 }
 
+// Spotify Audio Features (matching the AudioFeatures model)
 export interface AudioFeatures {
+  songId: string;
+  acousticness: number; // 0.0 to 1.0
+  danceability: number; // 0.0 to 1.0
+  energy: number; // 0.0 to 1.0
+  instrumentalness: number; // 0.0 to 1.0
+  liveness: number; // 0.0 to 1.0
+  loudness: number; // -60.0 to 0.0 dB
+  speechiness: number; // 0.0 to 1.0
+  tempo: number; // BPM
+  valence: number; // 0.0 to 1.0 (musical positiveness)
+  key: number; // 0-11 (C=0, C#=1, D=2, etc.)
+  mode: number; // 0=minor, 1=major
+  time_signature: number; // 3/4=3, 4/4=4, etc.
+  duration_ms: number; // Duration in milliseconds
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Legacy AudioFeatures (keeping for backward compatibility)
+export interface LegacyAudioFeatures {
   genre: string;
   subGenre: string;
   tempo: number; // BPM
@@ -59,6 +105,109 @@ export interface PredictionFactor {
   weight: number;
   score: number;
   description: string;
+}
+
+// New Analysis model interfaces
+export interface Recommendation {
+  category: string;
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  impact: number; // 0-100 potential impact
+}
+
+export interface GenreAnalysis {
+  primaryGenre: string;
+  subGenres: string[];
+  genreConfidence: number; // 0-100
+  marketTrend: 'rising' | 'stable' | 'declining';
+}
+
+export interface AudienceAnalysis {
+  targetDemographics: string[];
+  ageRange: {
+    min: number;
+    max: number;
+  };
+  geographicMarkets: string[];
+  listeningHabits: string[];
+}
+
+export interface SimilarArtist {
+  name: string;
+  similarity: number; // 0-100
+  marketPosition: string;
+}
+
+export interface CompetitiveAnalysis {
+  similarArtists: SimilarArtist[];
+  marketGap: string;
+  competitiveAdvantage: string[];
+}
+
+export interface ProductionQuality {
+  overall: number; // 0-100
+  mixing: number;
+  mastering: number;
+  arrangement: number;
+  performance: number;
+}
+
+export interface ReleaseRecommendations {
+  optimalReleaseDate: Date;
+  targetPlatforms: string[];
+  marketingStrategy: string[];
+  pricingStrategy: string;
+}
+
+// User types
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  profilePicture?: string;
+  bio?: string;
+  role: 'user' | 'artist' | 'producer' | 'label' | 'admin';
+  isVerified: boolean;
+  isActive: boolean;
+  lastLogin?: Date;
+  uploadedSongs: string[]; // Song IDs
+  favoriteSongs: string[]; // Song IDs
+  subscription: UserSubscription;
+  preferences: UserPreferences;
+  stats: UserStats;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserSubscription {
+  plan: 'free' | 'basic' | 'pro' | 'enterprise';
+  startDate: Date;
+  endDate?: Date;
+  features: string[];
+}
+
+export interface UserPreferences {
+  genres: string[];
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+  privacy: {
+    profilePublic: boolean;
+    songsPublic: boolean;
+    analyticsPublic: boolean;
+  };
+}
+
+export interface UserStats {
+  totalSongs: number;
+  totalAnalyses: number;
+  totalPlays: number;
+  memberSince: Date;
 }
 
 // Performance metrics types
@@ -127,10 +276,40 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Upload-related types
 export interface UploadResponse {
   songId: string;
   uploadUrl: string;
   analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  fileMetadata: FileMetadata;
+  song: Song;
+}
+
+export interface FileMetadata {
+  originalName: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+  sizeInMB: number;
+  extension: string;
+  path: string;
+  url: string;
+}
+
+export interface UploadProgress {
+  songId: string;
+  status: 'uploading' | 'processing' | 'analyzing' | 'completed' | 'failed';
+  progress: number; // 0-100
+  currentStep: string;
+  estimatedTime?: number; // seconds
+  error?: string;
+}
+
+export interface UploadError {
+  error: string;
+  details?: string;
+  field?: string;
+  code?: string;
 }
 
 export interface AnalysisStatus {

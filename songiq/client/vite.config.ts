@@ -19,7 +19,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
       },
     },
@@ -27,5 +27,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['chart.js', 'react-chartjs-2', 'chartjs-adapter-date-fns'],
+          ui: ['lucide-react', 'clsx', 'tailwind-merge'],
+          forms: ['react-hook-form', 'react-dropzone'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 }) 

@@ -97,7 +97,7 @@ router.post('/start/:songId', async (req, res) => {
     song.analysisResults = analysis._id
     await song.save()
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         analysisId: analysis._id,
@@ -107,7 +107,7 @@ router.post('/start/:songId', async (req, res) => {
     })
   } catch (error) {
     console.error('Start analysis error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to start analysis'
     })
@@ -132,7 +132,7 @@ router.get('/status/:songId', async (req, res) => {
       })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         status: 'completed',
@@ -143,7 +143,7 @@ router.get('/status/:songId', async (req, res) => {
     })
   } catch (error) {
     console.error('Get analysis status error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get analysis status'
     })
@@ -165,13 +165,13 @@ router.get('/results/:songId', async (req, res) => {
       })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: analysis
     })
   } catch (error) {
     console.error('Get analysis results error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get analysis results'
     })
@@ -191,13 +191,13 @@ router.get('/:id', async (req, res) => {
       })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: analysis
     })
   } catch (error) {
     console.error('Get analysis error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get analysis'
     })
@@ -221,13 +221,13 @@ router.delete('/:id', async (req, res) => {
       $unset: { analysisResults: 1 }
     })
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Analysis deleted successfully'
     })
   } catch (error) {
     console.error('Delete analysis error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to delete analysis'
     })

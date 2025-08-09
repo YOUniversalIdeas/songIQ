@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { BarChart3, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 const AnalysisPage = () => {
   const { songId } = useParams<{ songId: string }>()
+  const navigate = useNavigate()
   const [analysisStatus, setAnalysisStatus] = useState<'pending' | 'processing' | 'completed' | 'failed'>('processing')
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState('Initializing analysis...')
+
+  // Use a default songId if none is provided
+  const currentSongId = songId || 'demo-song-id'
 
   const analysisSteps = [
     'Initializing analysis...',
@@ -20,6 +24,13 @@ const AnalysisPage = () => {
   ]
 
   useEffect(() => {
+    // If no songId is provided, show a message or redirect
+    if (!songId) {
+      setAnalysisStatus('failed')
+      setCurrentStep('No song selected for analysis')
+      return
+    }
+
     // Simulate analysis progress
     let currentStepIndex = 0
     const interval = setInterval(() => {
@@ -34,11 +45,15 @@ const AnalysisPage = () => {
       } else {
         setAnalysisStatus('completed')
         clearInterval(interval)
+        // Navigate to dashboard after a short delay
+        setTimeout(() => {
+          navigate(`/dashboard/${currentSongId}`)
+        }, 2000)
       }
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [progress])
+  }, [progress, songId, currentSongId, navigate])
 
   const getProgressColor = () => {
     if (analysisStatus === 'failed') return 'bg-error-600'
@@ -66,8 +81,8 @@ const AnalysisPage = () => {
             <BarChart3 className="h-8 w-8 text-primary-600" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Analyzing Your Song</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analyzing Your Song</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400">
           Our AI is analyzing your music to provide detailed insights and success predictions.
         </p>
       </div>
@@ -80,23 +95,25 @@ const AnalysisPage = () => {
             <div className="flex items-center space-x-3">
               {getStatusIcon()}
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {analysisStatus === 'completed' ? 'Analysis Complete' : 'Analysis in Progress'}
                 </h2>
-                <p className="text-gray-600">Song ID: {songId}</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {songId ? `Song ID: ${songId}` : 'No song selected'}
+                </p>
               </div>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-primary-600">{Math.round(progress)}%</div>
-              <div className="text-sm text-gray-600">Complete</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Complete</div>
             </div>
           </div>
 
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Progress</span>
-              <span className="text-gray-600">{Math.round(progress)}%</span>
+              <span className="text-gray-600 dark:text-gray-400">Progress</span>
+              <span className="text-gray-600 dark:text-gray-400">{Math.round(progress)}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
               <div 
@@ -108,13 +125,13 @@ const AnalysisPage = () => {
 
           {/* Current Step */}
           <div className="space-y-2">
-            <h3 className="font-medium text-gray-900">Current Step</h3>
-            <p className="text-gray-600">{currentStep}</p>
+            <h3 className="font-medium text-gray-900 dark:text-white">Current Step</h3>
+            <p className="text-gray-600 dark:text-gray-400">{currentStep}</p>
           </div>
 
           {/* Analysis Steps */}
           <div className="space-y-3">
-            <h3 className="font-medium text-gray-900">Analysis Steps</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white">Analysis Steps</h3>
             <div className="space-y-2">
               {analysisSteps.map((step, index) => {
                 const stepProgress = (index + 1) * 12.5
@@ -140,7 +157,7 @@ const AnalysisPage = () => {
                         ? 'text-success-600 font-medium' 
                         : isCurrent 
                           ? 'text-primary-600 font-medium' 
-                          : 'text-gray-500'
+                          : 'text-gray-500 dark:text-gray-400'
                       }
                     `}>
                       {step}

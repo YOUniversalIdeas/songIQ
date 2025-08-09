@@ -14,6 +14,11 @@ dotenv.config()
 import songRoutes from './routes/songs'
 import analysisRoutes from './routes/analysis'
 import marketRoutes from './routes/market'
+import spotifyRoutes from './routes/spotify'
+import successRoutes from './routes/success'
+import paymentRoutes from './routes/payments'
+import webhookRoutes from './routes/webhooks'
+import authRoutes from './routes/auth'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -55,14 +60,20 @@ const connectDB = async () => {
     console.log('MongoDB connected successfully')
   } catch (error) {
     console.error('MongoDB connection error:', error)
-    process.exit(1)
+    console.log('Starting server without database connection...')
+    // Don't exit, just continue without database
   }
 }
 
 // API Routes
+app.use('/api/auth', authRoutes)
 app.use('/api/songs', songRoutes)
 app.use('/api/analysis', analysisRoutes)
 app.use('/api/market', marketRoutes)
+app.use('/api/spotify', spotifyRoutes)
+app.use('/api/success', successRoutes)
+app.use('/api/payments', paymentRoutes)
+app.use('/api/webhooks', webhookRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -111,20 +122,18 @@ const startServer = async () => {
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully')
-  mongoose.connection.close(() => {
-    console.log('MongoDB connection closed')
-    process.exit(0)
-  })
+  await mongoose.connection.close()
+  console.log('MongoDB connection closed')
+  process.exit(0)
 })
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully')
-  mongoose.connection.close(() => {
-    console.log('MongoDB connection closed')
-    process.exit(0)
-  })
+  await mongoose.connection.close()
+  console.log('MongoDB connection closed')
+  process.exit(0)
 })
 
 startServer() 
