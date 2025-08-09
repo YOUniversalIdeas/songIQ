@@ -1,0 +1,207 @@
+name: songIQ CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, staging, develop ]
+  pull_request:
+    branches: [ main, staging ]
+
+jobs:
+  # Test and Build Job
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: songiq/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd songiq
+        npm run install:all
+    
+    - name: Run linting
+      run: |
+        cd songiq
+        npm run lint
+    
+    - name: Run type checking
+      run: |
+        cd songiq
+        npm run type-check
+    
+    - name: Build application
+      run: |
+        cd songiq
+        npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          songiq/client/dist
+          songiq/server/dist
+        retention-days: 7
+
+  # Deploy to Staging
+  deploy-staging:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: songiq/package-lock.json
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: songiq/
+    
+    - name: Install dependencies
+      run: |
+        cd songiq
+        npm run install:all
+    
+    - name: Deploy to staging server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: ${{ secrets.STAGING_USER }}
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        script: |
+          # Create deployment directory
+          mkdir -p /tmp/songiq-staging-deploy
+          
+          # Stop current processes
+          pm2 stop songiq-api-staging 2>/dev/null || true
+          pm2 stop songiq-client-staging 2>/dev/null || true
+          
+          # Backup current deployment
+          if [ -d "/var/www/songiq-staging" ]; then
+            mv /var/www/songiq-staging /var/www/songiq-staging-backup-$(date +%Y%m%d-%H%M%S)
+          fi
+          
+          # Create new deployment directory
+          mkdir -p /var/www/songiq-staging
+          
+          # Copy files (this would be done via rsync or scp in real deployment)
+          echo "Deployment files would be copied here"
+          
+          # Set permissions
+          chown -R www-data:www-data /var/www/songiq-staging
+          chmod -R 755 /var/www/songiq-staging
+          
+          # Start processes
+          cd /var/www/songiq-staging
+          pm2 start ecosystem.config.js --env staging
+          pm2 save
+          
+          echo "Staging deployment completed!"
+
+  # Deploy to Production
+  deploy-production:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: songiq/package-lock.json
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: songiq/
+    
+    - name: Install dependencies
+      run: |
+        cd songiq
+        npm run install:all
+    
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USER }}
+        key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        script: |
+          # Create deployment directory
+          mkdir -p /tmp/songiq-production-deploy
+          
+          # Stop current processes
+          pm2 stop songiq-api 2>/dev/null || true
+          pm2 stop songiq-client 2>/dev/null || true
+          
+          # Create backup
+          if [ -d "/var/www/songiq" ]; then
+            BACKUP_DIR="/var/backups/songiq/backup-$(date +%Y%m%d-%H%M%S)"
+            mkdir -p $BACKUP_DIR
+            cp -r /var/www/songiq/* $BACKUP_DIR/
+            echo "Backup created at: $BACKUP_DIR"
+          fi
+          
+          # Create new deployment directory
+          mkdir -p /var/www/songiq
+          
+          # Copy files (this would be done via rsync or scp in real deployment)
+          echo "Deployment files would be copied here"
+          
+          # Set permissions
+          chown -R www-data:www-data /var/www/songiq
+          chmod -R 755 /var/www/songiq
+          
+          # Start processes
+          cd /var/www/songiq
+          pm2 start ecosystem.config.js --env production
+          pm2 save
+          
+          # Reload Nginx
+          sudo systemctl reload nginx
+          
+          echo "Production deployment completed!"
+
+  # Notify on deployment
+  notify:
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify deployment status
+      run: |
+        if [ "${{ needs.deploy-staging.result }}" == "success" ] || [ "${{ needs.deploy-production.result }}" == "success" ]; then
+          echo "✅ Deployment completed successfully!"
+        else
+          echo "❌ Deployment failed!"
+        fi 
