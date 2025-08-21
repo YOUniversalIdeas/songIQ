@@ -1,0 +1,24 @@
+{
+  "name": "songiq",
+  "version": "1.0.0",
+  "description": "AI-powered music analysis and insights platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd songiq/client && npm run dev",
+    "dev:server": "cd songiq/server && npm run dev",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd songiq/client && npm run build",
+    "build:server": "cd songiq/server && npm run build",
+    "install:all": "npm install && cd songiq/client && npm install && cd ../server && npm install",
+    "start": "cd songiq/server && npm start",
+    "preview": "cd songiq/client && npm run preview",
+    "test:email": "cd songiq/server && npm run test-email",
+    "deploy:check": "echo 'Checking deployment readiness...' && npm run build && echo '✅ Build successful - ready for deployment!'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  },
+  "dependencies": {
+    "pdfmake": "^0.2.20"
+  }
+}

@@ -9,7 +9,7 @@ echo "🚀 Starting songIQ Staging Deployment..."
 
 # Configuration
 STAGING_SERVER="64.202.184.174"
-STAGING_USER="root"
+STAGING_USER="rthadmin"
 STAGING_PATH="/var/www/songiq-staging"
 BRANCH="staging"
 
@@ -125,11 +125,11 @@ tar -czf $DEPLOY_DIR.tar.gz $DEPLOY_DIR
 
 print_status "Uploading deployment package to staging server..."
 
-# Upload to staging server (you'll need to configure SSH keys)
-scp $DEPLOY_DIR.tar.gz $STAGING_USER@$STAGING_SERVER:/tmp/
+# Upload to staging server using SSH key
+scp -i ~/.ssh/songiq_deploy_key $DEPLOY_DIR.tar.gz $STAGING_USER@$STAGING_SERVER:/tmp/
 
-# Execute deployment on remote server
-ssh $STAGING_USER@$STAGING_SERVER << EOF
+# Execute deployment on remote server using SSH key
+ssh -i ~/.ssh/songiq_deploy_key $STAGING_USER@$STAGING_SERVER << EOF
     cd /tmp
     tar -xzf $DEPLOY_DIR.tar.gz
     cd $DEPLOY_DIR
