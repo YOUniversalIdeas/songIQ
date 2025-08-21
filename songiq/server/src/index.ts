@@ -8,7 +8,7 @@ import mongoose from 'mongoose'
 import path from 'path'
 
 // Load environment variables
-dotenv.config()
+dotenv.config({ path: path.join(__dirname, '../.env') })
 
 // Import routes
 import songRoutes from './routes/songs'

@@ -3,7 +3,7 @@ module.exports = {
     // Staging API
     {
       name: 'songiq-api-staging',
-      script: 'server/index.js',
+      script: 'server/dist/index.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
