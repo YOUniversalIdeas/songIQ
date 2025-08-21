@@ -13,6 +13,8 @@ pnpm-debug.log*
 .env.production.local
 .env.production
 .env.staging
+env.production
+env.staging
 
 # Build outputs
 dist/
