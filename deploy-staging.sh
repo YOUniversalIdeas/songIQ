@@ -75,6 +75,9 @@ cp -r songiq/server/uploads $DEPLOY_DIR/uploads 2>/dev/null || mkdir -p $DEPLOY_
 cp songiq/client/.env.staging $DEPLOY_DIR/client.env
 cp songiq/server/.env.staging $DEPLOY_DIR/server.env
 
+# Copy ecosystem config for PM2
+cp ecosystem.config.js $DEPLOY_DIR/
+
 # Create deployment script for remote server
 cat > $DEPLOY_DIR/deploy-remote.sh << 'EOF'
 #!/bin/bash
@@ -86,6 +89,9 @@ echo "Deploying songIQ to staging..."
 pm2 stop songiq-api-staging 2>/dev/null || true
 pm2 stop songiq-client-staging 2>/dev/null || true
 
+# Wait for processes to stop
+sleep 5
+
 # Backup current deployment
 if [ -d "/var/www/songiq-staging" ]; then
     mv /var/www/songiq-staging /var/www/songiq-staging-backup-$(date +%Y%m%d-%H%M%S)
@@ -95,6 +101,7 @@ fi
 mkdir -p /var/www/songiq-staging
 
 # Copy new files
+echo "Copying new deployment files..."
 cp -r client-dist/* /var/www/songiq-staging/client/
 cp -r server-dist/* /var/www/songiq-staging/server/
 cp -r uploads/* /var/www/songiq-staging/server/uploads/ 2>/dev/null || true
@@ -103,14 +110,19 @@ cp -r uploads/* /var/www/songiq-staging/server/uploads/ 2>/dev/null || true
 cp client.env /var/www/songiq-staging/client/.env
 cp server.env /var/www/songiq-staging/server/.env
 
+# Create logs directory
+mkdir -p /var/www/songiq-staging/logs
+
 # Set permissions
 chown -R www-data:www-data /var/www/songiq-staging
 chmod -R 755 /var/www/songiq-staging
+chmod 644 /var/www/songiq-staging/client/.env
+chmod 644 /var/www/songiq-staging/server/.env
 
-# Start processes
+# Start processes with PM2 using ecosystem config
+echo "Starting processes with PM2..."
 cd /var/www/songiq-staging
-pm2 start server/index.js --name "songiq-api-staging" --env staging
-pm2 start "npm run preview" --name "songiq-client-staging" --cwd client
+pm2 start ecosystem.config.js --env staging
 
 # Save PM2 configuration
 pm2 save
@@ -133,6 +145,7 @@ ssh -i ~/.ssh/songiq_deploy_key $STAGING_USER@$STAGING_SERVER << EOF
     cd /tmp
     tar -xzf $DEPLOY_DIR.tar.gz
     cd $DEPLOY_DIR
+    chmod +x deploy-remote.sh
     ./deploy-remote.sh
     rm -rf /tmp/$DEPLOY_DIR*
 EOF
