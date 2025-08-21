@@ -50,16 +50,14 @@ const Header = () => {
               <div className="flex items-center space-x-3">
                 <Link
                   to="/auth"
-      
-                  className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   <LogIn className="h-4 w-4" />
                   <span>Sign In</span>
                 </Link>
                 <Link
                   to="/auth?mode=register"
-      
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
                 >
                   <User className="h-4 w-4" />
                   <span>Sign Up</span>

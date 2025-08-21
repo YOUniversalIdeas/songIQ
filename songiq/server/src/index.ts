@@ -116,10 +116,10 @@ const startServer = async () => {
   try {
     await connectDB()
     
-    app.listen(PORT, 'localhost', () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 songIQ server running on port ${PORT}`)
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`)
+      console.log(`🔗 Health check: http://0.0.0.0:${PORT}/api/health`)
     })
   } catch (error) {
     console.error('Failed to start server:', error)

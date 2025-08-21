@@ -160,15 +160,7 @@ const Navigation = () => {
                 )}
               </div>
             </>
-          ) : (
-            <NavLink
-              to="/auth"
-              className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-            >
-              <User className="h-4 w-4" />
-              <span>Sign In</span>
-            </NavLink>
-          )}
+          ) : null}
         </div>
       </div>
     </nav>
