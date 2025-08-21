@@ -8,8 +8,8 @@ set -e
 echo "🚀 Starting songIQ Staging Deployment..."
 
 # Configuration
-STAGING_SERVER="staging.songiq.com"
-STAGING_USER="deploy"
+STAGING_SERVER="64.202.184.174"
+STAGING_USER="root"
 STAGING_PATH="/var/www/songiq-staging"
 BRANCH="staging"
 
@@ -141,5 +141,5 @@ EOF
 rm -rf $DEPLOY_DIR $DEPLOY_DIR.tar.gz
 
 print_status "✅ Staging deployment completed successfully!"
-print_status "🌐 Staging URL: https://staging.songiq.com"
+print_status "🌐 Staging URL: http://64.202.184.174:3001"
 print_status "📊 PM2 Status: ssh $STAGING_USER@$STAGING_SERVER 'pm2 status'" 
