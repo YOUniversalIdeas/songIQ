@@ -3,11 +3,23 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 export interface User {
   id: string;
   email: string;
-  username: string;
   firstName: string;
   lastName: string;
-  avatar?: string;
-  role?: 'user' | 'artist' | 'producer' | 'label' | 'admin';
+  bandName: string;
+  username: string;
+  telephone: string;
+  profilePicture?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  socialLinks?: {
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    spotify?: string;
+  };
+  role?: 'user' | 'artist' | 'producer' | 'label' | 'admin' | 'superadmin';
+  spotifyToken?: string;
   subscription: {
     tier: 'free' | 'pro' | 'enterprise';
     status: 'active' | 'inactive' | 'cancelled';
@@ -65,9 +77,11 @@ export interface AuthContextType extends AuthState {
 export interface RegisterData {
   email: string;
   password: string;
-  username: string;
   firstName: string;
   lastName: string;
+  bandName: string;
+  username: string;
+  telephone: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -90,18 +104,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const token = localStorage.getItem('songiq_token');
+        
         if (token) {
-          // Verify token and get user data
-          const user = await verifyToken(token);
+          // Verify existing token with backend using profile endpoint
+          const response = await fetch('http://localhost:9001/api/auth/profile', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            setAuthState({
+              user,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            // Token is invalid, remove it
+            localStorage.removeItem('songiq_token');
+            setAuthState({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null,
+            });
+          }
+        } else {
           setAuthState({
-            user,
-            token,
-            isAuthenticated: true,
+            user: null,
+            token: null,
+            isAuthenticated: false,
             isLoading: false,
             error: null,
           });
-        } else {
-          setAuthState(prev => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -119,79 +159,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
-  // Simulate API calls
-  const verifyToken = async (_token: string): Promise<User> => {
-    // Simulate API call to verify token
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Return mock user data
-    return {
-      id: 'user-123',
-      email: 'demo@example.com',
-      username: 'demoartist',
-      firstName: 'Demo',
-      lastName: 'Artist',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-      role: 'admin',
-      subscription: {
-        tier: 'enterprise',
-        status: 'active',
-        expiresAt: '2024-12-31T23:59:59Z',
-        features: ['unlimited_uploads', 'advanced_analytics', 'ai_recommendations', 'priority_support', 'admin_access']
-      },
-      profile: {
-        bio: 'Independent artist passionate about creating meaningful music',
-        location: 'Los Angeles, CA',
-        website: 'https://demoartist.com',
-        socialLinks: {
-          instagram: '@demoartist',
-          twitter: '@demoartist',
-          youtube: 'DemoArtist',
-          spotify: 'Demo Artist'
-        }
-      },
-      stats: {
-        totalSongs: 15,
-        totalStreams: 125000,
-        averageScore: 78.5,
-        joinDate: '2024-01-15T00:00:00Z'
-      },
-      preferences: {
-        notifications: {
-          email: true,
-          push: true,
-          marketing: false
-        },
-        theme: 'auto',
-        language: 'en'
-      }
-    };
-  };
+
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock authentication
-      if (email === 'demo@example.com' && password === 'password') {
-        const token = 'mock_jwt_token_' + Date.now();
-        const user = await verifyToken(token);
-        
-        localStorage.setItem('songiq_token', token);
-        
-        setAuthState({
-          user,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
-      } else {
-        throw new Error('Invalid email or password');
+      // Real API call to backend
+      const response = await fetch('http://localhost:9001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
       }
+
+      const data = await response.json();
+      const { token, user } = data;
+
+      localStorage.setItem('songiq_token', token);
+      
+      setAuthState({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
     } catch (error) {
       setAuthState(prev => ({
         ...prev,
@@ -205,40 +204,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock registration
-      const token = 'mock_jwt_token_' + Date.now();
-      const user: User = {
-        id: 'user-' + Date.now(),
-        email: userData.email,
-        username: userData.username,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        subscription: {
-          tier: 'free',
-          status: 'active',
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          features: ['basic_uploads', 'basic_analytics']
+      // Real API call to backend
+      const response = await fetch('http://localhost:9001/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        profile: {},
-        stats: {
-          totalSongs: 0,
-          totalStreams: 0,
-          averageScore: 0,
-          joinDate: new Date().toISOString()
-        },
-        preferences: {
-          notifications: {
-            email: true,
-            push: true,
-            marketing: false
-          },
-          theme: 'auto',
-          language: 'en'
-        }
-      };
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+      const { token, user } = data;
       
       localStorage.setItem('songiq_token', token);
       

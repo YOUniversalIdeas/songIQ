@@ -70,7 +70,7 @@ const HomePage = () => {
             className="btn-secondary text-lg px-8 py-3 flex items-center justify-center space-x-2"
           >
             <Zap className="h-5 w-5" />
-            <span>AI Recommendations</span>
+            <span>Recommendations</span>
           </Link>
         </div>
       </section>

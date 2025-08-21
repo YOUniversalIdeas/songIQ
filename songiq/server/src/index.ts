@@ -19,9 +19,12 @@ import successRoutes from './routes/success'
 import paymentRoutes from './routes/payments'
 import webhookRoutes from './routes/webhooks'
 import authRoutes from './routes/auth'
+import userActivityRoutes from './routes/userActivity'
+import adminRoutes from './routes/admin'
+// import lyricsRoutes from './routes/lyrics'
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = parseInt(process.env.PORT || '9001', 10)
 
 // Security middleware
 app.use(helmet())
@@ -30,7 +33,7 @@ app.use(helmet())
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://yourdomain.com'] 
-    : ['http://localhost:3000'],
+    : ['http://localhost:3001', 'http://localhost:9000', 'http://localhost:9001', 'http://localhost:5000'],
   credentials: true
 }))
 
@@ -74,6 +77,9 @@ app.use('/api/spotify', spotifyRoutes)
 app.use('/api/success', successRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/webhooks', webhookRoutes)
+app.use('/api/user-activity', userActivityRoutes)
+app.use('/api/admin', adminRoutes)
+// app.use('/api/lyrics', lyricsRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -110,7 +116,7 @@ const startServer = async () => {
   try {
     await connectDB()
     
-    app.listen(PORT, () => {
+    app.listen(PORT, 'localhost', () => {
       console.log(`🚀 songIQ server running on port ${PORT}`)
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
       console.log(`🔗 Health check: http://localhost:${PORT}/api/health`)

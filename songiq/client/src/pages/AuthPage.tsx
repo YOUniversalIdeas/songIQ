@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/AuthProvider';
-import LoginForm from '@/components/LoginForm';
-import RegisterForm from '@/components/RegisterForm';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../components/AuthProvider';
+import LoginForm from '../components/LoginForm';
+import RegisterForm from '../components/RegisterForm';
+import { Logo } from '../assets';
 import { ArrowLeft, Mail, AlertCircle, CheckCircle } from 'lucide-react';
 
 type AuthMode = 'login' | 'register' | 'forgot-password';
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { resetPassword, isLoading, error, clearError } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [isResetSent, setIsResetSent] = useState(false);
+
+  // Set initial mode based on URL query parameter
+  useEffect(() => {
+    const urlMode = searchParams.get('mode');
+    if (urlMode === 'register') {
+      setMode('register');
+    }
+  }, [searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +155,9 @@ const AuthPage = () => {
 
         {/* Logo/Brand */}
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <Logo size={80} className="drop-shadow-sm" />
+          </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">songIQ</h1>
           <p className="text-gray-600 dark:text-gray-400">
             AI-powered music analysis and success prediction

@@ -11,6 +11,7 @@ import {
   ChartOptions,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { Info } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -57,6 +58,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
     zoomLevel: 1,
     selectedRegion: null,
   });
+  const [showWaveformTooltip, setShowWaveformTooltip] = useState(false);
 
   // Prepare data for Chart.js
   const prepareChartData = () => {
@@ -237,15 +239,61 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
     return () => clearInterval(interval);
   }, [state.isPlaying, state.playbackRate, duration]);
 
+  const handleWaveformInfo = () => {
+    setShowWaveformTooltip(true);
+    setTimeout(() => setShowWaveformTooltip(false), 4000);
+  };
+
   return (
     <div className={`waveform-visualizer ${className}`}>
-      <div className="waveform-container" style={{ height: `${height}px` }}>
+      <div className="waveform-container relative" style={{ height: `${height}px` }}>
         <Line
           ref={chartRef as any}
           data={prepareChartData()}
           options={chartOptions}
           onClick={handleChartClick}
         />
+        
+        {/* Info Icon */}
+        <button
+          onClick={handleWaveformInfo}
+          className="absolute top-2 right-2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+        >
+          <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+        </button>
+
+        {/* Tooltip */}
+        {showWaveformTooltip && (
+          <div className="fixed top-20 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400
+            left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+            md:max-w-xs md:left-auto md:right-auto md:mx-auto
+            md:right-4
+          ">
+            <div className="text-sm">
+              <strong>Audio Waveform</strong> provides a visual representation of your audio file's amplitude over time, allowing you to analyze the dynamic range and structure of your music.
+              <br /><br />
+              <strong>Features:</strong>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span className="text-xs">Interactive playback controls</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span className="text-xs">Time-based navigation</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span className="text-xs">Zoom and speed controls</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span className="text-xs">Audio statistics and metrics</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showControls && (

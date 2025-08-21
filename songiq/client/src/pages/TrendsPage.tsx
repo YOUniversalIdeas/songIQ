@@ -1,10 +1,83 @@
 
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, Globe, Calendar, Target, Share2, Download, BarChart3 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Globe, Calendar, Target, Share2, Download, BarChart3, Info } from 'lucide-react';
 import TrendAnalysisDashboard from '@/components/TrendAnalysisDashboard';
+import { useState, useRef, useEffect } from 'react';
+
+// Custom hook for dynamic tooltip positioning (same as Recommendations page)
+const useTooltipPosition = () => {
+  const [tooltipPosition, setTooltipPosition] = useState<'left' | 'right'>('right');
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const updateTooltipPosition = () => {
+    if (buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const tooltipWidth = 300; // Width of the tooltip
+      const margin = 20; // Margin from edge
+
+      // Check if there's enough space on the right
+      const spaceOnRight = viewportWidth - buttonRect.right - margin;
+      const spaceOnLeft = buttonRect.left - margin;
+
+      if (spaceOnRight >= tooltipWidth) {
+        setTooltipPosition('right');
+      } else if (spaceOnLeft >= tooltipWidth) {
+        setTooltipPosition('left');
+      } else {
+        // If neither side has enough space, default to left for better visibility
+        setTooltipPosition('left');
+      }
+    }
+  };
+
+  useEffect(() => {
+    updateTooltipPosition();
+    window.addEventListener('resize', updateTooltipPosition);
+    return () => window.removeEventListener('resize', updateTooltipPosition);
+  }, []);
+
+  return { tooltipPosition, buttonRef, updateTooltipPosition };
+};
 
 const TrendsPage = () => {
   const navigate = useNavigate();
+  
+  // State for tooltips
+  const [showMarketGrowthTooltip, setShowMarketGrowthTooltip] = useState(false);
+  const [showTopGenreTooltip, setShowTopGenreTooltip] = useState(false);
+  const [showSocialSentimentTooltip, setShowSocialSentimentTooltip] = useState(false);
+  const [showPredictionAccuracyTooltip, setShowPredictionAccuracyTooltip] = useState(false);
+
+  // Use the custom hook for each tooltip
+  const marketGrowthPosition = useTooltipPosition();
+  const topGenrePosition = useTooltipPosition();
+  const socialSentimentPosition = useTooltipPosition();
+  const predictionAccuracyPosition = useTooltipPosition();
+
+  const handleMarketGrowthInfo = () => {
+    marketGrowthPosition.updateTooltipPosition();
+    setShowMarketGrowthTooltip(true);
+    setTimeout(() => setShowMarketGrowthTooltip(false), 4000);
+  };
+
+  const handleTopGenreInfo = () => {
+    topGenrePosition.updateTooltipPosition();
+    setShowTopGenreTooltip(true);
+    setTimeout(() => setShowTopGenreTooltip(false), 4000);
+  };
+
+  const handleSocialSentimentInfo = () => {
+    socialSentimentPosition.updateTooltipPosition();
+    setShowSocialSentimentTooltip(true);
+    setTimeout(() => setShowSocialSentimentTooltip(false), 4000);
+  };
+
+  const handlePredictionAccuracyInfo = () => {
+    predictionAccuracyPosition.updateTooltipPosition();
+    setShowPredictionAccuracyTooltip(true);
+    setTimeout(() => setShowPredictionAccuracyTooltip(false), 4000);
+  };
 
   const exportTrendsReport = async () => {
     // Simulate PDF generation
@@ -47,48 +120,228 @@ const TrendsPage = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100">Market Growth</p>
                 <p className="text-2xl font-bold">+12.5%</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-200" />
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-8 w-8 text-blue-200" />
+                <button
+                  ref={marketGrowthPosition.buttonRef}
+                  onClick={handleMarketGrowthInfo}
+                  className="p-1 rounded-full bg-blue-400 hover:bg-blue-300 transition-colors duration-200"
+                  title="Click for more information"
+                >
+                  <Info className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
             <p className="text-blue-100 text-sm mt-2">+2.3% from last month</p>
+            
+            {/* Tooltip */}
+            {showMarketGrowthTooltip && (
+              <div className={`absolute top-0 w-[300px] bg-blue-600 text-white p-4 rounded-lg shadow-2xl z-[999999999] 
+                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                ${marketGrowthPosition.tooltipPosition === 'right' 
+                  ? 'md:left-full md:ml-2' 
+                  : 'md:right-full md:mr-2'
+                }
+              `}>
+                <div className={`absolute top-4 hidden md:block ${
+                  marketGrowthPosition.tooltipPosition === 'right' 
+                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
+                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
+                }`}></div>
+                <h4 className="font-semibold mb-2">Market Growth</h4>
+                <p className="text-sm mb-3">
+                  Market Growth represents the overall expansion of the music industry, including streaming revenue, 
+                  digital sales, and market capitalization. This metric tracks month-over-month and year-over-year growth trends.
+                </p>
+                <div className="text-sm mb-3">
+                  <p className="font-medium mb-1">Current Status:</p>
+                  <p>• +12.5% overall market growth</p>
+                  <p>• +2.3% increase from last month</p>
+                  <p>• Positive trend for 6 consecutive months</p>
+                  <p>• Above industry average of +8.2%</p>
+                </div>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Color Coding:</p>
+                  <p>• Blue gradient: Represents growth, stability, and positive market trends</p>
+                  <p>• Current score (+12.5%): Indicates strong market expansion</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100">Top Genre</p>
                 <p className="text-2xl font-bold">Pop</p>
               </div>
-              <BarChart3 className="h-8 w-8 text-green-200" />
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-8 w-8 text-green-200" />
+                <button
+                  ref={topGenrePosition.buttonRef}
+                  onClick={handleTopGenreInfo}
+                  className="p-1 rounded-full bg-green-400 hover:bg-green-300 transition-colors duration-200"
+                  title="Click for more information"
+                >
+                  <Info className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
             <p className="text-green-100 text-sm mt-2">85% popularity score</p>
+            
+            {/* Tooltip */}
+            {showTopGenreTooltip && (
+              <div className={`absolute top-0 w-[300px] bg-green-600 text-white p-4 rounded-lg shadow-2xl z-[999999999] 
+                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                ${topGenrePosition.tooltipPosition === 'right' 
+                  ? 'md:left-full md:ml-2' 
+                  : 'md:right-full md:mr-2'
+                }
+              `}>
+                <div className={`absolute top-4 hidden md:block ${
+                  topGenrePosition.tooltipPosition === 'right' 
+                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-green-600' 
+                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-green-600'
+                }`}></div>
+                <h4 className="font-semibold mb-2">Top Genre</h4>
+                <p className="text-sm mb-3">
+                  Top Genre identifies the most popular music genre based on streaming numbers, radio play, 
+                  social media engagement, and chart performance. This metric helps artists understand current market preferences.
+                </p>
+                <div className="text-sm mb-3">
+                  <p className="font-medium mb-1">Current Status:</p>
+                  <p>• Pop music leads with 85% popularity score</p>
+                  <p>• 12% increase from last quarter</p>
+                  <p>• Dominates streaming platforms globally</p>
+                  <p>• Strong social media presence</p>
+                </div>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Color Coding:</p>
+                  <p>• Green gradient: Represents growth, popularity, and market dominance</p>
+                  <p>• Current score (85%): Indicates genre leadership position</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100">Social Sentiment</p>
                 <p className="text-2xl font-bold">Positive</p>
               </div>
-              <Share2 className="h-8 w-8 text-purple-200" />
+              <div className="flex items-center space-x-2">
+                <Share2 className="h-8 w-8 text-purple-200" />
+                <button
+                  ref={socialSentimentPosition.buttonRef}
+                  onClick={handleSocialSentimentInfo}
+                  className="p-1 rounded-full bg-purple-400 hover:bg-purple-300 transition-colors duration-200"
+                  title="Click for more information"
+                >
+                  <Info className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
             <p className="text-purple-100 text-sm mt-2">78% positive engagement</p>
+            
+            {/* Tooltip */}
+            {showSocialSentimentTooltip && (
+              <div className={`absolute top-0 w-[300px] bg-purple-600 text-white p-4 rounded-lg shadow-2xl z-[999999999] 
+                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                ${socialSentimentPosition.tooltipPosition === 'right' 
+                  ? 'md:left-full md:ml-2' 
+                  : 'md:right-full md:mr-2'
+                }
+              `}>
+                <div className={`absolute top-4 hidden md:block ${
+                  socialSentimentPosition.tooltipPosition === 'right' 
+                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-purple-600' 
+                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-purple-600'
+                }`}></div>
+                <h4 className="font-semibold mb-2">Social Sentiment</h4>
+                <p className="text-sm mb-3">
+                  Social Sentiment measures the overall emotional tone and engagement level across social media platforms, 
+                  including Twitter, Instagram, TikTok, and YouTube. This metric reflects public perception and viral potential.
+                </p>
+                <div className="text-sm mb-3">
+                  <p className="font-medium mb-1">Current Status:</p>
+                  <p>• 78% positive engagement rate</p>
+                  <p>• 15% increase from last month</p>
+                  <p>• Strong viral content performance</p>
+                  <p>• High social media sharing</p>
+                </div>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Color Coding:</p>
+                  <p>• Purple gradient: Represents creativity, social connection, and viral potential</p>
+                  <p>• Current score (78%): Indicates strong positive sentiment</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-yellow-100">Prediction Accuracy</p>
                 <p className="text-2xl font-bold">82%</p>
               </div>
-              <Target className="h-8 w-8 text-yellow-200" />
+              <div className="flex items-center space-x-2">
+                <Target className="h-8 w-8 text-yellow-200" />
+                <button
+                  ref={predictionAccuracyPosition.buttonRef}
+                  onClick={handlePredictionAccuracyInfo}
+                  className="p-1 rounded-full bg-yellow-400 hover:bg-yellow-300 transition-colors duration-200"
+                  title="Click for more information"
+                >
+                  <Info className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
             <p className="text-yellow-100 text-sm mt-2">High confidence model</p>
+            
+            {/* Tooltip */}
+            {showPredictionAccuracyTooltip && (
+              <div className={`absolute top-0 w-[300px] bg-yellow-600 text-white p-4 rounded-lg shadow-2xl z-[999999999] 
+                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                ${predictionAccuracyPosition.tooltipPosition === 'right' 
+                  ? 'md:left-full md:ml-2' 
+                  : 'md:right-full md:mr-2'
+                }
+              `}>
+                <div className={`absolute top-4 hidden md:block ${
+                  predictionAccuracyPosition.tooltipPosition === 'right' 
+                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-yellow-600' 
+                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-yellow-600'
+                }`}></div>
+                <h4 className="font-semibold mb-2">Prediction Accuracy</h4>
+                <p className="text-sm mb-3">
+                  Prediction Accuracy measures how well our AI models forecast music trends, chart performance, 
+                  and market movements. This metric validates the reliability of our predictive analytics system.
+                </p>
+                <div className="text-sm mb-3">
+                  <p className="font-medium mb-1">Current Status:</p>
+                  <p>• 82% overall prediction accuracy</p>
+                  <p>• High confidence model performance</p>
+                  <p>• 3-month trend predictions: 85% accurate</p>
+                  <p>• 6-month predictions: 78% accurate</p>
+                </div>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Color Coding:</p>
+                  <p>• Yellow gradient: Represents intelligence, accuracy, and predictive power</p>
+                  <p>• Current score (82%): Indicates high confidence model</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

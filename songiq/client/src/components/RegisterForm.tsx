@@ -1,28 +1,41 @@
 import React, { useState } from 'react';
-import { useAuth, RegisterData } from './AuthProvider';
+import { useAuth } from './AuthProvider';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
 }
 
+interface ValidationErrors {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  firstName?: string;
+  lastName?: string;
+  bandName?: string;
+  username?: string;
+  telephone?: string;
+}
+
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const { register, isLoading, error, clearError } = useAuth();
-  const [formData, setFormData] = useState<RegisterData>({
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
-    username: '',
+    confirmPassword: '',
     firstName: '',
     lastName: '',
+    bandName: '',
+    username: '',
+    telephone: ''
   });
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
+    const errors: ValidationErrors = {};
 
     // Email validation
     if (!formData.email) {
@@ -41,7 +54,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     }
 
     // Confirm password validation
-    if (formData.password !== confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
 
@@ -60,6 +73,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     }
     if (!formData.lastName) {
       errors.lastName = 'Last name is required';
+    }
+    if (!formData.bandName) {
+      errors.bandName = 'Band name is required';
+    }
+    if (!formData.telephone) {
+      errors.telephone = 'Telephone is required';
     }
 
     setValidationErrors(errors);
@@ -82,16 +101,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     }
   };
 
-  const handleInputChange = (field: keyof RegisterData, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (validationErrors[field]) {
+    if (validationErrors[field as keyof typeof validationErrors]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }));
     }
-    if (error) clearError();
   };
 
   const handleConfirmPasswordChange = (value: string) => {
-    setConfirmPassword(value);
+    setFormData(prev => ({ ...prev, confirmPassword: value }));
     if (validationErrors.confirmPassword) {
       setValidationErrors(prev => ({ ...prev, confirmPassword: '' }));
     }
@@ -163,6 +181,33 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.lastName}</p>
             )}
           </div>
+
+          <div>
+            <label htmlFor="bandName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Band Name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                id="bandName"
+                type="text"
+                value={formData.bandName}
+                onChange={(e) => handleInputChange('bandName', e.target.value)}
+                required
+                className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  validationErrors.bandName 
+                    ? 'border-red-300 dark:border-red-600' 
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+                placeholder="Band name"
+              />
+            </div>
+            {validationErrors.bandName && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.bandName}</p>
+            )}
+          </div>
         </div>
 
         {/* Username */}
@@ -221,6 +266,34 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           )}
         </div>
 
+        {/* Telephone */}
+        <div>
+          <label htmlFor="telephone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Phone Number
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <User className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="telephone"
+              type="tel"
+              value={formData.telephone}
+              onChange={(e) => handleInputChange('telephone', e.target.value)}
+              required
+              className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                validationErrors.telephone 
+                  ? 'border-red-300 dark:border-red-600' 
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}
+              placeholder="Phone number"
+            />
+          </div>
+          {validationErrors.telephone && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.telephone}</p>
+          )}
+        </div>
+
         {/* Password */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -272,7 +345,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
             <input
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
+              value={formData.confirmPassword}
               onChange={(e) => handleConfirmPasswordChange(e.target.value)}
               required
               className={`block w-full pl-10 pr-12 py-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${

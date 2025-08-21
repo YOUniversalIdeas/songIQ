@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImage from './LeaningIQ2025-08-05_12-17-500x.png';
+import logoImage from './LeaningIQ.svg';
 
 interface LogoProps {
   className?: string;
@@ -11,8 +11,12 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 120 }) => {
     <img 
       src={logoImage} 
       alt="SongIQ Logo"
-      width={size}
-      height={size}
+      style={{ 
+        width: size, 
+        height: 'auto',
+        maxWidth: '100%',
+        objectFit: 'contain'
+      }}
       className={className}
     />
   );

@@ -1,115 +1,103 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
-import AnalysisDashboard from '@/components/AnalysisDashboard'
-import ResultsVisualization from '@/components/ResultsVisualization'
+import AnalysisDashboard from '../components/AnalysisDashboard'
+import ResultsVisualization from '../components/ResultsVisualization'
 
 const DashboardPage = () => {
   const { songId } = useParams<{ songId: string }>()
   const [isLoading, setIsLoading] = useState(true)
 
-  // Sample data for demonstration
-  const sampleSongData = {
-    id: songId || 'demo-song-id',
-    title: "Midnight Dreams",
-    artist: "Demo Artist",
-    genre: "pop",
-    duration: 225, // 3:45 in seconds
-    audioFeatures: {
-      danceability: 0.75,
-      energy: 0.68,
-      valence: 0.62,
-      acousticness: 0.15,
-      instrumentalness: 0.08,
-      liveness: 0.12,
-      speechiness: 0.05,
-      tempo: 128,
-      loudness: -8.5,
-      key: 1, // C#
-      mode: 1 // Major
-    },
-    successScore: {
-      overallScore: 78,
-      confidence: 0.85, // 85% as decimal (0.0 to 1.0)
-      breakdown: {
-        audioFeatures: 82,
-        marketTrends: 75,
-        genreAlignment: 80,
-        seasonalFactors: 70
-      },
-      recommendations: [
-        {
-          category: "Production",
-          priority: "high" as const,
-          title: "Enhance Dynamic Range",
-          description: "Add more contrast between quiet and loud sections to increase emotional impact",
-          impact: 85,
-          implementation: "Work with your producer to add build-ups and drops"
-        },
-        {
-          category: "Marketing",
-          priority: "medium" as const,
-          title: "Target Pop-Rock Audience",
-          description: "Focus marketing efforts on listeners who enjoy energetic pop-rock",
-          impact: 70,
-          implementation: "Create playlists and collaborate with similar artists"
-        },
-        {
-          category: "Release Strategy",
-          priority: "low" as const,
-          title: "Consider Seasonal Timing",
-          description: "Release during peak listening season for maximum exposure",
-          impact: 60,
-          implementation: "Plan release for spring/summer when energy levels are higher"
-        }
-      ],
-      riskFactors: [
-        "Competition from established artists in the same genre",
-        "Limited differentiation from current market trends"
-      ],
-      marketPotential: 75,
-      socialScore: 72
-    },
-    waveformData: Array.from({ length: 1000 }, () => Math.random() * 0.5 + 0.25),
-    uploadDate: new Date().toISOString()
-  }
+  // TODO: Replace with actual API call to fetch song data
+  const [songData, _setSongData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => setIsLoading(false), 1000)
-  }, [])
+    const fetchSongData = async () => {
+      if (!songId) {
+        setError('No song ID provided')
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        // TODO: Replace with actual API endpoint
+        // const response = await fetch(`/api/songs/${songId}/analysis`)
+        // const data = await response.json()
+        // setSongData(data)
+        
+        // For now, show placeholder
+        setError('Song analysis data not yet implemented')
+        setIsLoading(false)
+      } catch (err) {
+        setError('Failed to load song analysis')
+        setIsLoading(false)
+      }
+    }
+
+    fetchSongData()
+  }, [songId])
+
+
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-64">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading your analysis results...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600">Loading your analysis results...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center space-y-4">
+          <div className="p-4 bg-red-100 dark:bg-red-900/20 rounded-lg">
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!songData) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center space-y-4">
+          <p className="text-gray-600">No song data available</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-8 p-6">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <div className="p-3 bg-primary-100 rounded-full">
-            <TrendingUp className="h-8 w-8 text-primary-600" />
+          <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+            <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Analysis Results</h1>
-        <p className="text-lg text-gray-600">
-          Detailed insights and predictions for "{sampleSongData.title}"
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analysis Results</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400">
+          Complete dashboard with charts and visualizations
         </p>
       </div>
 
-      {/* Analysis Dashboard */}
-      <AnalysisDashboard songData={sampleSongData} />
+      {/* AnalysisDashboard Component */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+        <AnalysisDashboard songData={songData} />
+      </div>
 
-      {/* Results Visualization */}
-      <ResultsVisualization songData={sampleSongData} />
+      {/* ResultsVisualization Component */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Results Visualization</h2>
+        <ResultsVisualization songData={songData} />
+      </div>
     </div>
   )
 }

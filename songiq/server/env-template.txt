@@ -35,11 +35,15 @@ RATE_LIMIT_MAX_REQUESTS=100
 LOG_LEVEL=info
 
 # Stripe Configuration
-STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
-STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret_here
+# Get these from: https://dashboard.stripe.com/developers/api-keys
+STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_stripe_publishable_key_here
+STRIPE_SECRET_KEY=sk_live_your_actual_stripe_secret_key_here
 
-# Stripe Price IDs (create these in your Stripe dashboard)
-STRIPE_BASIC_PLAN_PRICE_ID=price_basic_plan_id_here
-STRIPE_PRO_PLAN_PRICE_ID=price_pro_plan_id_here
-STRIPE_ENTERPRISE_PLAN_PRICE_ID=price_enterprise_plan_id_here 
+# Get this from: https://dashboard.stripe.com/developers/webhooks
+STRIPE_WEBHOOK_SECRET=whsec_your_actual_stripe_webhook_secret_here
+
+# Stripe Price IDs - Create these products in your Stripe dashboard
+# Go to: https://dashboard.stripe.com/products
+STRIPE_BASIC_PLAN_PRICE_ID=price_your_actual_basic_plan_price_id_here
+STRIPE_PRO_PLAN_PRICE_ID=price_your_actual_pro_plan_price_id_here
+STRIPE_ENTERPRISE_PLAN_PRICE_ID=price_your_actual_enterprise_plan_price_id_here 

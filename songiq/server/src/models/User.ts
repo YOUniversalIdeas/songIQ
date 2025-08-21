@@ -6,15 +6,20 @@ export interface IUser extends Document {
   password: string;
   firstName: string;
   lastName: string;
+  bandName: string;
   username: string;
+  telephone: string;
   profilePicture?: string;
   bio?: string;
-  role: 'user' | 'artist' | 'producer' | 'label' | 'admin';
+  role: 'user' | 'artist' | 'producer' | 'label' | 'admin' | 'superadmin';
   isVerified: boolean;
   isActive: boolean;
   lastLogin?: Date;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  spotifyToken?: string;
   uploadedSongs: mongoose.Types.ObjectId[];
   favoriteSongs: mongoose.Types.ObjectId[];
   subscription: {
@@ -64,6 +69,8 @@ export interface IUser extends Document {
   resetUsageIfNeeded(): void;
   generateEmailVerificationToken(): string;
   isEmailVerificationExpired(): boolean;
+  generatePasswordResetToken(): string;
+  isPasswordResetExpired(): boolean;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -93,6 +100,12 @@ const UserSchema = new Schema<IUser>({
     trim: true,
     maxlength: [50, 'Last name cannot be more than 50 characters']
   },
+  bandName: {
+    type: String,
+    required: [true, 'Band name is required'],
+    trim: true,
+    maxlength: [100, 'Band name cannot be more than 100 characters']
+  },
   username: {
     type: String,
     required: [true, 'Username is required'],
@@ -101,6 +114,12 @@ const UserSchema = new Schema<IUser>({
     minlength: [3, 'Username must be at least 3 characters long'],
     maxlength: [30, 'Username cannot be more than 30 characters'],
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
+  },
+  telephone: {
+    type: String,
+    required: [true, 'Phone number is required'],
+    trim: true,
+    maxlength: [20, 'Phone number cannot be more than 20 characters']
   },
   profilePicture: {
     type: String,
@@ -114,7 +133,7 @@ const UserSchema = new Schema<IUser>({
   role: {
     type: String,
     required: true,
-    enum: ['user', 'artist', 'producer', 'label', 'admin'],
+    enum: ['user', 'artist', 'producer', 'label', 'admin', 'superadmin'],
     default: 'user'
   },
   isVerified: {
@@ -135,6 +154,18 @@ const UserSchema = new Schema<IUser>({
   },
   emailVerificationExpires: {
     type: Date,
+    default: null
+  },
+  passwordResetToken: {
+    type: String,
+    default: null
+  },
+  passwordResetExpires: {
+    type: Date,
+    default: null
+  },
+  spotifyToken: {
+    type: String,
     default: null
   },
   uploadedSongs: [{
@@ -364,6 +395,21 @@ UserSchema.methods.generateEmailVerificationToken = function(): string {
 UserSchema.methods.isEmailVerificationExpired = function(): boolean {
   if (!this.emailVerificationExpires) return true;
   return new Date() > this.emailVerificationExpires;
+};
+
+// Instance method to generate password reset token
+UserSchema.methods.generatePasswordResetToken = function(): string {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  this.passwordResetToken = token;
+  this.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  return token;
+};
+
+// Instance method to check if password reset token is expired
+UserSchema.methods.isPasswordResetExpired = function(): boolean {
+  if (!this.passwordResetExpires) return true;
+  return new Date() > this.passwordResetExpires;
 };
 
 // Pre-save middleware to hash password

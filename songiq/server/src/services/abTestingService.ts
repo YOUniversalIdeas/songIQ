@@ -218,7 +218,7 @@ function applyCustomModifications(
       if (modified[feature as keyof IAudioFeatures] !== undefined) {
         const value = modified[feature as keyof IAudioFeatures] as number;
         const weight = config.customWeights[feature];
-        modified[feature as keyof IAudioFeatures] = value * weight;
+        (modified as any)[feature] = value * weight;
       }
     });
   }
@@ -230,9 +230,9 @@ function applyCustomModifications(
         const value = modified[feature as keyof IAudioFeatures] as number;
         const threshold = config.customThresholds[feature];
         if (value < threshold.min) {
-          modified[feature as keyof IAudioFeatures] = threshold.min;
+          (modified as any)[feature] = threshold.min;
         } else if (value > threshold.max) {
-          modified[feature as keyof IAudioFeatures] = threshold.max;
+          (modified as any)[feature] = threshold.max;
         }
       }
     });

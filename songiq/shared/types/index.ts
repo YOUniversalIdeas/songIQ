@@ -166,18 +166,21 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  bandName: string;
   username: string;
+  telephone: string;
   profilePicture?: string;
   bio?: string;
-  role: 'user' | 'artist' | 'producer' | 'label' | 'admin';
+  role: 'user' | 'artist' | 'producer' | 'label' | 'admin' | 'superadmin';
   isVerified: boolean;
-  isActive: boolean;
-  lastLogin?: Date;
-  uploadedSongs: string[]; // Song IDs
-  favoriteSongs: string[]; // Song IDs
-  subscription: UserSubscription;
-  preferences: UserPreferences;
-  stats: UserStats;
+  spotifyToken?: string;
+  subscription: {
+    plan: 'free' | 'basic' | 'pro' | 'enterprise';
+    status: 'active' | 'inactive' | 'cancelled';
+    usage: number;
+  };
+  songLimit: number;
+  remainingSongs: number;
   createdAt: Date;
   updatedAt: Date;
 }

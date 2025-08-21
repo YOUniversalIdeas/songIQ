@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ArtistImpersonationDashboard from './ArtistImpersonationDashboard';
 import {
   BarChart3,
   TrendingUp,
@@ -89,7 +90,9 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'ai-models' | 'content' | 'users' | 'business'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'ai-models' | 'content' | 'users' | 'business' | 'artist-management'>('overview');
+  const [poseAsArtist, setPoseAsArtist] = useState<any>(null);
+
   const [metrics] = useState<AdminMetrics>({
     recommendationAccuracy: 87.3,
     clickThroughRate: 23.5,
@@ -131,6 +134,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load data when component mounts
+  useEffect(() => {
+    // Placeholder for future API integration
+  }, []);
 
   // Mock data for charts
   const performanceData = {
@@ -252,6 +260,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
 
 
 
+  // If posing as an artist, show the artist dashboard
+  if (poseAsArtist) {
+    return (
+      <ArtistImpersonationDashboard
+        artistData={poseAsArtist}
+        onStopPosing={() => setPoseAsArtist(null)}
+      />
+    );
+  }
+
   return (
     <div className={`admin-dashboard ${className}`}>
       {/* Header */}
@@ -288,6 +306,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
               { id: 'content', label: 'Content', icon: Music },
               { id: 'users', label: 'Users', icon: Users },
               { id: 'business', label: 'Business', icon: DollarSign },
+              { id: 'artist-management', label: 'Artist Management', icon: Users },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -786,6 +805,449 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
                   <p className="text-2xl font-bold text-purple-600">+34%</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">YoY growth</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'artist-management' && (
+          <ArtistManagementTab onPoseAsArtist={setPoseAsArtist} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Artist Management Tab Component
+interface ArtistManagementTabProps {
+  onPoseAsArtist: (artistData: any) => void;
+}
+
+const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtist }) => {
+  const [artists, setArtists] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+
+  // Load artists data
+  const loadArtists = async (page = 1, search = '') => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '20',
+        ...(search && { search })
+      });
+      
+      const response = await fetch(`/api/admin/artists?${params}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setArtists(data.data);
+        setTotalPages(data.pagination.pages);
+        setCurrentPage(data.pagination.page);
+      }
+    } catch (error) {
+      console.error('Failed to load artists:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Download artists as CSV
+  const downloadArtistsCSV = async () => {
+    try {
+      // For now, create CSV from mock data
+      const csvHeader = 'Name,Band Name,Email,Phone,Role,Subscription,Status,Created Date\n';
+      const csvRows = artists.map(artist => {
+        const name = `${artist.firstName} ${artist.lastName}`;
+        const status = artist.isActive ? 'Active' : 'Inactive';
+        const subscription = artist.subscriptionPlan ? artist.subscriptionPlan.charAt(0).toUpperCase() + artist.subscriptionPlan.slice(1) : 'Free';
+        const createdDate = artist.createdAt.toISOString().split('T')[0];
+        return `"${name}","${artist.bandName}","${artist.email}","${artist.telephone}","${artist.role}","${subscription}","${status}","${createdDate}"`;
+      }).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'artists_data.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      // Uncomment when API is ready:
+      // const response = await fetch('/api/admin/artists/download');
+      // const blob = await response.blob();
+      // const url = window.URL.createObjectURL(blob);
+      // const a = document.createElement('a');
+      // a.href = url;
+      // a.download = 'artists_data.csv';
+      // document.body.appendChild(a);
+      // a.click();
+      // window.URL.revokeObjectURL(url);
+      // document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to download CSV:', error);
+    }
+  };
+
+  // Pose as artist
+  const handlePoseAsArtist = async (artistId: string) => {
+    try {
+      // For now, create mock artist data
+      const artist = artists.find(a => a._id === artistId);
+      if (artist) {
+        const mockArtistData = {
+          originalAdminId: 'admin123',
+          artistId: artist._id,
+          artistEmail: artist.email,
+          artistName: `${artist.firstName} ${artist.lastName}`,
+          bandName: artist.bandName,
+          role: artist.role,
+          impersonationStartTime: new Date(),
+          artistData: {
+            profile: {
+              firstName: artist.firstName,
+              lastName: artist.lastName,
+              bandName: artist.bandName,
+              email: artist.email,
+              telephone: artist.telephone,
+              bio: 'Sample bio for demonstration',
+              profilePicture: artist.profilePicture
+            },
+            songs: [
+              { title: 'Sample Song 1', artist: artist.bandName, analysisStatus: 'completed' },
+              { title: 'Sample Song 2', artist: artist.bandName, analysisStatus: 'pending' },
+              { title: 'Sample Song 3', artist: artist.bandName, analysisStatus: 'completed' }
+            ],
+            favorites: [
+              { title: 'Favorite Song 1', artist: 'Other Artist', genre: 'Rock' },
+              { title: 'Favorite Song 2', artist: 'Another Artist', genre: 'Pop' }
+            ],
+            stats: {
+              totalSongs: 3,
+              totalAnalyses: 2,
+              totalPlays: 150,
+              memberSince: new Date('2024-01-01')
+            },
+            subscription: {
+              plan: 'pro',
+              status: 'active',
+              usage: {
+                songsAnalyzed: 2
+              }
+            }
+          }
+        };
+        
+        onPoseAsArtist(mockArtistData);
+        alert(`Successfully posing as ${mockArtistData.artistName}. You can now access their dashboard and make edits.`);
+      }
+      
+      // Uncomment when API is ready:
+      // const response = await fetch(`/api/admin/artists/${artistId}/pose`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      // });
+      // 
+      // const data = await response.json();
+      // 
+      // if (data.success) {
+      //   onPoseAsArtist(data.data);
+      //   alert(`Successfully posing as ${data.data.artistName}. You can now access their dashboard and make edits.`);
+      // }
+    } catch (error) {
+      console.error('Failed to pose as artist:', error);
+      alert('Failed to pose as artist. Please try again.');
+    }
+  };
+
+  // Search artists
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    
+    if (searchTerm.trim()) {
+      const filtered = mockArtists.filter(artist => 
+        artist.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        artist.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        artist.bandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        artist.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        artist.telephone.includes(searchTerm) ||
+        artist.subscriptionPlan.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setArtists(filtered);
+      setTotalPages(1);
+    } else {
+      setArtists(mockArtists);
+      setTotalPages(1);
+    }
+    
+    // Uncomment when API is ready:
+    // loadArtists(1, searchTerm);
+  };
+
+  // Mock data for demonstration (remove when real API is connected)
+  const mockArtists = [
+    {
+      _id: '1',
+      firstName: 'Sarah',
+      lastName: 'Wilson',
+      bandName: 'Midnight Dreams',
+      email: 'sarah@midnightdreams.com',
+      telephone: '+1 (555) 123-4567',
+      role: 'artist',
+      isActive: true,
+      subscriptionPlan: 'pro',
+      createdAt: new Date('2024-01-15'),
+      profilePicture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face'
+    },
+    {
+      _id: '2',
+      firstName: 'DJ',
+      lastName: 'Max',
+      bandName: 'Electric Soul Collective',
+      email: 'max@electricsoul.com',
+      telephone: '+1 (555) 234-5678',
+      role: 'producer',
+      isActive: true,
+      subscriptionPlan: 'enterprise',
+      createdAt: new Date('2024-02-20'),
+      profilePicture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
+    },
+    {
+      _id: '3',
+      firstName: 'The',
+      lastName: 'Calm',
+      bandName: 'Ocean Waves',
+      email: 'info@oceanswaves.com',
+      telephone: '+1 (555) 345-6789',
+      role: 'label',
+      isActive: true,
+      subscriptionPlan: 'basic',
+      createdAt: new Date('2024-03-10'),
+      profilePicture: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face'
+    },
+    {
+      _id: '4',
+      firstName: 'Alex',
+      lastName: 'Rivers',
+      bandName: 'Urban Beats',
+      email: 'alex@urbanbeats.com',
+      telephone: '+1 (555) 456-7890',
+      role: 'artist',
+      isActive: false,
+      subscriptionPlan: 'free',
+      createdAt: new Date('2024-01-05'),
+      profilePicture: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face'
+    }
+  ];
+
+  // Load artists on component mount
+  useEffect(() => {
+    // For now, use mock data instead of API call
+    setArtists(mockArtists);
+    setTotalPages(1);
+    setCurrentPage(1);
+    
+    // Uncomment when API is ready:
+    // loadArtists();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Artist Management</h2>
+          <p className="text-gray-600 dark:text-gray-400">Manage artists, producers, and labels</p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={downloadArtistsCSV}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+          >
+            Download CSV
+          </button>
+          <button
+            onClick={() => loadArtists()}
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <form onSubmit={handleSearch} className="flex space-x-4">
+          <div className="flex-1">
+                          <input
+                type="text"
+                placeholder="Search by name, band name, email, phone, or subscription plan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
+          </div>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Search
+          </button>
+        </form>
+      </div>
+
+      {/* Artists Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Artist
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Band Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Subscription
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {artists.map((artist) => (
+                <tr key={artist._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <img
+                          className="h-10 w-10 rounded-full"
+                          src={artist.profilePicture || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face'}
+                          alt=""
+                        />
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {artist.firstName} {artist.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {artist.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 dark:text-white">{artist.bandName}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 dark:text-white">{artist.telephone}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200">
+                      {artist.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      artist.subscriptionPlan === 'enterprise' 
+                        ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200'
+                        : artist.subscriptionPlan === 'pro'
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+                        : artist.subscriptionPlan === 'basic'
+                        ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+                        : 'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-200'
+                    }`}>
+                      {artist.subscriptionPlan ? artist.subscriptionPlan.charAt(0).toUpperCase() + artist.subscriptionPlan.slice(1) : 'Free'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      artist.isActive 
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+                        : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200'
+                    }`}>
+                      {artist.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => handlePoseAsArtist(artist._id)}
+                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                    >
+                      Pose as Artist
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => loadArtists(currentPage - 1, searchTerm)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => loadArtists(currentPage + 1, searchTerm)}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  Showing page <span className="font-medium">{currentPage}</span> of{' '}
+                  <span className="font-medium">{totalPages}</span>
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => loadArtists(currentPage - 1, searchTerm)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => loadArtists(currentPage + 1, searchTerm)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </nav>
               </div>
             </div>
           </div>

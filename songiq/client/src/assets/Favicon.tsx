@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImage from './LeaningIQ2025-08-05_12-17-500x.png';
+import logoImage from './LeaningIQ.svg';
 
 interface FaviconProps {
   className?: string;
@@ -11,8 +11,12 @@ const Favicon: React.FC<FaviconProps> = ({ className = '', size = 80 }) => {
     <img 
       src={logoImage} 
       alt="SongIQ Favicon"
-      width={size}
-      height={size}
+      style={{ 
+        width: size, 
+        height: 'auto',
+        maxWidth: '100%',
+        objectFit: 'contain'
+      }}
       className={className}
     />
   );

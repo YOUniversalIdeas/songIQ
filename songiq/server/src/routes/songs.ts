@@ -76,7 +76,7 @@ router.post('/upload', uploadSingleAudio, handleUploadError, async (req: express
     const successScore = await calculateSuccessScore(audioFeatures, genre, releaseDate ? new Date(releaseDate) : undefined);
     
     // Prepare song data
-    const songData = {
+    const songData: any = {
       title,
       artist,
       duration: audioAnalysis.metadata.duration,
@@ -466,7 +466,7 @@ router.post('/analyze-unreleased', uploadSingleAudio, handleUploadError, async (
     const audioFeatures = convertToAudioFeatures(simpleAnalysis);
     
     // Prepare song data for unreleased track
-    const songData = {
+    const songData: any = {
       title,
       artist,
       duration: audioAnalysis.metadata.duration,

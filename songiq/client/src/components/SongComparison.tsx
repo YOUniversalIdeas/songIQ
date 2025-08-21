@@ -405,7 +405,11 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
 
               {/* Tooltip */}
               {showSuccessScoreComparisonTooltip && (
-                <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+                <div className="absolute top-0 w-[300px] bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400 z-[99999]
+                  left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                  md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                  md:left-full md:ml-2
+                ">
                   <div className="text-sm">
                     The <strong>Success Score Comparison</strong> displays the overall success scores of multiple songs side-by-side, allowing you to compare their commercial potential and market viability.
                     <br /><br />
@@ -434,6 +438,7 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
                       <div className="text-xs">• Make data-driven decisions about song selection</div>
                     </div>
                   </div>
+                  <div className="absolute top-4 hidden md:block -left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-sky-400"></div>
                 </div>
               )}
             </div>

@@ -4,11 +4,15 @@
   "description": "songIQ - Music Intelligence Platform Backend",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "create-superadmin": "ts-node scripts/createSuperAdmin.ts",
+    "test-email": "ts-node scripts/testEmailSystem.ts",
+    "test-phase2": "ts-node scripts/testPhase2Emails.ts",
+    "test-phase3": "ts-node scripts/testPhase3Emails.ts"
   },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.22.0",
@@ -41,11 +45,12 @@
     "@types/express": "^4.17.17",
     "@types/multer": "^1.4.7",
     "@types/node": "^18.15.0",
-    "@typescript-eslint/eslint-plugin": "^5.57.0",
-    "@typescript-eslint/parser": "^5.57.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.38.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.1",
+    "tsx": "^4.20.4",
     "typescript": "^4.9.3"
   }
 }

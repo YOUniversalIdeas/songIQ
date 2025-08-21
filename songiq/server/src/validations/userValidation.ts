@@ -41,10 +41,19 @@ export const createUserSchema = Joi.object({
     .max(50)
     .messages({
       'string.empty': 'Last name is required',
+      'string.min': 'Last name must be at least 1 character long',
       'string.max': 'Last name cannot be more than 50 characters',
       'any.required': 'Last name is required'
     }),
-  
+  bandName: Joi.string()
+    .required()
+    .trim()
+    .max(100)
+    .messages({
+      'string.empty': 'Band name is required',
+      'string.max': 'Band name cannot be more than 100 characters',
+      'any.required': 'Band name is required'
+    }),
   username: Joi.string()
     .required()
     .trim()
@@ -60,11 +69,21 @@ export const createUserSchema = Joi.object({
       'any.required': 'Username is required'
     }),
   
+  telephone: Joi.string()
+    .required()
+    .trim()
+    .max(20)
+    .messages({
+      'string.empty': 'Phone number is required',
+      'string.max': 'Phone number cannot be more than 20 characters',
+      'any.required': 'Phone number is required'
+    }),
+  
   role: Joi.string()
-    .valid('user', 'artist', 'producer', 'label', 'admin')
+    .valid('user', 'artist', 'producer', 'label', 'admin', 'superadmin')
     .default('user')
     .messages({
-      'any.only': 'Role must be one of: user, artist, producer, label, admin'
+      'any.only': 'Role must be one of: user, artist, producer, label, admin, superadmin'
     }),
   
   bio: Joi.string()
@@ -115,7 +134,15 @@ export const updateUserSchema = Joi.object({
     .messages({
       'string.max': 'Last name cannot be more than 50 characters'
     }),
-  
+  bandName: Joi.string()
+    .required()
+    .trim()
+    .max(100)
+    .messages({
+      'string.empty': 'Band name is required',
+      'string.max': 'Band name cannot be more than 100 characters',
+      'any.required': 'Band name is required'
+    }),
   username: Joi.string()
     .trim()
     .min(3)
@@ -127,6 +154,16 @@ export const updateUserSchema = Joi.object({
       'string.min': 'Username must be at least 3 characters long',
       'string.max': 'Username cannot be more than 30 characters',
       'string.pattern.base': 'Username can only contain letters, numbers, and underscores'
+    }),
+  
+  telephone: Joi.string()
+    .required()
+    .trim()
+    .max(20)
+    .messages({
+      'string.empty': 'Phone number is required',
+      'string.max': 'Phone number cannot be more than 20 characters',
+      'any.required': 'Phone number is required'
     }),
   
   bio: Joi.string()
@@ -249,10 +286,10 @@ export const userQuerySchema = Joi.object({
     }),
   
   role: Joi.string()
-    .valid('user', 'artist', 'producer', 'label', 'admin')
+    .valid('user', 'artist', 'producer', 'label', 'admin', 'superadmin')
     .optional()
     .messages({
-      'any.only': 'Role must be one of: user, artist, producer, label, admin'
+      'any.only': 'Role must be one of: user, artist, producer, label, admin, superadmin'
     }),
   
   isActive: Joi.boolean()

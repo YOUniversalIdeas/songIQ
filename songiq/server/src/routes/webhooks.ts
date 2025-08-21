@@ -2,10 +2,20 @@ import express from 'express';
 import { stripe, STRIPE_CONFIG } from '../config/stripe';
 import User from '../models/User';
 
+// Skip webhook processing if Stripe is not configured
+const requireStripe = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!stripe) {
+    console.log('Stripe not configured, skipping webhook processing');
+    res.status(503).json({ message: 'Stripe webhooks not configured' });
+    return;
+  }
+  next();
+};
+
 const router = express.Router();
 
 // Stripe webhook handler
-router.post('/stripe', express.raw({ type: 'application/json' }), async (req, res): Promise<void> => {
+router.post('/stripe', requireStripe, express.raw({ type: 'application/json' }), async (req, res): Promise<void> => {
   const sig = req.headers['stripe-signature'];
 
   if (!STRIPE_CONFIG.webhookSecret) {

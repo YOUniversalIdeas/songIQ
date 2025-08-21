@@ -3,25 +3,24 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
-}
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil',
-});
+// Create a placeholder Stripe instance if keys aren't available
+export const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-07-30.basil',
+    })
+  : null;
 
 export const STRIPE_CONFIG = {
-  publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-  secretKey: process.env.STRIPE_SECRET_KEY,
-  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
+  secretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
 };
 
 // Subscription plans configuration
 export const SUBSCRIPTION_PLANS = {
   free: {
     name: 'Free Plan',
-    priceId: null, // No Stripe price needed for free plan
+    priceId: null as string | null, // No Stripe price needed for free plan
     price: 0,
     songLimit: 3,
     features: [

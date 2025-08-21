@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,22 +15,18 @@ import {
 import { Line, Bar, Doughnut, Scatter } from 'react-chartjs-2';
 import {
   TrendingUp,
-
   Target,
   Award,
   Share2,
   Download,
   BarChart3,
-
   Activity,
-  Zap,
   Music,
   Star,
   Users,
   Globe,
   Clock,
   Info,
-
 } from 'lucide-react';
 
 ChartJS.register(
@@ -45,6 +41,42 @@ ChartJS.register(
   Legend,
   Filler
 );
+
+// Custom hook for dynamic tooltip positioning (same as other components)
+const useTooltipPosition = () => {
+  const [tooltipPosition, setTooltipPosition] = useState<'left' | 'right'>('right');
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const updateTooltipPosition = () => {
+    if (buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const tooltipWidth = 300; // Width of the tooltip
+      const margin = 20; // Margin from edge
+
+      // Check if there's enough space on the right
+      const spaceOnRight = viewportWidth - buttonRect.right - margin;
+      const spaceOnLeft = buttonRect.left - margin;
+
+      if (spaceOnRight >= tooltipWidth) {
+        setTooltipPosition('right');
+      } else if (spaceOnLeft >= tooltipWidth) {
+        setTooltipPosition('left');
+      } else {
+        // If neither side has enough space, default to left for better visibility
+        setTooltipPosition('left');
+      }
+    }
+  };
+
+  useEffect(() => {
+    updateTooltipPosition();
+    window.addEventListener('resize', updateTooltipPosition);
+    return () => window.removeEventListener('resize', updateTooltipPosition);
+  }, []);
+
+  return { tooltipPosition, buttonRef, updateTooltipPosition };
+};
 
 interface AudioFeatures {
   danceability: number;
@@ -105,7 +137,27 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
   const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false);
   const [showSuccessProbabilityGaugeTooltip, setShowSuccessProbabilityGaugeTooltip] = useState(false);
   const [showScoreBreakdownTooltip, setShowScoreBreakdownTooltip] = useState(false);
+  const [showAudioFeaturesTooltip, setShowAudioFeaturesTooltip] = useState(false);
+  const [showMarketPositionTooltip, setShowMarketPositionTooltip] = useState(false);
+  const [showSuccessScoreTrendsTooltip, setShowSuccessScoreTrendsTooltip] = useState(false);
 
+  // Use the custom hook for Success Score tooltip positioning
+  const successScorePosition = useTooltipPosition();
+  
+  // Use the custom hook for Market Potential tooltip positioning
+  const marketPotentialPosition = useTooltipPosition();
+
+  // Use the custom hook for Social Score tooltip positioning
+  const socialScorePosition = useTooltipPosition();
+
+  // Use the custom hook for Confidence tooltip positioning
+  const confidencePosition = useTooltipPosition();
+
+  // Use the custom hook for Success Probability Gauge tooltip positioning
+  const successProbabilityGaugePosition = useTooltipPosition();
+
+  // Use the custom hook for Score Breakdown tooltip positioning
+  const scoreBreakdownPosition = useTooltipPosition();
 
   // Success probability gauge with animated transitions
   const successGaugeData = {
@@ -405,22 +457,11 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
-    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    if (score >= 40) return 'text-orange-600 dark:text-orange-400';
-    return 'text-red-600 dark:text-red-400';
-  };
 
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 dark:bg-green-900/20';
-    if (score >= 60) return 'bg-yellow-100 dark:bg-yellow-900/20';
-    if (score >= 40) return 'bg-orange-100 dark:bg-orange-900/20';
-    return 'bg-red-100 dark:bg-red-900/20';
-  };
 
   const handleSuccessScoreInfo = () => {
     setShowSuccessScoreTooltip(true);
+    successScorePosition.updateTooltipPosition();
     setTimeout(() => {
       setShowSuccessScoreTooltip(false);
     }, 4000); // Auto-dismiss after 4 seconds
@@ -428,6 +469,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
   const handleMarketPotentialInfo = () => {
     setShowMarketPotentialTooltip(true);
+    marketPotentialPosition.updateTooltipPosition();
     setTimeout(() => {
       setShowMarketPotentialTooltip(false);
     }, 4000); // Auto-dismiss after 4 seconds
@@ -435,6 +477,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
   const handleSocialScoreInfo = () => {
     setShowSocialScoreTooltip(true);
+    socialScorePosition.updateTooltipPosition();
     setTimeout(() => {
       setShowSocialScoreTooltip(false);
     }, 4000); // Auto-dismiss after 4 seconds
@@ -442,6 +485,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
   const handleConfidenceInfo = () => {
     setShowConfidenceTooltip(true);
+    confidencePosition.updateTooltipPosition();
     setTimeout(() => {
       setShowConfidenceTooltip(false);
     }, 4000); // Auto-dismiss after 4 seconds
@@ -449,6 +493,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
   const handleSuccessProbabilityGaugeInfo = () => {
     setShowSuccessProbabilityGaugeTooltip(true);
+    successProbabilityGaugePosition.updateTooltipPosition();
     setTimeout(() => {
       setShowSuccessProbabilityGaugeTooltip(false);
     }, 4000); // Auto-dismiss after 4 seconds
@@ -456,6 +501,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
   const handleScoreBreakdownInfo = () => {
     setShowScoreBreakdownTooltip(true);
+    scoreBreakdownPosition.updateTooltipPosition();
     setTimeout(() => {
       setShowScoreBreakdownTooltip(false);
     }, 4000); // Auto-dismiss after 4 seconds
@@ -541,67 +587,72 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
       {/* Success Score Overview with Animation */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className={`p-6 rounded-lg border ${getScoreBgColor(songData.successScore.overallScore)} transition-all duration-500 hover:scale-105 relative`}>
+        <div className="p-6 rounded-lg border bg-blue-600 border-blue-500 transition-all duration-500 relative">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white dark:bg-gray-800 rounded-full">
+            <div className="p-3 bg-white rounded-full">
               <Target className="w-6 h-6 text-blue-500" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Success Score</p>
-              <p className={`text-3xl font-bold ${getScoreColor(songData.successScore.overallScore)}`}>
+              <p className="text-sm text-blue-200">Success Score</p>
+              <p className="text-3xl font-bold text-white">
                 {songData.successScore.overallScore}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">out of 100</p>
+              <p className="text-xs text-blue-200">out of 100</p>
             </div>
           </div>
           
           {/* Info Icon */}
           <button
             onClick={handleSuccessScoreInfo}
-            className="absolute top-2 right-2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+            ref={successScorePosition.buttonRef}
+            className="absolute top-2 right-2 p-1 rounded-full bg-blue-400 hover:bg-blue-300 transition-colors duration-200"
           >
-            <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <Info className="w-4 h-4 text-white" />
           </button>
 
           {/* Tooltip */}
           {showSuccessScoreTooltip && (
-            <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+            <div className={`absolute top-0 w-[300px] bg-blue-600 text-white p-4 rounded-lg shadow-2xl z-[999999999999] 
+              fixed md:absolute
+              left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+              md:w-[300px] md:left-auto md:right-auto md:mx-auto
+              ${successScorePosition.tooltipPosition === 'right' 
+                ? 'md:left-full md:ml-2' 
+                : 'md:right-full md:mr-2'
+              }
+            `}>
+              <div className={`absolute top-4 hidden md:block ${
+                successScorePosition.tooltipPosition === 'right' 
+                  ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
+                  : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
+              }`}></div>
+              <h4 className="font-semibold mb-2">Success Score</h4>
+              <p className="text-sm mb-3">
+                The Success Score represents a comprehensive quality rating for your song, combining multiple musical factors into a single performance metric.
+                Scores use a 1-100 scale, where higher scores indicate better overall performance and market potential.
+              </p>
               <div className="text-sm">
-                The <strong>Success Score</strong> of {songData.successScore.overallScore} represents a comprehensive quality rating for "{songData.title}," combining multiple musical factors into a single performance metric.
-                <br /><br />
-                Scores use a <strong>1-100 scale</strong>, where higher scores indicate better overall performance and market potential.
-                <br /><br />
-                <strong>Color Coding:</strong>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                    <span className="text-xs">Green (80-100): Excellent</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                    <span className="text-xs">Yellow (60-79): Good</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                    <span className="text-xs">Red (1-59): Needs Improvement</span>
-                  </div>
-                </div>
+                <p className="font-medium mb-1">Color Coding:</p>
+                <p>• Green (80-100): Excellent potential</p>
+                <p>• Yellow (60-79): Good potential</p>
+                <p>• Red (1-59): Needs improvement</p>
               </div>
             </div>
           )}
+
         </div>
 
-        <div className={`p-6 ${getScoreBgColor(songData.successScore.marketPotential)} border ${songData.successScore.marketPotential >= 80 ? 'border-green-200 dark:border-green-800' : songData.successScore.marketPotential >= 60 ? 'border-yellow-200 dark:border-yellow-800' : songData.successScore.marketPotential >= 40 ? 'border-orange-200 dark:border-orange-800' : 'border-red-200 dark:border-red-800'} rounded-lg transition-all duration-500 hover:scale-105 relative`}>
+        <div className="p-6 rounded-lg border bg-green-600 border-green-500 transition-all duration-500 relative">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white dark:bg-gray-800 rounded-full">
-              <TrendingUp className={`w-6 h-6 ${getScoreColor(songData.successScore.marketPotential)}`} />
+            <div className="p-3 bg-white rounded-full">
+              <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Market Potential</p>
-              <p className={`text-3xl font-bold ${getScoreColor(songData.successScore.marketPotential)}`}>
+              <p className="text-sm text-green-200">Market Potential</p>
+              <p className="text-3xl font-bold text-white">
                 {songData.successScore.marketPotential}%
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-green-200">
                 {songData.successScore.marketPotential >= 80 ? 'high potential' : songData.successScore.marketPotential >= 60 ? 'moderate potential' : songData.successScore.marketPotential >= 40 ? 'low potential' : 'very low potential'}
               </p>
             </div>
@@ -610,50 +661,54 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
           {/* Info Icon */}
           <button
             onClick={handleMarketPotentialInfo}
-            className="absolute top-2 right-2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+            ref={marketPotentialPosition.buttonRef}
+            className="absolute top-2 right-2 p-1 rounded-full bg-green-400 hover:bg-green-300 transition-colors duration-200"
           >
-            <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <Info className="w-4 h-4 text-white" />
           </button>
 
           {/* Tooltip */}
           {showMarketPotentialTooltip && (
-            <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+            <div className={`absolute top-0 w-[300px] bg-green-600 text-white p-4 rounded-lg shadow-2xl z-[999999999999] 
+              left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+              md:w-[300px] md:left-auto md:right-auto md:mx-auto
+              ${marketPotentialPosition.tooltipPosition === 'right' 
+                ? 'md:left-full md:ml-2' 
+                : 'md:right-full md:mr-2'
+              }
+            `}>
+              <div className={`absolute top-4 hidden md:block ${
+                marketPotentialPosition.tooltipPosition === 'right' 
+                  ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-green-600' 
+                  : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-green-600'
+              }`}></div>
+              <h4 className="font-semibold mb-2">Market Potential</h4>
+              <p className="text-sm mb-3">
+                Market Potential indicates the likelihood of your song achieving commercial success based on current market trends, genre popularity, and audience demand.
+                Scores use a 0-100% scale, where higher percentages suggest greater market opportunity and revenue potential.
+              </p>
               <div className="text-sm">
-                <strong>Market Potential</strong> indicates the likelihood of "{songData.title}" achieving commercial success based on current market trends, genre popularity, and audience demand.
-                <br /><br />
-                Scores use a <strong>0-100% scale</strong>, where higher percentages suggest greater market opportunity and revenue potential.
-                <br /><br />
-                <strong>Color Coding:</strong>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                    <span className="text-xs">Green (80-100%): High Market Potential</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                    <span className="text-xs">Yellow (60-79%): Moderate Potential</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                    <span className="text-xs">Red (0-59%): Low Market Potential</span>
-                  </div>
-                </div>
+                <p className="font-medium mb-1">Color Coding:</p>
+                <p>• Green (80-100%): High Market Potential</p>
+                <p>• Yellow (60-79%): Moderate Potential</p>
+                <p>• Red (0-59%): Low Market Potential</p>
               </div>
             </div>
           )}
+
         </div>
 
-        <div className={`p-6 ${getScoreBgColor(songData.successScore.socialScore)} border ${songData.successScore.socialScore >= 80 ? 'border-green-200 dark:border-green-800' : songData.successScore.socialScore >= 60 ? 'border-yellow-200 dark:border-yellow-800' : songData.successScore.socialScore >= 40 ? 'border-orange-200 dark:border-orange-800' : 'border-red-200 dark:border-red-800'} rounded-lg transition-all duration-500 hover:scale-105 relative`}>
+        <div className="p-6 rounded-lg border bg-purple-600 border-purple-500 transition-all duration-500 relative">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white dark:bg-gray-800 rounded-full">
-              <Users className={`w-6 h-6 ${getScoreColor(songData.successScore.socialScore)}`} />
+            <div className="p-3 bg-white rounded-full">
+              <Users className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Social Score</p>
-              <p className={`text-3xl font-bold ${getScoreColor(songData.successScore.socialScore)}`}>
+              <p className="text-sm text-purple-200">Social Score</p>
+              <p className="text-3xl font-bold text-white">
                 {songData.successScore.socialScore}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-purple-200">
                 {songData.successScore.socialScore >= 80 ? 'highly shareable' : songData.successScore.socialScore >= 60 ? 'shareable content' : songData.successScore.socialScore >= 40 ? 'moderate sharing' : 'low sharing potential'}
               </p>
             </div>
@@ -662,50 +717,53 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
           {/* Info Icon */}
           <button
             onClick={handleSocialScoreInfo}
-            className="absolute top-2 right-2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+            ref={socialScorePosition.buttonRef}
+            className="absolute top-2 right-2 p-1 rounded-full bg-purple-400 hover:bg-purple-300 transition-colors duration-200"
           >
-            <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <Info className="w-4 h-4 text-white" />
           </button>
 
           {/* Tooltip */}
           {showSocialScoreTooltip && (
-            <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+            <div className={`absolute top-0 w-[300px] bg-purple-600 text-white p-4 rounded-lg shadow-2xl z-[999999999999] 
+              left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+              md:w-[300px] md:left-auto md:right-auto md:mx-auto
+              ${socialScorePosition.tooltipPosition === 'right' 
+                ? 'md:left-full md:ml-2' 
+                : 'md:right-full md:mr-2'
+              }
+            `}>
+              <div className={`absolute top-4 hidden md:block ${
+                socialScorePosition.tooltipPosition === 'right' 
+                  ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-purple-600' 
+                  : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-purple-600'
+              }`}></div>
+              <h4 className="font-semibold mb-2">Social Score</h4>
+              <p className="text-sm mb-3">
+                Social Score measures the potential for "{songData.title}" to generate social media engagement, viral sharing, and community buzz based on its musical characteristics.
+                Scores use a 1-100 scale, where higher scores indicate greater potential for social media success and audience engagement.
+              </p>
               <div className="text-sm">
-                <strong>Social Score</strong> measures the potential for "{songData.title}" to generate social media engagement, viral sharing, and community buzz based on its musical characteristics.
-                <br /><br />
-                Scores use a <strong>1-100 scale</strong>, where higher scores indicate greater potential for social media success and audience engagement.
-                <br /><br />
-                <strong>Color Coding:</strong>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                    <span className="text-xs">Green (80-100): High Social Potential</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                    <span className="text-xs">Yellow (60-79): Moderate Social Potential</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                    <span className="text-xs">Red (1-59): Low Social Potential</span>
-                  </div>
-                </div>
+                <p className="font-medium mb-1">Color Coding:</p>
+                <p>• Green (80-100): High Social Potential</p>
+                <p>• Yellow (60-79): Moderate Social Potential</p>
+                <p>• Red (1-59): Low Social Potential</p>
               </div>
             </div>
           )}
         </div>
 
-        <div className={`p-6 ${getScoreBgColor(Math.round(songData.successScore.confidence * 100))} border ${Math.round(songData.successScore.confidence * 100) >= 80 ? 'border-green-200 dark:border-green-800' : Math.round(songData.successScore.confidence * 100) >= 60 ? 'border-yellow-200 dark:border-yellow-800' : Math.round(songData.successScore.confidence * 100) >= 40 ? 'border-orange-200 dark:border-orange-800' : 'border-red-200 dark:border-red-800'} rounded-lg transition-all duration-500 hover:scale-105 relative`}>
+        <div className="p-6 rounded-lg border bg-yellow-600 border-yellow-500 transition-all duration-500 relative">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white dark:bg-gray-800 rounded-full">
-              <Star className={`w-6 h-6 ${getScoreColor(Math.round(songData.successScore.confidence * 100))}`} />
+            <div className="p-3 bg-white rounded-full">
+              <Star className="w-6 h-6 text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Confidence</p>
-              <p className={`text-3xl font-bold ${getScoreColor(Math.round(songData.successScore.confidence * 100))}`}>
+              <p className="text-sm text-yellow-200">Confidence</p>
+              <p className="text-3xl font-bold text-white">
                 {Math.round(songData.successScore.confidence * 100)}%
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-yellow-200">
                 {Math.round(songData.successScore.confidence * 100) >= 80 ? 'high confidence' : Math.round(songData.successScore.confidence * 100) >= 60 ? 'moderate confidence' : Math.round(songData.successScore.confidence * 100) >= 40 ? 'low confidence' : 'very low confidence'}
               </p>
             </div>
@@ -714,37 +772,41 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
           {/* Info Icon */}
           <button
             onClick={handleConfidenceInfo}
-            className="absolute top-2 right-2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+            ref={confidencePosition.buttonRef}
+            className="absolute top-2 right-2 p-1 rounded-full bg-yellow-400 hover:bg-yellow-300 transition-colors duration-200"
           >
-            <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <Info className="w-4 h-4 text-white" />
           </button>
 
           {/* Tooltip */}
           {showConfidenceTooltip && (
-            <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+            <div className={`absolute top-0 w-[300px] bg-yellow-600 text-white p-4 rounded-lg shadow-2xl z-[999999999999] 
+              left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+              md:w-[300px] md:left-auto md:right-auto md:mx-auto
+              ${confidencePosition.tooltipPosition === 'right' 
+                ? 'md:left-full md:ml-2' 
+                : 'md:right-full md:mr-2'
+              }
+            `}>
+              <div className={`absolute top-4 hidden md:block ${
+                confidencePosition.tooltipPosition === 'right' 
+                  ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-yellow-600' 
+                  : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-yellow-600'
+              }`}></div>
+              <h4 className="font-semibold mb-2">Confidence</h4>
+              <p className="text-sm mb-3">
+                The Confidence score indicates the reliability of the analysis, reflecting the completeness and quality of the data used.
+                Scores use a 0-100% scale, where higher percentages mean more reliable analysis.
+              </p>
               <div className="text-sm">
-                The <strong>Confidence</strong> score indicates the reliability of the analysis, reflecting the completeness and quality of the data used.
-                <br /><br />
-                Scores use a <strong>0-100% scale</strong>, where higher percentages mean more reliable analysis.
-                <br /><br />
-                <strong>Color Coding:</strong>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                    <span className="text-xs">Green (80-100%): High Confidence</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                    <span className="text-xs">Yellow (60-79%): Moderate Confidence</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                    <span className="text-xs">Red (0-59%): Low Confidence</span>
-                  </div>
-                </div>
+                <p className="font-medium mb-1">Color Coding:</p>
+                <p>• Green (80-100%): High Confidence</p>
+                <p>• Yellow (60-79%): Moderate Confidence</p>
+                <p>• Red (0-59%): Low Confidence</p>
               </div>
             </div>
           )}
+
         </div>
       </div>
 
@@ -788,6 +850,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
                 </h3>
                 <button
                   onClick={handleSuccessProbabilityGaugeInfo}
+                  ref={successProbabilityGaugePosition.buttonRef}
                   className="p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
                 >
                   <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
@@ -809,27 +872,29 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
               {/* Tooltip */}
               {showSuccessProbabilityGaugeTooltip && (
-                <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+                <div className={`absolute top-0 w-[300px] bg-blue-600 text-white p-4 rounded-lg shadow-2xl z-[999999999] 
+                  left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                  md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                  ${successProbabilityGaugePosition.tooltipPosition === 'right' 
+                    ? 'md:left-full md:ml-2' 
+                    : 'md:right-full md:mr-2'
+                  }
+                `}>
+                  <div className={`absolute top-4 hidden md:block ${
+                    successProbabilityGaugePosition.tooltipPosition === 'right' 
+                      ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
+                      : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
+                  }`}></div>
+                  <h4 className="font-semibold mb-2">Success Probability Gauge</h4>
+                  <p className="text-sm mb-3">
+                    The Success Probability Gauge displays the overall success probability for "{songData.title}" based on comprehensive analysis of musical quality, market trends, and commercial viability.
+                    Scores use a 1-100 scale, where higher scores indicate greater probability of commercial success and market performance.
+                  </p>
                   <div className="text-sm">
-                    The <strong>Success Probability Gauge</strong> displays the overall success probability for "{songData.title}" based on comprehensive analysis of musical quality, market trends, and commercial viability.
-                    <br /><br />
-                    <strong>Scale:</strong> Uses a <strong>1-100 scale</strong>, where higher scores indicate greater probability of commercial success and market performance.
-                    <br /><br />
-                    <strong>Color Coding:</strong>
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                        <span className="text-xs">Green (80-100): High Success Probability</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                        <span className="text-xs">Yellow (60-79): Moderate Success Probability</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                        <span className="text-xs">Red (1-59): Low Success Probability</span>
-                      </div>
-                    </div>
+                    <p className="font-medium mb-1">Color Coding:</p>
+                    <p>• Green (80-100): High Success Probability</p>
+                    <p>• Yellow (60-79): Moderate Success Probability</p>
+                    <p>• Red (1-59): Low Success Probability</p>
                   </div>
                 </div>
               )}
@@ -843,6 +908,7 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
                 </h3>
                 <button
                   onClick={handleScoreBreakdownInfo}
+                  ref={scoreBreakdownPosition.buttonRef}
                   className="p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
                 >
                   <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
@@ -873,39 +939,37 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
 
               {/* Tooltip */}
               {showScoreBreakdownTooltip && (
-                <div className="fixed top-20 right-4 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400">
+                <div className={`absolute top-0 w-[300px] bg-blue-600 text-white p-4 rounded-lg shadow-2xl z-[999999999] 
+                  left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                  md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                  ${scoreBreakdownPosition.tooltipPosition === 'right' 
+                    ? 'md:left-full md:ml-2' 
+                    : 'md:right-full md:mr-2'
+                  }
+                `}>
+                  <div className={`absolute top-4 hidden md:block ${
+                    scoreBreakdownPosition.tooltipPosition === 'right' 
+                      ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
+                      : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
+                  }`}></div>
+                  <h4 className="font-semibold mb-2">Score Breakdown</h4>
+                  <p className="text-sm mb-3">
+                    The Score Breakdown shows how "{songData.title}" performs across four key analysis categories that contribute to the overall success score.
+                    Each category uses a 1-100 scale, where higher scores indicate better performance in that area.
+                  </p>
                   <div className="text-sm">
-                    The <strong>Score Breakdown</strong> shows how "{songData.title}" performs across four key analysis categories that contribute to the overall success score.
-                    <br /><br />
-                    <strong>Categories:</strong>
-                    <div className="mt-2 space-y-1">
-                      <div className="text-xs">• <strong>Audio Features:</strong> Musical quality and characteristics</div>
-                      <div className="text-xs">• <strong>Market Trends:</strong> Current industry demand</div>
-                      <div className="text-xs">• <strong>Genre Alignment:</strong> Fit within genre standards</div>
-                      <div className="text-xs">• <strong>Seasonal Factors:</strong> Timing and seasonal appeal</div>
-                    </div>
-                    <br />
-                    <strong>Scale:</strong> Each category uses a <strong>1-100 scale</strong>, where higher scores indicate better performance in that area.
-                    <br /><br />
-                    <strong>Color Coding:</strong>
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                        <span className="text-xs">Green (80-100): Excellent</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                        <span className="text-xs">Yellow (60-79): Good</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-orange-500 rounded mr-2"></div>
-                        <span className="text-xs">Orange (40-59): Fair</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                        <span className="text-xs">Red (1-39): Needs Improvement</span>
-                      </div>
-                    </div>
+                    <p className="font-medium mb-1">Categories:</p>
+                    <p>• <strong>Audio Features:</strong> Musical quality and characteristics</p>
+                    <p>• <strong>Market Trends:</strong> Current industry demand</p>
+                    <p>• <strong>Genre Alignment:</strong> Fit within genre standards</p>
+                    <p>• <strong>Seasonal Factors:</strong> Timing and seasonal appeal</p>
+                  </div>
+                  <div className="text-sm mt-3">
+                    <p className="font-medium mb-1">Color Coding:</p>
+                    <p>• Green (80-100): Excellent</p>
+                    <p>• Yellow (60-79): Good</p>
+                    <p>• Orange (40-59): Fair</p>
+                    <p>• Red (1-39): Needs improvement</p>
                   </div>
                 </div>
               )}
@@ -916,10 +980,57 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
         {activeView === 'features' && (
           <div className="space-y-8">
             {/* Feature Comparison Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Audio Features Comparison
-              </h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 relative">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Audio Features Comparison
+                </h3>
+                
+                {/* Info Icon */}
+                <button
+                  onClick={() => {
+                    setShowAudioFeaturesTooltip(true);
+                    setTimeout(() => setShowAudioFeaturesTooltip(false), 4000);
+                  }}
+                  className="p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+                >
+                  <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                </button>
+              </div>
+              
+              {/* Tooltip */}
+              {showAudioFeaturesTooltip && (
+                <div className="fixed top-20 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400
+                  left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                  md:max-w-xs md:left-auto md:right-auto md:mx-auto
+                  md:right-4
+                ">
+                  <div className="text-sm">
+                    <strong>Audio Features Comparison</strong> analyzes the musical characteristics of your song, comparing them against industry standards and optimal ranges for your genre.
+                    <br /><br />
+                    <strong>Key Metrics:</strong>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                        <span className="text-xs">Danceability & Energy</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                        <span className="text-xs">Tempo & Loudness</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                        <span className="text-xs">Acoustic & Instrumental</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                        <span className="text-xs">Valence & Speechiness</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="h-96">
                 <Bar data={featureComparisonData} options={featureComparisonOptions} />
               </div>
@@ -960,13 +1071,60 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
         {activeView === 'market' && (
           <div className="space-y-8">
             {/* Market Position Scatter Plot */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Market Position Analysis
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Your song's position compared to similar genre songs and top hits
-              </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Market Position Analysis
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Your song's position compared to similar genre songs and top hits
+                  </p>
+                </div>
+                
+                {/* Info Icon */}
+                <button
+                  onClick={() => {
+                    setShowMarketPositionTooltip(true);
+                    setTimeout(() => setShowMarketPositionTooltip(false), 4000);
+                  }}
+                  className="p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+                >
+                  <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                </button>
+              </div>
+              
+              {/* Tooltip */}
+              {showMarketPositionTooltip && (
+                <div className="fixed top-20 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400
+                  left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                  md:max-w-xs md:left-auto md:right-auto md:mx-auto
+                  md:right-4
+                ">
+                  <div className="text-sm">
+                    <strong>Market Position Analysis</strong> visualizes how your song compares to similar genre songs and top hits across key audio features like Energy and Danceability.
+                    <br /><br />
+                    <strong>What it shows:</strong>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                        <span className="text-xs">Your song's position</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-gray-500 rounded mr-2"></div>
+                        <span className="text-xs">Similar genre songs</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                        <span className="text-xs">Top hits benchmark</span>
+                      </div>
+                    </div>
+                    <br />
+                    This helps identify your song's competitive positioning and market opportunities.
+                  </div>
+                </div>
+              )}
+              
               <div className="h-96">
                 <Scatter data={marketPositionData} options={marketPositionOptions} />
               </div>
@@ -1000,9 +1158,24 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
                 </h4>
                 <div className="space-y-2">
                   {songData.successScore.recommendations.slice(0, 3).map((rec, index) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <Zap className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{rec.title}</span>
+                    <div key={index} className="p-3 rounded-lg border bg-yellow-600 border-yellow-500">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium text-white text-sm">{rec.title}</h4>
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                          {rec.priority.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-yellow-200 mb-2">
+                        {rec.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-yellow-200">
+                          Potential Impact: +{rec.impact} points
+                        </span>
+                        <button className="text-xs text-white hover:underline">
+                          View Details
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1014,13 +1187,56 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
         {activeView === 'trends' && (
           <div className="space-y-8">
             {/* Historical Trend Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Success Score Trends
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Projected performance over time based on current analysis
-              </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Success Score Trends
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Projected performance over time based on current analysis
+                  </p>
+                </div>
+                
+                {/* Info Icon */}
+                <button
+                  onClick={() => {
+                    setShowSuccessScoreTrendsTooltip(true);
+                    setTimeout(() => setShowSuccessScoreTrendsTooltip(false), 4000);
+                  }}
+                  className="p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+                >
+                  <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                </button>
+              </div>
+              
+              {/* Tooltip */}
+              {showSuccessScoreTrendsTooltip && (
+                <div className="fixed top-20 z-[9999] max-w-xs bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400
+                  left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                  md:max-w-xs md:left-auto md:right-auto md:mx-auto
+                  md:right-4
+                ">
+                  <div className="text-sm">
+                    <strong>Success Score Trends</strong> projects your song's performance trajectory over an 8-week period, showing both current success score and market potential.
+                    <br /><br />
+                    <strong>What it tracks:</strong>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                        <span className="text-xs">Success Score Trend (blue line)</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                        <span className="text-xs">Market Potential (green line)</span>
+                      </div>
+                    </div>
+                    <br />
+                    This helps identify optimal release timing and track progress toward your target success score.
+                  </div>
+                </div>
+              )}
+              
               <div className="h-96">
                 <Line data={historicalTrendData} options={historicalTrendOptions} />
               </div>
@@ -1058,6 +1274,9 @@ const ResultsVisualization: React.FC<ResultsVisualizationProps> = ({ songData, c
           </div>
         )}
       </div>
+
+
+
     </div>
   );
 };

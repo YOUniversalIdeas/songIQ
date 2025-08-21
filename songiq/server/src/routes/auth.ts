@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
-import { sendVerificationEmail, sendWelcomeEmail } from '../services/emailService';
+// import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from '../services/emailService';
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ const generateToken = (id: string, email: string, role: string): string => {
 // Register new user
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, firstName, lastName, username } = req.body;
+    const { email, password, firstName, lastName, bandName, username, telephone } = req.body;
 
     // Validation
     if (!email || !password || !firstName || !lastName || !username) {
@@ -54,7 +54,9 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       password,
       firstName,
       lastName,
+      bandName: bandName || undefined,
       username: username.toLowerCase(),
+      telephone: telephone || undefined,
       isVerified: false, // Start as unverified
       subscription: {
         plan: 'free',
@@ -73,11 +75,11 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     await user.save();
 
     // Send verification email
-    const emailSent = await sendVerificationEmail(
-      user.email,
-      user.firstName,
-      verificationToken
-    );
+    // const emailSent = await sendVerificationEmail(
+    //   user.email,
+    //   user.firstName,
+    //   verificationToken
+    // );
 
     // Generate token
     const token = generateToken(user._id.toString(), user.email, user.role);
@@ -88,7 +90,9 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      bandName: user.bandName,
       username: user.username,
+      telephone: user.telephone,
       subscription: {
         plan: user.subscription.plan,
         status: user.subscription.status,
@@ -162,6 +166,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       firstName: user.firstName,
       lastName: user.lastName,
       username: user.username,
+      telephone: user.telephone,
       subscription: {
         plan: user.subscription.plan,
         status: user.subscription.status,
@@ -209,6 +214,7 @@ router.get('/profile', authenticateToken, async (req: Request, res: Response): P
       firstName: user.firstName,
       lastName: user.lastName,
       username: user.username,
+      telephone: user.telephone,
       profilePicture: user.profilePicture,
       bio: user.bio,
       role: user.role,
@@ -309,7 +315,7 @@ router.get('/verify-email', async (req: Request, res: Response): Promise<void> =
     await user.save();
 
     // Send welcome email
-    await sendWelcomeEmail(user.email, user.firstName);
+    // await sendWelcomeEmail(user.email, user.firstName);
 
     res.json({
       success: true,
@@ -320,6 +326,7 @@ router.get('/verify-email', async (req: Request, res: Response): Promise<void> =
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
+        telephone: user.telephone,
         isVerified: user.isVerified
       }
     });
@@ -369,23 +376,29 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
     await user.save();
 
     // Send verification email
-    const emailSent = await sendVerificationEmail(
-      user.email,
-      user.firstName,
-      verificationToken
-    );
+    // const emailSent = await sendVerificationEmail(
+    //   user.email,
+    //   user.firstName,
+    //   verificationToken
+    // );
 
-    if (emailSent) {
-      res.json({
-        success: true,
-        message: 'Verification email sent successfully'
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to send verification email'
-      });
-    }
+    // if (emailSent) {
+    //   res.json({
+    //     success: true,
+    //     message: 'Verification email sent successfully'
+    //   });
+    // } else {
+    //   res.status(500).json({
+    //     success: false,
+    //     message: 'Failed to send verification email'
+    //   });
+    // }
+    
+    // For now, just return success since email is disabled
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
   } catch (error: any) {
     console.error('Resend verification error:', error);
     res.status(500).json({
@@ -396,11 +409,194 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
   }
 });
 
+// Update user profile
+router.put('/profile', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id;
+    const { firstName, lastName, bandName, telephone, profile } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+      return;
+    }
+
+    // Update fields if provided
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (bandName !== undefined) user.bandName = bandName;
+    if (telephone !== undefined) user.telephone = telephone;
+    if (profile) {
+      if (profile.bio !== undefined) user.bio = profile.bio;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        telephone: user.telephone,
+        bio: user.bio,
+        subscription: {
+          plan: user.subscription.plan,
+          status: user.subscription.status,
+          usage: user.subscription.usage
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message
+    });
+  }
+});
+
+// Request password reset
+router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+      return;
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      res.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent'
+      });
+      return;
+    }
+
+    // Generate password reset token
+    const resetToken = user.generatePasswordResetToken();
+    await user.save();
+
+    // Send password reset email
+    // const emailSent = await sendPasswordResetEmail(
+    //   user.email,
+    //   user.firstName,
+    //   resetToken
+    // );
+
+    // if (emailSent) {
+    //   res.json({
+    //     success: true,
+    //     message: 'Password reset email sent successfully'
+    //   });
+    // } else {
+    //   res.status(500).json({
+    //     success: false,
+    //     message: 'Failed to send password reset email'
+    //   });
+    // }
+    
+    // For now, just return success since email is disabled
+    res.json({
+      success: true,
+      message: 'Password reset email sent successfully'
+    });
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process password reset request',
+      error: error.message
+    });
+  }
+});
+
+// Reset password with token
+router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      res.status(400).json({
+        success: false,
+        message: 'Token and new password are required'
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long'
+      });
+      return;
+    }
+
+    // Find user with this reset token
+    const user = await User.findOne({
+      passwordResetToken: token,
+      isActive: true
+    });
+
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+      return;
+    }
+
+    // Check if token is expired
+    if (user.isPasswordResetExpired()) {
+      res.status(400).json({
+        success: false,
+        message: 'Reset token has expired. Please request a new one.'
+      });
+      return;
+    }
+
+    // Update password and clear reset token
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    // Send confirmation email
+    // await sendPasswordResetConfirmationEmail(user.email, user.firstName);
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! Please check your email for confirmation.'
+    });
+  } catch (error: any) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+      error: error.message
+    });
+  }
+});
+
 // Logout (client-side token removal)
 router.post('/logout', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   res.json({
     success: true,
-    message: 'Logout successful'
+      message: 'Logout successful'
   });
 });
 

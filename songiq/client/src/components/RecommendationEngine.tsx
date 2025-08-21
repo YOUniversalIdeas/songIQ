@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-
   Users,
   Calendar,
   Target,
   Zap,
   Music,
   Share2,
-  TestTube
+  TestTube,
+  Info
 } from 'lucide-react';
 
 interface AudioFeature {
@@ -86,8 +86,15 @@ interface RecommendationEngineProps {
 const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ className = '' }) => {
   const [activeView, setActiveView] = useState<'features' | 'genre' | 'collaboration' | 'timing' | 'marketing' | 'abtest'>('features');
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<'ml' | 'hybrid' | 'collaborative'>('ml');
+  const [showAlgorithmTooltip, setShowAlgorithmTooltip] = useState(false);
 
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleAlgorithmInfo = () => {
+    setShowAlgorithmTooltip(true);
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => setShowAlgorithmTooltip(false), 4000);
+  };
 
   // Sample data for demonstration
   const audioFeatures: AudioFeature[] = [
@@ -310,15 +317,50 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ className =
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <select
-            value={selectedAlgorithm}
-            onChange={(e) => setSelectedAlgorithm(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-          >
-            <option value="ml">ML-Based</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="collaborative">Collaborative</option>
-          </select>
+          <div className="relative">
+            <select
+              value={selectedAlgorithm}
+              onChange={(e) => setSelectedAlgorithm(e.target.value as any)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="ml">ML-Based</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="collaborative">Collaborative</option>
+            </select>
+            <button
+              onClick={handleAlgorithmInfo}
+              className="absolute -right-8 top-1/2 transform -translate-y-1/2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
+              title="Click for more information"
+            >
+              <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            </button>
+            
+                              {/* Tooltip */}
+                  {showAlgorithmTooltip && (
+                    <div className="absolute top-0 w-[300px] bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400 z-[99999]
+                      left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
+                      md:w-[300px] md:left-auto md:right-auto md:mx-auto
+                      md:left-full md:ml-2
+                    ">
+                      <div className="absolute top-4 hidden md:block -left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-sky-400"></div>
+                      <h4 className="font-semibold mb-2">Algorithm Types</h4>
+                      <div className="text-sm space-y-3">
+                        <div>
+                          <p className="font-medium mb-1">ML-Based:</p>
+                          <p>Uses machine learning algorithms trained on vast datasets of music performance metrics. Analyzes patterns in audio features, market trends, and audience behavior to provide data-driven recommendations.</p>
+                        </div>
+                        <div>
+                          <p className="font-medium mb-1">Hybrid:</p>
+                          <p>Combines machine learning insights with human music industry expertise. Balances data-driven analysis with creative intuition and industry knowledge for well-rounded recommendations.</p>
+                        </div>
+                        <div>
+                          <p className="font-medium mb-1">Collaborative:</p>
+                          <p>Leverages collaborative filtering to find similar artists and successful patterns. Uses community insights and peer success stories to suggest strategies that work for similar music styles.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+          </div>
           <button
             onClick={generateRecommendations}
             disabled={isGenerating}

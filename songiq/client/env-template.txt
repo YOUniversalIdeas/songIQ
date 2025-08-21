@@ -1,7 +1,16 @@
 # Copy this content to your .env file in the client directory
 
 # API Configuration
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5000/api
+
+# App Configuration
+VITE_APP_NAME=songIQ
+VITE_APP_VERSION=1.0.0
+
+# Feature Flags
+VITE_ENABLE_ANALYTICS=false
+VITE_ENABLE_DEBUG_MODE=true
 
 # Stripe Configuration
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here 
+# Get this from: https://dashboard.stripe.com/developers/api-keys
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_stripe_publishable_key_here 
