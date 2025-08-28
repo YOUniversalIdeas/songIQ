@@ -91,19 +91,13 @@ const LyricsAnalysis = () => {
       let response;
       
       if (selectedFile) {
-        // Upload file
-        const formData = new FormData();
-        formData.append('lyricsFile', selectedFile);
-        formData.append('trackName', trackName);
-        formData.append('artistName', artistName);
-
-        response = await fetch('/api/lyrics/upload', {
-          method: 'POST',
-          body: formData
-        });
+        // For file uploads, we need authentication - show signup prompt
+        setError('File upload requires authentication. Please sign up for full access.');
+        setLoading(false);
+        return;
       } else {
-        // Analyze text
-        response = await fetch('/api/lyrics/analyze-text', {
+        // Try demo endpoint first (no auth required)
+        response = await fetch('/api/lyrics/demo', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -135,7 +129,14 @@ const LyricsAnalysis = () => {
     if (file) {
       setSelectedFile(file);
       setLyricsText(''); // Clear text input when file is selected
+      // Show signup prompt for file uploads
+      setError('File upload requires authentication. Please sign up for full access to upload and analyze lyrics files.');
     }
+  };
+
+  const handleSignupClick = () => {
+    // Navigate to signup page or open signup modal
+    window.location.href = '/auth';
   };
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -704,7 +705,7 @@ const LyricsAnalysis = () => {
             {/* File Upload */}
             <div className="space-y-2">
               <label htmlFor="lyricsFile" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Upload Lyrics File
+                Upload Lyrics File (Requires Sign Up)
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -721,7 +722,7 @@ const LyricsAnalysis = () => {
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supported formats: .txt, .lrc, .srt (max 5MB)
+                Supported formats: .txt, .lrc, .srt (max 5MB) - <span className="text-blue-600 dark:text-blue-400">Sign up required for file uploads</span>
               </p>
             </div>
 
@@ -1302,9 +1303,22 @@ const LyricsAnalysis = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">Analysis Error</h3>
                 <p className="text-red-700 dark:text-red-300 mt-1">{error}</p>
+                {error.includes('authentication') || error.includes('sign up') ? (
+                  <div className="mt-4">
+                    <button
+                      onClick={handleSignupClick}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                    >
+                      Sign Up for Full Access
+                    </button>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                      Get unlimited lyrics analysis, file uploads, and more features
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

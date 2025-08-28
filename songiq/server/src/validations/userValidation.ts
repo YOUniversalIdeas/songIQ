@@ -50,9 +50,9 @@ export const createUserSchema = Joi.object({
     .trim()
     .max(100)
     .messages({
-      'string.empty': 'Band name is required',
-      'string.max': 'Band name cannot be more than 100 characters',
-      'any.required': 'Band name is required'
+      'string.empty': 'Artist/Band/Company Name is required',
+      'string.max': 'Artist/Band/Company Name cannot be more than 100 characters',
+      'any.required': 'Artist/Band/Company Name is required'
     }),
   username: Joi.string()
     .required()
@@ -139,9 +139,9 @@ export const updateUserSchema = Joi.object({
     .trim()
     .max(100)
     .messages({
-      'string.empty': 'Band name is required',
-      'string.max': 'Band name cannot be more than 100 characters',
-      'any.required': 'Band name is required'
+      'string.empty': 'Artist/Band/Company Name is required',
+      'string.max': 'Artist/Band/Company Name cannot be more than 100 characters',
+      'any.required': 'Artist/Band/Company Name is required'
     }),
   username: Joi.string()
     .trim()

@@ -1,5 +1,6 @@
 import express from 'express'
 import { AnalysisResults, PerformanceMetrics } from '../models'
+import { getGenreTrends, getCurrentTrends } from '../services/lastfmService'
 
 const router = express.Router()
 
@@ -82,24 +83,47 @@ router.get('/trends/:genre', async (req, res) => {
   try {
     const { genre } = req.params
 
-    // Mock trends data
-    const trends = {
+    // Get real trends data from Last.fm API
+    const trends = await getGenreTrends(genre)
+    
+    if (!trends.trendingGenres || trends.trendingGenres.length === 0) {
+      // Fallback to mock data if API fails
+      const fallbackTrends = {
+        popularTempos: [120, 125, 130, 128, 122],
+        popularKeys: ['C#', 'D', 'F#', 'G', 'A'],
+        trendingGenres: ['pop', 'hip-hop', 'electronic', 'r&b'],
+        currentEnergy: 75,
+        popularMoods: ['energetic', 'happy', 'uplifting', 'confident']
+      }
+      
+      return res.json({
+        success: true,
+        data: fallbackTrends,
+        source: 'fallback'
+      })
+    }
+
+    return res.json({
+      success: true,
+      data: trends,
+      source: 'lastfm'
+    })
+  } catch (error) {
+    console.error('Get trends error:', error)
+    
+    // Fallback to mock data on error
+    const fallbackTrends = {
       popularTempos: [120, 125, 130, 128, 122],
       popularKeys: ['C#', 'D', 'F#', 'G', 'A'],
       trendingGenres: ['pop', 'hip-hop', 'electronic', 'r&b'],
       currentEnergy: 75,
       popularMoods: ['energetic', 'happy', 'uplifting', 'confident']
     }
-
+    
     return res.json({
       success: true,
-      data: trends
-    })
-  } catch (error) {
-    console.error('Get trends error:', error)
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to get trends'
+      data: fallbackTrends,
+      source: 'fallback'
     })
   }
 })
@@ -226,6 +250,52 @@ router.get('/top-songs', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to get top songs'
+    })
+  }
+})
+
+// GET /api/market/trends - Get current global trends
+router.get('/trends', async (req, res) => {
+  try {
+    // Get real trends data from Last.fm API
+    const trends = await getCurrentTrends()
+    
+    return res.json({
+      success: true,
+      data: trends,
+      source: 'lastfm'
+    })
+  } catch (error) {
+    console.error('Get global trends error:', error)
+    
+    // Fallback to mock data on error
+    const fallbackTrends = {
+      topTracks: [
+        { name: 'Flowers', artist: 'Miley Cyrus', listeners: 2500000, playcount: 15000000 },
+        { name: 'Kill Bill', artist: 'SZA', listeners: 2200000, playcount: 12000000 },
+        { name: 'Last Night', artist: 'Morgan Wallen', listeners: 2000000, playcount: 10000000 }
+      ],
+      topArtists: [
+        { name: 'Taylor Swift', listeners: 5000000, playcount: 50000000 },
+        { name: 'Drake', listeners: 4800000, playcount: 45000000 },
+        { name: 'The Weeknd', listeners: 4200000, playcount: 40000000 }
+      ],
+      topTags: [
+        { name: 'pop', count: 50000 },
+        { name: 'hip-hop', count: 45000 },
+        { name: 'electronic', count: 35000 }
+      ],
+      trendingGenres: ['pop', 'hip-hop', 'electronic', 'r&b', 'country'],
+      popularTempos: [120, 125, 130, 128, 122, 135, 118, 140],
+      popularKeys: ['C#', 'D', 'F#', 'G', 'A', 'E', 'B', 'C'],
+      currentEnergy: 75,
+      popularMoods: ['energetic', 'happy', 'uplifting', 'confident', 'dance', 'rock']
+    }
+    
+    return res.json({
+      success: true,
+      data: fallbackTrends,
+      source: 'fallback'
     })
   }
 })

@@ -860,7 +860,7 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
   const downloadArtistsCSV = async () => {
     try {
       // For now, create CSV from mock data
-      const csvHeader = 'Name,Band Name,Email,Phone,Role,Subscription,Status,Created Date\n';
+      const csvHeader = 'Name,Artist/Band/Company Name,Email,Phone,Role,Subscription,Status,Created Date\n';
       const csvRows = artists.map(artist => {
         const name = `${artist.firstName} ${artist.lastName}`;
         const status = artist.isActive ? 'Active' : 'Inactive';
@@ -1092,7 +1092,7 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
           <div className="flex-1">
                           <input
                 type="text"
-                placeholder="Search by name, band name, email, phone, or subscription plan..."
+                placeholder="Search by name, artist/band/company name, email, phone, or subscription plan..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -1117,7 +1117,7 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
                   Artist
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Band Name
+                  Artist/Band/Company Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Contact

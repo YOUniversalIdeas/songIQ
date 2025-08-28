@@ -184,7 +184,7 @@ router.get('/artists/download', requireSuperAdmin, async (req, res) => {
       .sort({ createdAt: -1 });
     
     // Create CSV content
-    const csvHeader = 'Name,Band Name,Email,Phone,Role,Subscription,Status,Created Date\n';
+    const csvHeader = 'Name,Artist/Band/Company Name,Email,Phone,Role,Subscription,Status,Created Date\n';
     const csvRows = artists.map(artist => {
       const name = `${artist.firstName} ${artist.lastName}`;
       const status = artist.isActive ? 'Active' : 'Inactive';

@@ -95,7 +95,7 @@ songiq/
    
    **client/.env:**
    ```env
-   VITE_API_URL=http://localhost:5000/api
+   VITE_API_URL=http://localhost:5001/api
    ```
 
 4. **Start the development servers**
@@ -103,7 +103,7 @@ songiq/
    npm run dev
    ```
 
-   This will start both the frontend (http://localhost:3000) and backend (http://localhost:5000) servers.
+   This will start both the frontend (http://localhost:3000) and backend (http://localhost:5001) servers.
 
 ### Development Scripts
 

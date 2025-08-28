@@ -23,20 +23,29 @@ import { queueEmail } from './emailQueue';
 
 // Email transporter configuration
 const createTransporter = () => {
-  // For development, use Gmail or a service like Mailtrap
-  // In production, you'd use a service like SendGrid, AWS SES, etc.
-  
-  if (process.env.NODE_ENV === 'production') {
-    // Production email service (SendGrid, AWS SES, etc.)
+  // Check if SendGrid is configured
+  if (process.env.EMAIL_SERVICE === 'sendgrid') {
+    // SendGrid configuration - use SMTP with SendGrid's SMTP server
     return nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
+      host: 'smtp.sendgrid.net',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.EMAIL_USER,
+        user: process.env.EMAIL_USER || 'apikey',
         pass: process.env.EMAIL_PASSWORD
       }
     });
+  } else if (process.env.EMAIL_SERVICE === 'gmail') {
+    // Gmail configuration
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER || 'your-email@gmail.com',
+        pass: process.env.EMAIL_PASSWORD || 'your-app-password'
+      }
+    });
   } else {
-    // Development - use Gmail or Mailtrap
+    // Default to Gmail for backward compatibility
     return nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -53,7 +62,7 @@ export const sendEmail = async (options: EmailOptions): Promise<EmailResult> => 
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: options.from || `"songIQ" <${process.env.EMAIL_USER || 'noreply@songiq.com'}>`,
+      from: options.from || `"songIQ" <admin@songiq.ai>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -88,7 +97,7 @@ export const sendVerificationEmail = async (email: string, userName: string, tok
       verificationUrl
     };
     
-    const html = createVerificationEmail(templateData);
+    const html = createVerificationEmail(templateData.userName, templateData.verificationToken);
     const text = createPlainTextEmail(
       'Verify Your songIQ Account',
       `Welcome to songIQ, ${userName}!\n\nThank you for signing up! To complete your registration and start analyzing your music, please verify your email address by visiting this link:\n\n${verificationUrl}\n\nWhat's next?\n- Verify your email to activate your account\n- Start analyzing up to 3 songs with your free plan\n- Explore advanced features and upgrade when ready\n\nThis link will expire in 24 hours. If you didn't create an account with songIQ, you can safely ignore this email.`

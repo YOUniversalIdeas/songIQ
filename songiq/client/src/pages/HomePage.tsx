@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Upload, BarChart3, TrendingUp, Zap, Target, Users, BarChart } from 'lucide-react'
+import RealTimeStats from '../components/RealTimeStats'
 
 const HomePage = () => {
   const features = [
@@ -65,13 +66,6 @@ const HomePage = () => {
             <BarChart className="h-5 w-5" />
             <span>View Dashboard</span>
           </Link>
-          <Link
-            to="/recommendations"
-            className="btn-secondary text-lg px-8 py-3 flex items-center justify-center space-x-2"
-          >
-            <Zap className="h-5 w-5" />
-            <span>Recommendations</span>
-          </Link>
         </div>
       </section>
 
@@ -110,27 +104,8 @@ const HomePage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 dark:bg-gray-800 dark:border-gray-700">
-        <div className="text-center space-y-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Trusted by Musicians Worldwide
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-primary-600">10,000+</div>
-              <div className="text-gray-600 dark:text-gray-400">Songs Analyzed</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-primary-600">95%</div>
-              <div className="text-gray-600 dark:text-gray-400">Prediction Accuracy</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-primary-600">5,000+</div>
-              <div className="text-gray-600 dark:text-gray-400">Happy Artists</div>
-            </div>
-          </div>
-        </div>
+      <section>
+        <RealTimeStats />
       </section>
 
       {/* CTA Section */}

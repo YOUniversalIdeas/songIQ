@@ -336,7 +336,7 @@ abTestingService.ts         # A/B testing framework
 
 ### **Expanded Data Sources**
 - **YouTube Analytics**: Video performance data
-- **TikTok Trends**: Viral content analysis
+- **Instagram Trends**: Viral content analysis
 - **Radio Airplay**: Traditional media tracking
 - **International Markets**: Global trend analysis
 

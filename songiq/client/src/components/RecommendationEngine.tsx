@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Calendar,
@@ -7,7 +7,10 @@ import {
   Music,
   Share2,
   TestTube,
-  Info
+  Info,
+  Loader2,
+  AlertCircle,
+  Upload
 } from 'lucide-react';
 
 interface AudioFeature {
@@ -78,17 +81,40 @@ interface ABTestResult {
   confidence: number;
 }
 
+interface RecommendationData {
+  songId: string;
+  songTitle: string;
+  artist: string;
+  overallScore: number;
+  audioFeatureRecommendations: AudioFeature[];
+  genreRecommendations: GenreRecommendation[];
+  collaborationSuggestions: CollaborationSuggestion[];
+  releaseTiming: ReleaseTiming;
+  marketingStrategies: MarketingStrategy[];
+  abTestResults: ABTestResult[];
+  analysis: {
+    successScore: number;
+    marketPotential: number;
+    socialScore: number;
+    recommendations: any[];
+  };
+  marketTrends: any;
+  lastUpdated: string;
+}
+
 interface RecommendationEngineProps {
-  songData?: any;
+  songId?: string;
   className?: string;
 }
 
-const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ className = '' }) => {
+const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ songId, className = '' }) => {
   const [activeView, setActiveView] = useState<'features' | 'genre' | 'collaboration' | 'timing' | 'marketing' | 'abtest'>('features');
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<'ml' | 'hybrid' | 'collaborative'>('ml');
   const [showAlgorithmTooltip, setShowAlgorithmTooltip] = useState(false);
-
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recommendationData, setRecommendationData] = useState<RecommendationData | null>(null);
 
   const handleAlgorithmInfo = () => {
     setShowAlgorithmTooltip(true);
@@ -96,614 +122,468 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ className =
     setTimeout(() => setShowAlgorithmTooltip(false), 4000);
   };
 
-  // Sample data for demonstration
-  const audioFeatures: AudioFeature[] = [
-    {
-      name: 'Danceability',
-      currentValue: 0.65,
-      recommendedValue: 0.78,
-      impact: 85,
-      difficulty: 'medium',
-      description: 'Increase danceability to appeal to club and party audiences'
-    },
-    {
-      name: 'Energy',
-      currentValue: 0.72,
-      recommendedValue: 0.85,
-      impact: 92,
-      difficulty: 'easy',
-      description: 'Boost energy levels for better streaming performance'
-    },
-    {
-      name: 'Valence',
-      currentValue: 0.58,
-      recommendedValue: 0.72,
-      impact: 78,
-      difficulty: 'hard',
-      description: 'Increase positive mood to match current market trends'
-    },
-    {
-      name: 'Tempo',
-      currentValue: 125,
-      recommendedValue: 132,
-      impact: 88,
-      difficulty: 'medium',
-      description: 'Slightly increase tempo for better dance floor appeal'
-    }
-  ];
-
-  const genreRecommendations: GenreRecommendation[] = [
-    {
-      genre: 'Pop',
-      currentGenre: 'Indie',
-      successProbability: 78,
-      marketTrend: 85,
-      audienceOverlap: 65,
-      transitionDifficulty: 'medium',
-      keyFactors: ['Strong vocal performance', 'Catchy melodies', 'Radio-friendly structure'],
-      estimatedGrowth: 25
-    },
-    {
-      genre: 'Electronic',
-      currentGenre: 'Indie',
-      successProbability: 72,
-      marketTrend: 78,
-      audienceOverlap: 45,
-      transitionDifficulty: 'hard',
-      keyFactors: ['Production quality', 'Beat complexity', 'Sound design'],
-      estimatedGrowth: 18
-    },
-    {
-      genre: 'Hip-Hop',
-      currentGenre: 'Indie',
-      successProbability: 68,
-      marketTrend: 82,
-      audienceOverlap: 35,
-      transitionDifficulty: 'hard',
-      keyFactors: ['Lyrical content', 'Beat selection', 'Cultural relevance'],
-      estimatedGrowth: 22
-    }
-  ];
-
-  const collaborationSuggestions: CollaborationSuggestion[] = [
-    {
-      artist: 'Luna Echo',
-      genre: 'Pop',
-      followers: 2500000,
-      compatibility: 92,
-      audienceOverlap: 78,
-      recentSuccess: 85,
-      collaborationType: 'feature',
-      expectedImpact: 88
-    },
-    {
-      artist: 'Neon Pulse',
-      genre: 'Electronic',
-      followers: 1800000,
-      compatibility: 85,
-      audienceOverlap: 65,
-      recentSuccess: 78,
-      collaborationType: 'remix',
-      expectedImpact: 82
-    },
-    {
-      artist: 'Urban Flow',
-      genre: 'Hip-Hop',
-      followers: 3200000,
-      compatibility: 78,
-      audienceOverlap: 45,
-      recentSuccess: 92,
-      collaborationType: 'feature',
-      expectedImpact: 85
-    }
-  ];
-
-  const releaseTiming: ReleaseTiming = {
-    recommendedDate: '2024-06-15',
-    confidence: 85,
-    marketConditions: {
-      competition: 65,
-      seasonalFactor: 88,
-      trendAlignment: 92
-    },
-    alternativeDates: [
-      { date: '2024-07-01', score: 82, reason: 'Summer festival season peak' },
-      { date: '2024-05-20', score: 78, reason: 'Pre-summer momentum building' },
-      { date: '2024-08-15', score: 75, reason: 'Late summer release window' }
-    ],
-    riskFactors: [
-      'Major label releases in same week',
-      'Competing with established artists',
-      'Seasonal timing could be better'
-    ]
-  };
-
-  const marketingStrategies: MarketingStrategy[] = [
-    {
-      platform: 'TikTok',
-      strategy: 'Viral Dance Challenge',
-      expectedReach: 2500000,
-      cost: 'low',
-      timeline: '2-3 weeks',
-      successMetrics: ['Views', 'Shares', 'User-generated content'],
-      implementation: 'Create 15-second dance snippet with trending hashtags'
-    },
-    {
-      platform: 'Instagram',
-      strategy: 'Story Series & Reels',
-      expectedReach: 1800000,
-      cost: 'medium',
-      timeline: '4-6 weeks',
-      successMetrics: ['Engagement rate', 'Story views', 'Profile visits'],
-      implementation: 'Daily story updates and weekly reels with behind-the-scenes content'
-    },
-    {
-      platform: 'YouTube',
-      strategy: 'Music Video + Behind the Scenes',
-      expectedReach: 1200000,
-      cost: 'high',
-      timeline: '6-8 weeks',
-      successMetrics: ['Views', 'Watch time', 'Subscriptions'],
-      implementation: 'Professional music video with behind-the-scenes documentary'
-    }
-  ];
-
-  const abTestResults: ABTestResult[] = [
-    {
-      algorithm: 'ML-Based',
-      recommendationType: 'Feature Optimization',
-      effectiveness: 88,
-      userEngagement: 92,
-      conversionRate: 15.5,
-      sampleSize: 1250,
-      confidence: 95
-    },
-    {
-      algorithm: 'Hybrid',
-      recommendationType: 'Genre Switching',
-      effectiveness: 82,
-      userEngagement: 88,
-      conversionRate: 12.8,
-      sampleSize: 980,
-      confidence: 92
-    },
-    {
-      algorithm: 'Collaborative',
-      recommendationType: 'Collaboration',
-      effectiveness: 85,
-      userEngagement: 90,
-      conversionRate: 14.2,
-      sampleSize: 1100,
-      confidence: 94
-    }
-  ];
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'text-green-600 bg-green-100 dark:bg-green-900/20';
-      case 'medium': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
-      case 'hard': return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+  // Fetch recommendations from API
+  const fetchRecommendations = async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/recommendations/${id}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recommendations: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (result.success) {
+        setRecommendationData(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to fetch recommendations');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching recommendations:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getImpactColor = (impact: number) => {
-    if (impact >= 85) return 'text-green-600';
-    if (impact >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  // Load recommendations when songId changes
+  useEffect(() => {
+    if (songId) {
+      fetchRecommendations(songId);
+    } else {
+      setRecommendationData(null);
+    }
+  }, [songId]);
 
-  const getProbabilityColor = (probability: number) => {
-    if (probability >= 80) return 'text-green-600';
-    if (probability >= 65) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const generateRecommendations = async () => {
-    setIsGenerating(true);
-    // Simulate ML processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsGenerating(false);
-  };
-
-  return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">AI Recommendation Engine</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            ML-powered suggestions for optimizing your music success
-          </p>
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700 ${className}`}>
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Loading Recommendations...</h3>
+          <p className="text-gray-600 dark:text-gray-400">Analyzing your song and generating personalized insights</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <select
-              value={selectedAlgorithm}
-              onChange={(e) => setSelectedAlgorithm(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
-              <option value="ml">ML-Based</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="collaborative">Collaborative</option>
-            </select>
-            <button
-              onClick={handleAlgorithmInfo}
-              className="absolute -right-8 top-1/2 transform -translate-y-1/2 p-1 rounded-full bg-blue-100 dark:bg-blue-700 hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors duration-200"
-              title="Click for more information"
-            >
-              <Info className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-            </button>
-            
-                              {/* Tooltip */}
-                  {showAlgorithmTooltip && (
-                    <div className="absolute top-0 w-[300px] bg-sky-200 text-gray-900 p-4 rounded-lg shadow-xl border-2 border-sky-400 z-[99999]
-                      left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
-                      md:w-[300px] md:left-auto md:right-auto md:mx-auto
-                      md:left-full md:ml-2
-                    ">
-                      <div className="absolute top-4 hidden md:block -left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-sky-400"></div>
-                      <h4 className="font-semibold mb-2">Algorithm Types</h4>
-                      <div className="text-sm space-y-3">
-                        <div>
-                          <p className="font-medium mb-1">ML-Based:</p>
-                          <p>Uses machine learning algorithms trained on vast datasets of music performance metrics. Analyzes patterns in audio features, market trends, and audience behavior to provide data-driven recommendations.</p>
-                        </div>
-                        <div>
-                          <p className="font-medium mb-1">Hybrid:</p>
-                          <p>Combines machine learning insights with human music industry expertise. Balances data-driven analysis with creative intuition and industry knowledge for well-rounded recommendations.</p>
-                        </div>
-                        <div>
-                          <p className="font-medium mb-1">Collaborative:</p>
-                          <p>Leverages collaborative filtering to find similar artists and successful patterns. Uses community insights and peer success stories to suggest strategies that work for similar music styles.</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-          </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700 ${className}`}>
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error Loading Recommendations</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
           <button
-            onClick={generateRecommendations}
-            disabled={isGenerating}
-            className="btn-primary flex items-center space-x-2"
+            onClick={() => songId && fetchRecommendations(songId)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {isGenerating ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-            ) : (
-              <Zap className="h-4 w-4" />
-            )}
-            <span>{isGenerating ? 'Generating...' : 'Generate Recommendations'}</span>
+            Try Again
           </button>
         </div>
       </div>
+    );
+  }
 
-      {/* View Selector */}
-      <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-        {[
-          { id: 'features', label: 'Features', icon: Target },
-          { id: 'genre', label: 'Genre', icon: Music },
-          { id: 'collaboration', label: 'Collaboration', icon: Users },
-          { id: 'timing', label: 'Timing', icon: Calendar },
-          { id: 'marketing', label: 'Marketing', icon: Share2 },
-          { id: 'abtest', label: 'A/B Test', icon: TestTube }
-        ].map((view) => {
-          const Icon = view.icon;
-          return (
+  // Show empty state when no song is selected
+  if (!songId || !recommendationData) {
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700 ${className}`}>
+        <div className="text-center">
+          <Music className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Song Selected</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Select a song to view personalized recommendations and insights
+          </p>
+          <button
+            onClick={() => window.location.href = '/upload'}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center mx-auto space-x-2"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Upload Song</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use real data from API
+  const {
+    songTitle,
+    artist,
+    overallScore,
+    audioFeatureRecommendations,
+    genreRecommendations,
+    collaborationSuggestions,
+    releaseTiming,
+    marketingStrategies,
+    abTestResults
+  } = recommendationData;
+
+  return (
+    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 ${className}`}>
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              AI Recommendation Engine
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {songTitle} • {artist} • Overall Score: {overallScore}/100
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Algorithm</div>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={selectedAlgorithm}
+                  onChange={(e) => setSelectedAlgorithm(e.target.value as 'ml' | 'hybrid' | 'collaborative')}
+                  className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="ml">ML-Based</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="collaborative">Collaborative</option>
+                </select>
+                <button
+                  onClick={handleAlgorithmInfo}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <Info className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
             <button
-              key={view.id}
-              onClick={() => setActiveView(view.id as any)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                activeView === view.id
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              onClick={() => setIsGenerating(true)}
+              disabled={isGenerating}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  <span>Generate New</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Algorithm Tooltip */}
+        {showAlgorithmTooltip && (
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Algorithm Information</h4>
+            <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+              <p><strong>ML-Based:</strong> Machine learning model trained on successful songs</p>
+              <p><strong>Hybrid:</strong> Combines ML predictions with market trend analysis</p>
+              <p><strong>Collaborative:</strong> Uses similar artist and song patterns</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex space-x-8 px-6">
+          {[
+            { id: 'features', label: 'Audio Features', icon: Target },
+            { id: 'genre', label: 'Genre Strategy', icon: Music },
+            { id: 'collaboration', label: 'Collaborations', icon: Users },
+            { id: 'timing', label: 'Release Timing', icon: Calendar },
+            { id: 'marketing', label: 'Marketing', icon: Share2 },
+            { id: 'abtest', label: 'A/B Testing', icon: TestTube }
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveView(id as any)}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                activeView === id
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
               <Icon className="w-4 h-4" />
-              <span>{view.label}</span>
+              <span>{label}</span>
             </button>
-          );
-        })}
+          ))}
+        </nav>
       </div>
 
-      {/* Content Views */}
-      <div className="min-h-96">
+      {/* Content */}
+      <div className="p-6">
+        {/* Audio Features View */}
         {activeView === 'features' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Feature Optimization Suggestions</h3>
-              <div className="space-y-4">
-                {audioFeatures.map((feature, index) => (
-                  <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white">{feature.name}</h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(feature.difficulty)}`}>
-                        {feature.difficulty}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Current</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{feature.currentValue}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Recommended</p>
-                        <p className="font-medium text-blue-600">{feature.recommendedValue}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Impact</p>
-                        <p className={`font-medium ${getImpactColor(feature.impact)}`}>{feature.impact}%</p>
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{feature.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeView === 'genre' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Genre Switching Recommendations</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {genreRecommendations.map((rec, index) => (
-                  <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white">{rec.genre}</h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getProbabilityColor(rec.successProbability)}`}>
-                        {rec.successProbability}% success
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-2 mb-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Market Trend</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{rec.marketTrend}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Audience Overlap</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{rec.audienceOverlap}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Growth</span>
-                        <span className="text-sm font-medium text-green-600">+{rec.estimatedGrowth}%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Key Factors</p>
-                      <div className="space-y-1">
-                        {rec.keyFactors.map((factor, fIndex) => (
-                          <div key={fIndex} className="flex items-center space-x-2">
-                            <div className="w-1 h-1 bg-blue-600 rounded-full"></div>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">{factor}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(rec.transitionDifficulty)}`}>
-                      {rec.transitionDifficulty} transition
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Audio Feature Optimization</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {audioFeatureRecommendations.map((feature, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{feature.name}</h4>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      feature.difficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                      feature.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                    }`}>
+                      {feature.difficulty}
                     </span>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Current:</span>
+                      <span className="font-medium">{feature.currentValue}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Recommended:</span>
+                      <span className="font-medium text-blue-600">{feature.recommendedValue}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Impact:</span>
+                      <span className="font-medium text-green-600">{feature.impact}%</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">{feature.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Genre Strategy View */}
+        {activeView === 'genre' && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Genre Strategy & Market Trends</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {genreRecommendations.slice(0, 6).map((genre, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{genre.genre}</h4>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      genre.transitionDifficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                      genre.transitionDifficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                    }`}>
+                      {genre.transitionDifficulty}
+                    </span>
+                  </div>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Success:</span>
+                      <span className="font-medium text-green-600">{genre.successProbability}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Market Trend:</span>
+                      <span className="font-medium">{genre.marketTrend}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Audience Overlap:</span>
+                      <span className="font-medium">{genre.audienceOverlap}%</span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="font-medium mb-2">Key Factors:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {genre.keyFactors.slice(0, 3).map((factor, idx) => (
+                        <li key={idx}>{factor}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Collaboration View */}
         {activeView === 'collaboration' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Collaboration Suggestions</h3>
-              <div className="space-y-4">
-                {collaborationSuggestions.map((collab, index) => (
-                  <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                          <Users className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">{collab.artist}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{collab.genre} • {collab.followers.toLocaleString()} followers</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-medium ${getProbabilityColor(collab.compatibility)}`}>
-                          {collab.compatibility}% match
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {collab.collaborationType}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Compatibility</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{collab.compatibility}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Audience Overlap</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{collab.audienceOverlap}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Recent Success</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{collab.recentSuccess}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Expected Impact</p>
-                        <p className="font-medium text-green-600">{collab.expectedImpact}%</p>
-                      </div>
-                    </div>
-                    
-                    <button className="btn-secondary text-sm">
-                      Contact Artist
-                    </button>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Artist Collaboration Opportunities</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {collaborationSuggestions.map((collab, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{collab.artist}</h4>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{collab.genre}</span>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Followers:</span>
+                      <span className="font-medium">{collab.followers.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Compatibility:</span>
+                      <span className="font-medium text-green-600">{collab.compatibility}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Audience Overlap:</span>
+                      <span className="font-medium">{collab.audienceOverlap}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Recent Success:</span>
+                      <span className="font-medium">{collab.recentSuccess}%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                      {collab.collaborationType}
+                    </span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {collab.expectedImpact}% impact
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Release Timing View */}
         {activeView === 'timing' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Release Timing Optimization</h3>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-4">
-                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Recommended Release Date</h4>
-                    <p className="text-2xl font-bold text-green-600">{releaseTiming.recommendedDate}</p>
-                    <p className="text-sm text-green-700 dark:text-green-200 mt-1">
-                      {releaseTiming.confidence}% confidence
-                    </p>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Release Timing Strategy</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-4">Recommended Release</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Date:</span>
+                    <span className="font-medium">{releaseTiming.recommendedDate}</span>
                   </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Competition Level</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{releaseTiming.marketConditions.competition}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Seasonal Factor</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{releaseTiming.marketConditions.seasonalFactor}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Trend Alignment</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{releaseTiming.marketConditions.trendAlignment}%</span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Confidence:</span>
+                    <span className="font-medium text-green-600">{releaseTiming.confidence}%</span>
                   </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Alternative Dates</h4>
-                  <div className="space-y-3">
-                    {releaseTiming.alternativeDates.map((alt, index) => (
-                      <div key={index} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium text-gray-900 dark:text-white">{alt.date}</span>
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{alt.score}% score</span>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{alt.reason}</p>
-                      </div>
-                    ))}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Competition:</span>
+                    <span className="font-medium">{releaseTiming.marketConditions.competition}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Seasonal Factor:</span>
+                    <span className="font-medium">{releaseTiming.marketConditions.seasonalFactor}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Trend Alignment:</span>
+                    <span className="font-medium">{releaseTiming.marketConditions.trendAlignment}%</span>
                   </div>
                 </div>
               </div>
               
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Risk Factors</h4>
-                <div className="space-y-2">
-                  {releaseTiming.riskFactors.map((risk, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{risk}</span>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-4">Alternative Dates</h4>
+                <div className="space-y-3">
+                  {releaseTiming.alternativeDates.map((alt, index) => (
+                    <div key={index} className="border-b border-gray-200 dark:border-gray-600 pb-2 last:border-b-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">{alt.date}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">{alt.reason}</div>
+                        </div>
+                        <span className="text-sm font-medium text-blue-600">{alt.score}%</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeView === 'marketing' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Marketing Strategy Recommendations</h3>
-              <div className="space-y-4">
-                {marketingStrategies.map((strategy, index) => (
-                  <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
-                          <Share2 className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">{strategy.platform}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{strategy.strategy}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {strategy.expectedReach.toLocaleString()} reach
-                        </p>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          strategy.cost === 'low' ? 'text-green-600 bg-green-100 dark:bg-green-900/20' :
-                          strategy.cost === 'medium' ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20' :
-                          'text-red-600 bg-red-100 dark:bg-red-900/20'
-                        }`}>
-                          {strategy.cost} cost
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Timeline</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{strategy.timeline}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Success Metrics</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{strategy.successMetrics.join(', ')}</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Implementation</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{strategy.implementation}</p>
-                    </div>
-                  </div>
+            
+            <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+              <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">Risk Factors</h4>
+              <ul className="list-disc list-inside text-sm text-yellow-800 dark:text-yellow-200 space-y-1">
+                {releaseTiming.riskFactors.map((risk, index) => (
+                  <li key={index}>{risk}</li>
                 ))}
-              </div>
+              </ul>
             </div>
           </div>
         )}
 
-        {activeView === 'abtest' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">A/B Test Results</h3>
-              <div className="space-y-4">
-                {abTestResults.map((result, index) => (
-                  <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white">{result.algorithm}</h4>
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded">
-                        {result.recommendationType}
-                      </span>
+        {/* Marketing View */}
+        {activeView === 'marketing' && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Marketing Strategy & Platform Performance</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {marketingStrategies.map((strategy, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{strategy.platform}</h4>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      strategy.cost === 'low' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                      strategy.cost === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                    }`}>
+                      {strategy.cost} cost
+                    </span>
+                  </div>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Expected Reach:</span>
+                      <span className="font-medium">{strategy.expectedReach.toLocaleString()}</span>
                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Effectiveness</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{result.effectiveness}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Engagement</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{result.userEngagement}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Conversion</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{result.conversionRate}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Confidence</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{result.confidence}%</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                      Sample size: {result.sampleSize.toLocaleString()} users
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Timeline:</span>
+                      <span className="font-medium">{strategy.timeline}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="font-medium mb-2">Strategy:</p>
+                    <p>{strategy.strategy}</p>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="font-medium mb-2">Implementation:</p>
+                    <p>{strategy.implementation}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* A/B Testing View */}
+        {activeView === 'abtest' && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Algorithm Performance & A/B Testing Results</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {abTestResults.map((result, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">{result.algorithm}</h4>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Type:</span>
+                      <span className="font-medium">{result.recommendationType}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Effectiveness:</span>
+                      <span className="font-medium text-green-600">{result.effectiveness}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Engagement:</span>
+                      <span className="font-medium">{result.userEngagement}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Conversion:</span>
+                      <span className="font-medium">{result.conversionRate}%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Sample: {result.sampleSize.toLocaleString()}
+                    </span>
+                    <span className="font-medium text-blue-600">
+                      {result.confidence}% confidence
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

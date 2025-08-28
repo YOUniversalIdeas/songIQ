@@ -82,7 +82,7 @@ const TrendsPage = () => {
   const exportTrendsReport = async () => {
     // Simulate PDF generation
     await new Promise(resolve => setTimeout(resolve, 2000));
-    alert('Trends report exported successfully!');
+    alert('Career trends report exported successfully!');
   };
 
   return (
@@ -99,9 +99,11 @@ const TrendsPage = () => {
                 <ArrowLeft className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Market Trends Analysis</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Real-time industry insights and predictive analytics for music success
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  🚀 Music Industry Trends & Your Career
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">
+                  Stay ahead of the curve with real-time industry insights that directly impact your music career
                 </p>
               </div>
             </div>
@@ -112,7 +114,7 @@ const TrendsPage = () => {
                 className="btn-secondary flex items-center space-x-2"
               >
                 <Download className="h-4 w-4" />
-                <span>Export Report</span>
+                <span>Export Career Report</span>
               </button>
             </div>
           </div>
@@ -123,7 +125,7 @@ const TrendsPage = () => {
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100">Market Growth</p>
+                <p className="text-blue-100">Industry Growth</p>
                 <p className="text-2xl font-bold">+12.5%</p>
               </div>
               <div className="flex items-center space-x-2">
@@ -155,17 +157,17 @@ const TrendsPage = () => {
                     ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
                     : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
                 }`}></div>
-                <h4 className="font-semibold mb-2">Market Growth</h4>
+                <h4 className="font-semibold mb-2">Industry Growth</h4>
                 <p className="text-sm mb-3">
-                  Market Growth represents the overall expansion of the music industry, including streaming revenue, 
-                  digital sales, and market capitalization. This metric tracks month-over-month and year-over-year growth trends.
+                  Industry Growth shows how the music industry is expanding, creating more opportunities for artists. 
+                  This includes streaming revenue, digital sales, and overall market expansion that directly impacts your career potential.
                 </p>
                 <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Current Status:</p>
-                  <p>• +12.5% overall market growth</p>
-                  <p>• +2.3% increase from last month</p>
-                  <p>• Positive trend for 6 consecutive months</p>
-                  <p>• Above industry average of +8.2%</p>
+                  <p className="font-medium mb-1">Career Impact:</p>
+                  <p>• +12.5% industry growth = more opportunities for you</p>
+                  <p>• +2.3% monthly increase = growing demand for music</p>
+                  <p>• 6-month positive trend = stable career environment</p>
+                  <p>• Above average growth = excellent timing for releases</p>
                 </div>
                 <div className="text-sm">
                   <p className="font-medium mb-1">Color Coding:</p>
@@ -213,20 +215,20 @@ const TrendsPage = () => {
                 }`}></div>
                 <h4 className="font-semibold mb-2">Top Genre</h4>
                 <p className="text-sm mb-3">
-                  Top Genre identifies the most popular music genre based on streaming numbers, radio play, 
-                  social media engagement, and chart performance. This metric helps artists understand current market preferences.
+                  Top Genre shows which music style is currently dominating the market. This helps you understand 
+                  audience preferences and decide whether to align with trends or carve your own path.
                 </p>
                 <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Current Status:</p>
-                  <p>• Pop music leads with 85% popularity score</p>
-                  <p>• 12% increase from last quarter</p>
-                  <p>• Dominates streaming platforms globally</p>
-                  <p>• Strong social media presence</p>
+                  <p className="font-medium mb-1">Career Strategy:</p>
+                  <p>• Pop leads with 85% popularity = high audience demand</p>
+                  <p>• 12% quarterly increase = growing trend momentum</p>
+                  <p>• Global streaming dominance = worldwide reach potential</p>
+                  <p>• Strong social presence = viral opportunity</p>
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Green gradient: Represents growth, popularity, and market dominance</p>
-                  <p>• Current score (85%): Indicates genre leadership position</p>
+                  <p className="font-medium mb-1">What This Means for You:</p>
+                  <p>• Green gradient: High demand and opportunity for Pop artists</p>
+                  <p>• 85% score: Excellent timing to release Pop music or Pop-influenced tracks</p>
                 </div>
               </div>
             )}
@@ -235,7 +237,7 @@ const TrendsPage = () => {
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100">Social Sentiment</p>
+                <p className="text-purple-100">Audience Mood</p>
                 <p className="text-2xl font-bold">Positive</p>
               </div>
               <div className="flex items-center space-x-2">
@@ -267,22 +269,22 @@ const TrendsPage = () => {
                     ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-purple-600' 
                     : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-purple-600'
                 }`}></div>
-                <h4 className="font-semibold mb-2">Social Sentiment</h4>
+                <h4 className="font-semibold mb-2">Audience Mood</h4>
                 <p className="text-sm mb-3">
-                  Social Sentiment measures the overall emotional tone and engagement level across social media platforms, 
-                  including Twitter, Instagram, TikTok, and YouTube. This metric reflects public perception and viral potential.
+                  Audience Mood shows how listeners are feeling about music right now. This helps you understand 
+                  what emotional content will resonate and whether it's a good time for upbeat or introspective music.
                 </p>
                 <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Current Status:</p>
-                  <p>• 78% positive engagement rate</p>
-                  <p>• 15% increase from last month</p>
-                  <p>• Strong viral content performance</p>
-                  <p>• High social media sharing</p>
+                  <p className="font-medium mb-1">Career Strategy:</p>
+                  <p>• 78% positive mood = audience ready for upbeat music</p>
+                  <p>• 15% monthly increase = growing positive momentum</p>
+                  <p>• Strong viral performance = excellent sharing potential</p>
+                  <p>• High social sharing = organic reach opportunity</p>
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Purple gradient: Represents creativity, social connection, and viral potential</p>
-                  <p>• Current score (78%): Indicates strong positive sentiment</p>
+                  <p className="font-medium mb-1">What This Means for You:</p>
+                  <p>• Purple gradient: High viral potential and social sharing</p>
+                  <p>• 78% score: Perfect time to release positive, shareable content</p>
                 </div>
               </div>
             )}
@@ -291,7 +293,7 @@ const TrendsPage = () => {
           <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-100">Prediction Accuracy</p>
+                <p className="text-yellow-100">AI Career Predictions</p>
                 <p className="text-2xl font-bold">82%</p>
               </div>
               <div className="flex items-center space-x-2">
@@ -323,22 +325,22 @@ const TrendsPage = () => {
                     ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-yellow-600' 
                     : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-yellow-600'
                 }`}></div>
-                <h4 className="font-semibold mb-2">Prediction Accuracy</h4>
+                <h4 className="font-semibold mb-2">AI Career Predictions</h4>
                 <p className="text-sm mb-3">
-                  Prediction Accuracy measures how well our AI models forecast music trends, chart performance, 
-                  and market movements. This metric validates the reliability of our predictive analytics system.
+                  AI Career Predictions show how accurately our system forecasts your music's success potential. 
+                  This helps you make informed decisions about releases, timing, and career strategy.
                 </p>
                 <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Current Status:</p>
-                  <p>• 82% overall prediction accuracy</p>
-                  <p>• High confidence model performance</p>
-                  <p>• 3-month trend predictions: 85% accurate</p>
-                  <p>• 6-month predictions: 78% accurate</p>
+                  <p className="font-medium mb-1">Career Planning:</p>
+                  <p>• 82% accuracy = reliable career guidance</p>
+                  <p>• High confidence = trust our recommendations</p>
+                  <p>• 3-month predictions = short-term strategy planning</p>
+                  <p>• 6-month predictions = long-term career planning</p>
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Yellow gradient: Represents intelligence, accuracy, and predictive power</p>
-                  <p>• Current score (82%): Indicates high confidence model</p>
+                  <p className="font-medium mb-1">What This Means for You:</p>
+                  <p>• Yellow gradient: High confidence in career predictions</p>
+                  <p>• 82% score: Trust our AI recommendations for your career decisions</p>
                 </div>
               </div>
             )}
@@ -350,15 +352,15 @@ const TrendsPage = () => {
 
         {/* Feature Highlights */}
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Trend Analysis Features</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">🚀 Career-Boosting Trend Tools</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Globe className="h-8 w-8 text-blue-600" />
               </div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Geographic Trends</h4>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Global Market Insights</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Track music preferences across different regions and markets
+                Discover which regions will love your music and plan your global expansion
               </p>
             </div>
             
@@ -495,8 +497,8 @@ const TrendsPage = () => {
               
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-2">Social Media Impact</h4>
-                <p className="text-sm text-purple-800 dark:text-purple-200">
-                  TikTok continues to drive music discovery with 85% of viral songs achieving chart success within 30 days.
+                <p className="text-gray-400 text-sm">
+                  Social media continues to drive music discovery with 85% of viral songs achieving chart success within 30 days.
                 </p>
               </div>
             </div>

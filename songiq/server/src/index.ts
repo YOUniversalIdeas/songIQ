@@ -1,30 +1,46 @@
+import dotenv from 'dotenv'
+
+// Load environment variables FIRST, before any other imports
+dotenv.config({ path: process.env.NODE_ENV === 'development' ? './env.development' : '.env' })
+
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import rateLimit from 'express-rate-limit'
-import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import path from 'path'
+import { createServer } from 'http'
+import WebSocketService from './services/websocketService'
 
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env') })
+// Debug: Check if YouTube API key is loaded
+console.log('🔑 Environment check:')
+console.log('YOUTUBE_API_KEY:', process.env.YOUTUBE_API_KEY ? '✅ Loaded' : '❌ Not loaded')
+console.log('LASTFM_API_KEY:', process.env.LASTFM_API_KEY ? '✅ Loaded' : '❌ Not loaded')
+console.log('NODE_ENV:', process.env.NODE_ENV || 'development')
 
 // Import routes
-import songRoutes from './routes/songs'
-import analysisRoutes from './routes/analysis'
-import marketRoutes from './routes/market'
-import spotifyRoutes from './routes/spotify'
-import successRoutes from './routes/success'
-import paymentRoutes from './routes/payments'
-import webhookRoutes from './routes/webhooks'
-import authRoutes from './routes/auth'
-import userActivityRoutes from './routes/userActivity'
-import adminRoutes from './routes/admin'
-// import lyricsRoutes from './routes/lyrics'
+import authRoutes from './routes/auth';
+import analysisRoutes from './routes/analysis';
+import songsRoutes from './routes/songs';
+import lyricsRoutes from './routes/lyrics';
+import adminRoutes from './routes/admin';
+import paymentsRoutes from './routes/payments';
+import userActivityRoutes from './routes/userActivity';
+import spotifyRoutes from './routes/spotify';
+// import youtubeMusicRoutes from './routes/youtubeMusic';
+import marketSignalsRoutes from './routes/market';
+import webhookRoutes from './routes/webhooks';
+import successRoutes from './routes/success';
+import recommendationsRoutes from './routes/recommendations';
+import verificationRoutes from './routes/verification';
 
 const app = express()
-const PORT = parseInt(process.env.PORT || '9001', 10)
+const server = createServer(app)
+const PORT = parseInt(process.env.PORT || '3000', 10)
+
+// Initialize WebSocket service
+const webSocketService = new WebSocketService(server)
 
 // Security middleware
 app.use(helmet())
@@ -33,7 +49,7 @@ app.use(helmet())
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://yourdomain.com'] 
-    : ['http://localhost:3001', 'http://localhost:9000', 'http://localhost:9001', 'http://localhost:5000'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:5001'],
   credentials: true
 }))
 
@@ -70,16 +86,19 @@ const connectDB = async () => {
 
 // API Routes
 app.use('/api/auth', authRoutes)
-app.use('/api/songs', songRoutes)
+app.use('/api/songs', songsRoutes)
 app.use('/api/analysis', analysisRoutes)
-app.use('/api/market', marketRoutes)
+app.use('/api/market', marketSignalsRoutes)
 app.use('/api/spotify', spotifyRoutes)
+// app.use('/api/youtube-music', youtubeMusicRoutes)
 app.use('/api/success', successRoutes)
-app.use('/api/payments', paymentRoutes)
+app.use('/api/payments', paymentsRoutes)
 app.use('/api/webhooks', webhookRoutes)
 app.use('/api/user-activity', userActivityRoutes)
 app.use('/api/admin', adminRoutes)
-// app.use('/api/lyrics', lyricsRoutes)
+app.use('/api/lyrics', lyricsRoutes)
+app.use('/api/recommendations', recommendationsRoutes)
+app.use('/api/verification', verificationRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -116,16 +135,19 @@ const startServer = async () => {
   try {
     await connectDB()
     
-    app.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 songIQ server running on port ${PORT}`)
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
       console.log(`🔗 Health check: http://0.0.0.0:${PORT}/api/health`)
+      console.log(`🔌 WebSocket service: ws://0.0.0.0:${PORT}`)
     })
   } catch (error) {
     console.error('Failed to start server:', error)
     process.exit(1)
   }
 }
+
+startServer()
 
 // Handle graceful shutdown
 process.on('SIGTERM', async () => {
@@ -140,6 +162,4 @@ process.on('SIGINT', async () => {
   await mongoose.connection.close()
   console.log('MongoDB connection closed')
   process.exit(0)
-})
-
-startServer() 
+}) 

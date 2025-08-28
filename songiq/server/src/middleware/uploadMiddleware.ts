@@ -2,7 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { Request } from 'express';
-import { createSongSchema } from '../validations/songValidation';
+import { createSongSchema, createTempSongSchema } from '../validations/songValidation';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -157,6 +157,14 @@ export const cleanupFile = async (filePath: string): Promise<void> => {
 // Validate upload request body
 export const validateUploadRequest = (req: Request) => {
   const { error } = createSongSchema.validate(req.body);
+  if (error && error.details && error.details[0]) {
+    throw new Error(`Validation error: ${error.details[0].message}`);
+  }
+};
+
+// Validate temporary upload request body (before audio analysis)
+export const validateTempUploadRequest = (req: Request) => {
+  const { error } = createTempSongSchema.validate(req.body);
   if (error && error.details && error.details[0]) {
     throw new Error(`Validation error: ${error.details[0].message}`);
   }

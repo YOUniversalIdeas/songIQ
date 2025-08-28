@@ -64,8 +64,23 @@ const Header = () => {
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                <span>Welcome, {user?.firstName || 'User'}!</span>
+              <div className="flex items-center space-x-4">
+                {/* Usage Indicator */}
+                <div className="hidden lg:flex items-center space-x-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {user?.subscription?.usage?.songsAnalyzed || 0}/{user?.subscription?.plan === 'free' ? '3' : '∞'} songs
+                  </span>
+                  {user?.subscription?.plan === 'free' && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      (Free Plan)
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span>Welcome, {user?.firstName || 'User'}!</span>
+                </div>
               </div>
             )}
           </div>

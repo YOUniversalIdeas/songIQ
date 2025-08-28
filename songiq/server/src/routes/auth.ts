@@ -70,16 +70,46 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       }
     });
 
-    // Generate email verification token
-    const verificationToken = user.generateEmailVerificationToken();
-    await user.save();
+    // Send verification codes (email + SMS)
+    try {
+      console.log('📱 Registration - Phone number details:', {
+        telephone: user.telephone,
+        telephoneType: typeof user.telephone,
+        telephoneLength: user.telephone?.length,
+        email: user.email,
+        firstName: user.firstName
+      });
 
-    // Send verification email
-    // const emailSent = await sendVerificationEmail(
-    //   user.email,
-    //   user.firstName,
-    //   verificationToken
-    // );
+      const { sendVerificationCodes } = await import('../services/verificationService');
+      const results = await sendVerificationCodes(
+        user.email,
+        user.telephone,
+        user.firstName
+      );
+      
+      // Store the verification codes from the service in the user model
+      if (results.email.success) {
+        user.emailVerificationToken = results.email.code; // Store the actual code sent
+        user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      }
+      
+      if (results.sms.success) {
+        user.smsVerificationCode = results.sms.code; // Store the actual code sent
+        user.smsVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      }
+      
+      await user.save();
+      
+      console.log('✅ Verification codes sent:', {
+        email: results.email.success,
+        sms: results.sms.success,
+        emailError: results.email.error,
+        smsError: results.sms.error
+      });
+    } catch (verificationError) {
+      console.error('⚠️ Warning: Failed to send verification codes:', verificationError);
+      // Don't fail registration if verification fails
+    }
 
     // Generate token
     const token = generateToken(user._id.toString(), user.email, user.role);

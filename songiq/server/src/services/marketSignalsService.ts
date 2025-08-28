@@ -36,7 +36,7 @@ export interface MarketSignal {
 }
 
 export interface SocialMediaSignal {
-  platform: 'twitter' | 'instagram' | 'tiktok';
+  platform: 'twitter' | 'instagram' | 'youtube';
   mentions: number;
   sentiment: 'positive' | 'negative' | 'neutral';
   trendingTopics: string[];

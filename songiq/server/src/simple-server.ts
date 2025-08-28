@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = 9001;
+const PORT = 9002;
 
 // Basic middleware
 app.use(cors({

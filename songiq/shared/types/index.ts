@@ -166,7 +166,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  bandName: string;
+  bandName: string; // Artist/Band/Company Name
   username: string;
   telephone: string;
   profilePicture?: string;

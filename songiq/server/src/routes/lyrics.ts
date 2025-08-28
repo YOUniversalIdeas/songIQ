@@ -3,8 +3,9 @@
 
 import express from 'express';
 import multer from 'multer';
-import LyricsAnalysisService from '../services/lyricsAnalysisService';
-import { LyricsUploadRequest } from '../types/lyrics';
+import { LyricsAnalysisService } from '../services/lyricsAnalysisService';
+import { authenticateToken } from '../middleware/auth';
+import { User } from '../models';
 
 const router = express.Router();
 
@@ -15,13 +16,14 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.txt', '.lrc', '.srt'];
-    const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
-    
-    if (allowedTypes.includes(fileExtension)) {
+    // Accept text files and common document formats
+    if (file.mimetype === 'text/plain' || 
+        file.mimetype === 'application/pdf' || 
+        file.mimetype === 'application/msword' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       cb(null, true);
     } else {
-      cb(new Error('Only .txt, .lrc, and .srt files are allowed'));
+      cb(new Error('Only text files, PDFs, and Word documents are allowed'));
     }
   }
 });
@@ -276,8 +278,28 @@ router.get('/complexity/:trackId', requireSpotifyAuth, async (req: express.Reque
 // UNRELEASED SONGS ROUTES - ACTIVE
 
 // Analyze lyrics from uploaded file (for unreleased songs)
-router.post('/upload', upload.single('lyricsFile'), async (req: express.Request, res: express.Response) => {
+router.post('/upload', authenticateToken, upload.single('lyricsFile'), async (req: express.Request, res: express.Response) => {
   try {
+    // Check if user can analyze another song
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    if (!user.canAnalyzeSong()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Song analysis limit reached',
+        details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
+        currentUsage: user.subscription.usage.songsAnalyzed,
+        songLimit: user.getSongLimit(),
+        remainingSongs: user.getRemainingSongs()
+      });
+    }
+
     const { trackName, artistName } = req.body;
     const file = req.file;
     
@@ -312,6 +334,10 @@ router.post('/upload', upload.single('lyricsFile'), async (req: express.Request,
       analysis = await lyricsService.analyzeLyricsFromText(lyrics, trackName, artistName);
     }
 
+    // Increment user's song analysis usage
+    user.subscription.usage.songsAnalyzed += 1;
+    await user.save();
+
     return res.json({
       success: true,
       data: analysis,
@@ -332,9 +358,72 @@ router.post('/upload', upload.single('lyricsFile'), async (req: express.Request,
   }
 });
 
-// Analyze lyrics from plain text (for unreleased songs)
-router.post('/analyze-text', async (req: express.Request, res: express.Response) => {
+// Public demo endpoint for lyrics analysis (no auth required)
+router.post('/demo', async (req: express.Request, res: express.Response) => {
   try {
+    const { lyrics, trackName, artistName } = req.body;
+    
+    if (!lyrics || !lyrics.trim()) {
+      return res.status(400).json({ 
+        error: 'Lyrics content is required',
+        message: 'Please provide lyrics text to analyze'
+      });
+    }
+
+    if (!trackName || !artistName) {
+      return res.status(400).json({ 
+        error: 'Track name and artist name are required',
+        message: 'Please provide both track name and artist name'
+      });
+    }
+
+    const lyricsService = new LyricsAnalysisService();
+    const analysis = await lyricsService.analyzeLyricsFromText(lyrics, trackName, artistName);
+
+    return res.json({
+      success: true,
+      data: analysis,
+      metadata: {
+        analysisTimestamp: new Date().toISOString(),
+        source: 'demo',
+        trackName,
+        artistName,
+        note: 'This is a demo analysis. Sign up for full access and unlimited analysis.'
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Error in demo lyrics analysis:', error);
+    return res.status(500).json({ 
+      error: 'Failed to analyze lyrics',
+      message: error.message 
+    });
+  }
+});
+
+// Analyze lyrics from plain text (for unreleased songs)
+router.post('/analyze-text', authenticateToken, async (req: express.Request, res: express.Response) => {
+  try {
+    // Check if user can analyze another song
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    if (!user.canAnalyzeSong()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Song analysis limit reached',
+        details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
+        currentUsage: user.subscription.usage.songsAnalyzed,
+        songLimit: user.getSongLimit(),
+        remainingSongs: user.getRemainingSongs()
+      });
+    }
+
     const { lyrics, trackName, artistName } = req.body;
     
     if (!lyrics || !lyrics.trim()) {
@@ -353,6 +442,10 @@ router.post('/analyze-text', async (req: express.Request, res: express.Response)
 
     const lyricsService = new LyricsAnalysisService();
     const analysis = await lyricsService.analyzeLyricsFromText(lyrics, trackName, artistName);
+
+    // Increment user's song analysis usage
+    user.subscription.usage.songsAnalyzed += 1;
+    await user.save();
 
     return res.json({
       success: true,

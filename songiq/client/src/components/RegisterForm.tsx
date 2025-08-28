@@ -12,7 +12,7 @@ interface ValidationErrors {
   confirmPassword?: string;
   firstName?: string;
   lastName?: string;
-  bandName?: string;
+  bandName?: string; // Role in the music industry
   username?: string;
   telephone?: string;
 }
@@ -75,7 +75,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       errors.lastName = 'Last name is required';
     }
     if (!formData.bandName) {
-      errors.bandName = 'Band name is required';
+      errors.bandName = 'Please select your role in the music industry';
     }
     if (!formData.telephone) {
       errors.telephone = 'Telephone is required';
@@ -88,6 +88,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    setIsSuccess(false); // Reset success state
     
     if (!validateForm()) {
       return;
@@ -98,6 +99,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       setIsSuccess(true);
     } catch (error) {
       // Error is handled by the auth context
+      setIsSuccess(false); // Ensure success is false on error
     }
   };
 
@@ -105,6 +107,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (validationErrors[field as keyof typeof validationErrors]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    // Clear success state when user starts typing (indicating they're fixing errors)
+    if (isSuccess) {
+      setIsSuccess(false);
     }
   };
 
@@ -114,6 +120,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       setValidationErrors(prev => ({ ...prev, confirmPassword: '' }));
     }
     if (error) clearError();
+    // Clear success state when user starts typing
+    if (isSuccess) {
+      setIsSuccess(false);
+    }
   };
 
   return (
@@ -184,25 +194,67 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
           <div>
             <label htmlFor="bandName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Band Name
+              Your Role in the Music Industry
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User className="h-5 w-5 text-gray-400" />
               </div>
-              <input
+              <select
                 id="bandName"
-                type="text"
                 value={formData.bandName}
                 onChange={(e) => handleInputChange('bandName', e.target.value)}
                 required
-                className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                   validationErrors.bandName 
                     ? 'border-red-300 dark:border-red-600' 
                     : 'border-gray-300 dark:border-gray-600'
                 }`}
-                placeholder="Band name"
-              />
+                style={{
+                  minWidth: '280px'
+                }}
+              >
+                <option value="">Select your role...</option>
+                
+                {/* Primary Decision Makers */}
+                <optgroup label="Primary Decision Makers">
+                  <option value="A&R Representative">A&R Representative</option>
+                  <option value="Record Label Executive">Record Label Executive</option>
+                  <option value="Music Publisher">Music Publisher</option>
+                  <option value="Artist Manager">Artist Manager</option>
+                  <option value="Talent Agent/Booking Agent">Talent Agent/Booking Agent</option>
+                  <option value="Music Supervisor">Music Supervisor</option>
+                  <option value="Playlist Curator">Playlist Curator</option>
+                  <option value="Radio Program Director">Radio Program Director</option>
+                </optgroup>
+                
+                {/* Creative & Production */}
+                <optgroup label="Creative & Production">
+                  <option value="Producer">Producer</option>
+                  <option value="Songwriter">Songwriter</option>
+                  <option value="Composer">Composer</option>
+                  <option value="Artist/Musician">Artist/Musician</option>
+                  <option value="Sound Engineer">Sound Engineer</option>
+                  <option value="Mixing Engineer">Mixing Engineer</option>
+                </optgroup>
+                
+                {/* Industry Analysts & Tastemakers */}
+                <optgroup label="Industry Analysts & Tastemakers">
+                  <option value="Music Journalist/Critic">Music Journalist/Critic</option>
+                  <option value="Music Blogger/Influencer">Music Blogger/Influencer</option>
+                  <option value="DJ/Radio Host">DJ/Radio Host</option>
+                  <option value="Concert Promoter">Concert Promoter</option>
+                  <option value="Streaming Platform Coordinator">Streaming Platform Coordinator</option>
+                </optgroup>
+                
+                {/* Business & Legal */}
+                <optgroup label="Business & Legal">
+                  <option value="Entertainment Lawyer">Entertainment Lawyer</option>
+                  <option value="Business Manager">Business Manager</option>
+                  <option value="Digital Marketing Specialist">Digital Marketing Specialist</option>
+                  <option value="Music Distributor">Music Distributor</option>
+                </optgroup>
+              </select>
             </div>
             {validationErrors.bandName && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.bandName}</p>
@@ -372,19 +424,60 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           )}
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
+        {/* Error Messages */}
+        {(error || Object.keys(validationErrors).length > 0) && (
+          <div className="space-y-3">
+            {error && (
+              <div className="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
+              </div>
+            )}
+            
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
+                  Please fix the following errors:
+                </p>
+                <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
+                  {Object.values(validationErrors).map((errorMsg, index) => (
+                    errorMsg && <li key={index}>• {errorMsg}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
         {/* Success Message */}
-        {isSuccess && (
-          <div className="flex items-center space-x-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="text-sm text-green-700 dark:text-green-300">Account created successfully!</span>
+        {isSuccess && Object.keys(validationErrors).length === 0 && (
+          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center space-x-2 mb-3">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">Account Created Successfully! 🎉</span>
+            </div>
+            
+            <div className="space-y-3 text-sm text-green-700 dark:text-green-300">
+              <p><strong>Next Step: Verify Your Account</strong></p>
+              <div className="bg-green-100 dark:bg-green-800/30 p-3 rounded-md">
+                <p className="font-medium mb-2">📧 Check Your Email:</p>
+                <p>We've sent a 6-digit verification code to <strong>{formData.email}</strong></p>
+                
+                <p className="font-medium mt-3 mb-2">📱 Check Your Phone:</p>
+                <p>We've also sent a 6-digit code to <strong>{formData.telephone}</strong></p>
+              </div>
+              
+              <p className="text-xs opacity-80">
+                <strong>Important:</strong> You need to verify both email and phone to access your song analysis results.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => window.location.href = '/verify'}
+              className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Go to Verification Page →
+            </button>
           </div>
         )}
 

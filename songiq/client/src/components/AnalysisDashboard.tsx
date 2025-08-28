@@ -195,10 +195,10 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
 
   // Simple chart data for testing
   const breakdownData = {
-    labels: ['Audio Features', 'Market Trends', 'Genre Alignment', 'Seasonal Factors'],
+    labels: ['Song Quality', 'Industry Trends', 'Genre Fit', 'Release Timing'],
     datasets: [
       {
-        label: 'Score',
+        label: 'Career Impact',
         data: [
           songData.successScore.breakdown.audioFeatures,
           songData.successScore.breakdown.marketTrends,
@@ -223,9 +223,9 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleColor: 'rgb(255, 255, 255)',
         bodyColor: 'rgb(255, 255, 255)',
-        callbacks: {
-          label: (context: any) => `${context.label}: ${context.parsed.y}/100`
-        }
+                  callbacks: {
+            label: (context: any) => `${context.label}: ${context.parsed.y}/100 Career Impact`
+          }
       }
     },
     scales: {
@@ -254,7 +254,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
     setIsExporting(true);
     try {
       // Simplified export - just show success message
-      alert('PDF export would generate here (simplified for testing)');
+      alert('Career report PDF would generate here (simplified for testing)');
     } catch (error) {
       console.error('Export failed:', error);
     } finally {
@@ -265,8 +265,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
   const shareResults = async () => {
     try {
       const shareData = {
-        title: `${songData.title} - Analysis Results`,
-        text: `Check out the analysis results for "${songData.title}" by ${songData.artist} on songIQ!`,
+        title: `${songData.title} - Career Analysis`,
+        text: `Check out the career analysis for "${songData.title}" by ${songData.artist} on songIQ!`,
         url: window.location.href
       };
 
@@ -275,7 +275,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareData.url);
-        alert('Analysis URL copied to clipboard!');
+        alert('Career analysis URL copied to clipboard!');
       }
     } catch (error) {
       console.error('Share failed:', error);
@@ -298,10 +298,10 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Analysis Dashboard
+              🎵 Your Song's Career Analysis
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {songData.title} • {songData.artist}
+              {songData.title} • {songData.artist} • Industry Intelligence
             </p>
           </div>
           <div className="flex space-x-2">
@@ -311,14 +311,14 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2"
             >
               <Download className="w-4 h-4" />
-              <span>{isExporting ? 'Generating PDF...' : 'Export PDF Report'}</span>
+              <span>{isExporting ? 'Generating Report...' : 'Export Career Report'}</span>
             </button>
             <button
               onClick={shareResults}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center space-x-2"
             >
               <Share2 className="w-4 h-4" />
-              <span>Share</span>
+              <span>Share Results</span>
             </button>
           </div>
         </div>
@@ -330,7 +330,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                       <div className="flex items-center space-x-3">
               <Target className="w-8 h-8 text-blue-600" />
               <div>
-                <p className="text-sm text-gray-200">Overall Score</p>
+                <p className="text-sm text-gray-200">Career Success Score</p>
                 <p className="text-2xl font-bold text-white">
                   {songData.successScore.overallScore}
                 </p>
@@ -360,24 +360,24 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                   ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
                   : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
               }`}></div>
-              <h4 className="font-semibold mb-2">Overall Score</h4>
+              <h4 className="font-semibold mb-2">Career Success Score</h4>
               <p className="text-sm mb-3">
-                The Overall Score is a comprehensive rating that combines multiple factors to assess your song's potential for success. 
-                This score represents our AI's prediction of how well your song might perform in the current market.
+                Your Career Success Score predicts how well this song will advance your music career. 
+                This is based on current industry trends, audience demand, and your song's unique strengths.
               </p>
               <div className="text-sm mb-3">
-                <p className="font-medium mb-1">Score Breakdown:</p>
-                <p>• 80-100: Excellent potential, high chance of success</p>
-                <p>• 60-79: Good potential, solid foundation</p>
-                <p>• 40-59: Moderate potential, room for improvement</p>
-                <p>• Below 40: Needs significant work</p>
+                <p className="font-medium mb-1">Career Impact:</p>
+                <p>• 80-100: Breakout potential, career-defining moment</p>
+                <p>• 60-79: Strong career builder, solid foundation</p>
+                <p>• 40-59: Career stepping stone, needs refinement</p>
+                <p>• Below 40: Learning experience, major improvements needed</p>
               </div>
               <div className="text-sm">
-                <p className="font-medium mb-1">Factors Considered:</p>
-                <p>• Audio features (tempo, key, energy, etc.)</p>
-                <p>• Market trends and genre alignment</p>
-                <p>• Seasonal factors and timing</p>
-                <p>• Historical success patterns</p>
+                <p className="font-medium mb-1">Career Factors Analyzed:</p>
+                <p>• Industry positioning and market demand</p>
+                <p>• Audience appeal and viral potential</p>
+                <p>• Release timing and seasonal trends</p>
+                <p>• Genre evolution and career trajectory</p>
               </div>
             </div>
           )}
@@ -387,7 +387,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
           <div className="flex items-center space-x-3">
             <TrendingUp className="w-8 h-8 text-green-600" />
             <div>
-              <p className="text-sm text-green-200">Market Potential</p>
+              <p className="text-sm text-green-200">Industry Opportunity</p>
               <p className="text-2xl font-bold text-white">
                 {songData.successScore.marketPotential}%
               </p>
@@ -417,17 +417,17 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                   ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-green-600' 
                   : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-green-600'
               }`}></div>
-              <h4 className="font-semibold mb-2">Market Potential</h4>
+              <h4 className="font-semibold mb-2">Industry Opportunity</h4>
               <p className="text-sm mb-3">
-                Market Potential assesses how well your song is positioned in the current music market.
-                This score is based on factors like genre popularity, current trends, and audience demand.
+                Industry Opportunity measures your song's potential to capture current market demand.
+                This shows how well positioned you are to ride current trends and reach your target audience.
               </p>
               <div className="text-sm">
-                <p className="font-medium mb-1">Factors Considered:</p>
-                <p>• Genre alignment and current market trends</p>
-                <p>• Audience preferences and demand</p>
-                <p>• Competition and saturation</p>
-                <p>• Historical success patterns</p>
+                <p className="font-medium mb-1">Opportunity Factors:</p>
+                <p>• Current genre popularity and trend momentum</p>
+                <p>• Audience demand and listening patterns</p>
+                <p>• Market saturation and competition level</p>
+                <p>• Seasonal timing and release windows</p>
               </div>
             </div>
           )}
@@ -437,7 +437,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
           <div className="flex items-center space-x-3">
             <Users className="w-8 h-8 text-purple-600" />
             <div>
-              <p className="text-sm text-purple-200">Social Score</p>
+              <p className="text-sm text-purple-200">Viral Potential</p>
               <p className="text-2xl font-bold text-white">
                 {songData.successScore.socialScore}
               </p>
@@ -467,17 +467,17 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                   ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-purple-600' 
                   : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-purple-600'
               }`}></div>
-              <h4 className="font-semibold mb-2">Social Score</h4>
+              <h4 className="font-semibold mb-2">Viral Potential</h4>
               <p className="text-sm mb-3">
-                Social Score evaluates how well your song resonates with audiences on social platforms.
-                This includes factors like engagement, reach, and overall online presence.
+                Viral Potential predicts how likely your song is to spread rapidly on social media.
+                This measures your song's ability to create buzz, generate shares, and reach viral status.
               </p>
               <div className="text-sm">
-                <p className="font-medium mb-1">Factors Considered:</p>
-                <p>• Engagement rates and audience interaction</p>
-                <p>• Reach and audience size</p>
-                <p>• Online presence and brand awareness</p>
-                <p>• Viral potential and user-generated content</p>
+                <p className="font-medium mb-1">Viral Factors:</p>
+                <p>• Hook strength and memorable elements</p>
+                <p>• Shareability and social appeal</p>
+                <p>• Trend alignment and cultural relevance</p>
+                <p>• Content creation potential</p>
               </div>
             </div>
           )}
@@ -487,7 +487,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
           <div className="flex items-center space-x-3">
             <Music className="w-8 h-8 text-yellow-600" />
             <div>
-              <p className="text-sm text-yellow-200">Duration</p>
+              <p className="text-sm text-yellow-200">Optimal Length</p>
               <p className="text-2xl font-bold text-white">
                 {formatDuration(songData.duration)}
               </p>
@@ -517,17 +517,17 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                   ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-yellow-600' 
                   : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-yellow-600'
               }`}></div>
-              <h4 className="font-semibold mb-2">Duration</h4>
+              <h4 className="font-semibold mb-2">Optimal Length</h4>
               <p className="text-sm mb-3">
-                The duration of your song is an important factor for its overall success.
-                Longer songs can potentially reach more listeners and have a stronger impact.
+                Optimal Length analyzes whether your song's duration maximizes audience engagement.
+                Different platforms and audiences prefer different song lengths for maximum impact.
               </p>
               <div className="text-sm">
-                <p className="font-medium mb-1">Factors Considered:</p>
-                <p>• Song length and listener attention span</p>
-                <p>• Market trends for song length</p>
-                <p>• Listener retention and engagement</p>
-                <p>• Song structure and flow</p>
+                <p className="font-medium mb-1">Length Factors:</p>
+                <p>• Platform-specific optimal durations (Spotify, Apple Music, etc.)</p>
+                <p>• Audience attention span and retention patterns</p>
+                <p>• Genre-specific length preferences</p>
+                <p>• Streaming algorithm optimization</p>
               </div>
             </div>
           )}
@@ -537,7 +537,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
       {/* Tabs */}
       <div className="mb-6">
         <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg max-w-md">
-          {['overview', 'features', 'recommendations', 'waveform'].map((tab) => (
+          {['career-overview', 'song-features', 'action-plan', 'audio-visual'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -547,7 +547,12 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <span className="capitalize">{tab}</span>
+              <span className="capitalize">
+                {tab === 'career-overview' ? 'Career Overview' :
+                 tab === 'song-features' ? 'Song Features' :
+                 tab === 'action-plan' ? 'Action Plan' :
+                 tab === 'audio-visual' ? 'Audio Visual' : tab}
+              </span>
             </button>
           ))}
         </div>
@@ -556,13 +561,13 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
 
 
       {/* Tab Content */}
-      {activeTab === 'overview' && (
+      {activeTab === 'career-overview' && (
         <div className="space-y-6">
           {/* Success Score Breakdown with Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 relative">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Success Score Breakdown
+                🎯 Your Song's Success Factors
               </h3>
                               <button
                 onClick={handleBreakdownTooltip}
@@ -588,16 +593,16 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ songData, classNa
                       ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
                       : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
                   }`}></div>
-                  <h4 className="font-semibold mb-2">Success Score Breakdown</h4>
+                  <h4 className="font-semibold mb-2">Your Song's Success Factors</h4>
                   <p className="text-sm mb-3">
-                    The Success Score Breakdown provides a detailed view of how different factors contribute to your song's overall success score. 
-                    Each category represents a key aspect that influences your song's potential performance.
+                    This breakdown shows how different aspects of your song contribute to your career success. 
+                    Each factor represents a key element that influences your song's potential to advance your music career.
                   </p>
                   <div className="text-sm mb-3">
-                    <p className="font-medium mb-1">How to Interpret:</p>
-                    <p>• Higher scores (80-100) indicate strong performance in that area</p>
-                    <p>• Moderate scores (60-79) show good potential with room for improvement</p>
-                    <p>• Lower scores (below 60) suggest areas that need attention</p>
+                    <p className="font-medium mb-1">Career Impact:</p>
+                    <p>• Higher scores (80-100): Your strength - leverage this for career growth</p>
+                    <p>• Moderate scores (60-79): Good foundation - minor improvements needed</p>
+                    <p>• Lower scores (below 60): Focus area - significant improvements will boost career</p>
                   </div>
                   <div className="text-sm">
                     <p className="font-medium mb-1">Categories Explained:</p>

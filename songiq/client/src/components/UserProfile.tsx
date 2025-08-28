@@ -215,7 +215,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Band Name
+                    Artist/Band/Company Name
                   </label>
                   {isEditing ? (
                     <input
@@ -225,7 +225,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                       className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   ) : (
-                    <p className="text-gray-900 dark:text-white">{user.bandName || 'No band name added.'}</p>
+                    <p className="text-gray-900 dark:text-white">{user.bandName || 'No artist/band/company name added.'}</p>
                   )}
                 </div>
                 <div>
@@ -396,7 +396,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                 <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <Music className="h-8 w-8 text-gray-600 mx-auto mb-2" />
                   <p className="text-sm text-gray-600 dark:text-gray-400">Songs Analyzed</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{user.stats.totalSongs}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {user.subscription.usage?.songsAnalyzed || 0} / {user.songLimit || '∞'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {user.remainingSongs !== undefined && user.remainingSongs > 0 
+                      ? `${user.remainingSongs} remaining`
+                      : user.remainingSongs === 0 
+                        ? 'Limit reached'
+                        : 'Unlimited'
+                    }
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <TrendingUp className="h-8 w-8 text-gray-600 mx-auto mb-2" />
@@ -429,7 +439,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     tier: 'free',
                     name: 'Free',
                     price: '$0',
-                    features: ['5 song uploads per month', 'Basic analytics', 'Community support'],
+                    features: ['3 song analyses per month', 'Basic analytics', 'Community support'],
                     current: user.subscription.tier === 'free'
                   },
                   {
@@ -437,7 +447,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     name: 'Pro',
                     price: '$19.99',
                     period: '/month',
-                    features: ['Unlimited uploads', 'Advanced analytics', 'AI recommendations', 'Priority support'],
+                    features: ['100 song analyses per month', 'Advanced analytics', 'AI recommendations', 'Priority support'],
                     current: user.subscription.tier === 'pro'
                   },
                   {
@@ -445,7 +455,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     name: 'Enterprise',
                     price: '$99.99',
                     period: '/month',
-                    features: ['Everything in Pro', 'Team collaboration', 'Custom integrations', 'Dedicated support'],
+                    features: ['Unlimited song analyses', 'Team collaboration', 'Custom integrations', 'Dedicated support'],
                     current: user.subscription.tier === 'enterprise'
                   }
                 ].map((plan) => (

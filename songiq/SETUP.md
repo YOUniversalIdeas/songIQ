@@ -38,7 +38,7 @@ MONGODB_URI=mongodb://localhost:27017/songiq
 cp client/env.example client/.env
 
 # The default should work for local development
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5001/api
 ```
 
 ### 3. Start MongoDB
@@ -62,7 +62,7 @@ npm run dev
 
 This will start:
 - **Frontend**: http://localhost:3000
-- **Backend**: http://localhost:5000
+- **Backend**: http://localhost:5001
 
 ## Development Scripts
 

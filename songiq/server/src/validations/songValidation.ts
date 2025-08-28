@@ -68,6 +68,62 @@ export const createSongSchema = Joi.object({
     })
 });
 
+// Schema for temporary uploads (before audio analysis)
+export const createTempSongSchema = Joi.object({
+  title: Joi.string()
+    .required()
+    .trim()
+    .min(1)
+    .max(100)
+    .messages({
+      'string.empty': 'Song title is required',
+      'string.max': 'Title cannot be more than 100 characters',
+      'any.required': 'Song title is required'
+    }),
+  
+  artist: Joi.string()
+    .required()
+    .trim()
+    .min(1)
+    .max(100)
+    .messages({
+      'string.empty': 'Artist name is required',
+      'string.max': 'Artist name cannot be more than 100 characters',
+      'any.required': 'Artist name is required'
+    }),
+  
+  // Duration is not required for temporary uploads
+  // It will be extracted during audio analysis
+  
+  isReleased: Joi.boolean()
+    .default(false),
+  
+  releaseDate: Joi.date()
+    .when('isReleased', {
+      is: true,
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
+    .messages({
+      'any.required': 'Release date is required when song is marked as released'
+    }),
+  
+  platforms: Joi.array()
+    .items(Joi.string().valid('spotify', 'apple', 'youtube', 'soundcloud', 'tidal', 'amazon'))
+    .when('isReleased', {
+      is: true,
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
+    .messages({
+      'any.required': 'Platforms are required when song is marked as released'
+    }),
+  
+  genre: Joi.string()
+    .optional()
+    .default('Pop')
+});
+
 export const updateSongSchema = Joi.object({
   title: Joi.string()
     .trim()

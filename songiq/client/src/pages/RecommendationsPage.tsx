@@ -1,6 +1,6 @@
 
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Zap, Target, Users, Calendar, Share2, TestTube, Download, TrendingUp, Brain, Info } from 'lucide-react';
+import { ArrowLeft, Zap, Target, Users, Calendar, Share2, TestTube, Download, TrendingUp, Brain, Info, Music, Loader2 } from 'lucide-react';
 import RecommendationEngine from '@/components/RecommendationEngine';
 import { useState, useRef, useEffect } from 'react';
 
@@ -40,18 +40,67 @@ const useTooltipPosition = () => {
   return { tooltipPosition, buttonRef, updateTooltipPosition };
 };
 
+interface Song {
+  songId: string;
+  title: string;
+  artist: string;
+  uploadDate: string;
+  overallScore: number;
+  hasAnalysis: boolean;
+  topRecommendation: string;
+}
+
 const RecommendationsPage = () => {
   const navigate = useNavigate();
   const [showMLAccuracyTooltip, setShowMLAccuracyTooltip] = useState(false);
   const [showSuccessRateTooltip, setShowSuccessRateTooltip] = useState(false);
   const [showABTestsTooltip, setShowABTestsTooltip] = useState(false);
   const [showAvgImprovementTooltip, setShowAvgImprovementTooltip] = useState(false);
+  const [selectedSongId, setSelectedSongId] = useState<string>('');
+  const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
+  const [isLoadingSongs, setIsLoadingSongs] = useState(false);
+  const [songsError, setSongsError] = useState<string | null>(null);
 
   // Use the custom hook for each tooltip
   const mlAccuracyPosition = useTooltipPosition();
   const successRatePosition = useTooltipPosition();
   const abTestsPosition = useTooltipPosition();
   const avgImprovementPosition = useTooltipPosition();
+
+  // Fetch available songs
+  const fetchAvailableSongs = async () => {
+    setIsLoadingSongs(true);
+    setSongsError(null);
+    
+    try {
+      const response = await fetch('/api/recommendations');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch songs: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (result.success) {
+        setAvailableSongs(result.data);
+        // Auto-select first song with analysis if available
+        const firstSongWithAnalysis = result.data.find((song: Song) => song.hasAnalysis);
+        if (firstSongWithAnalysis) {
+          setSelectedSongId(firstSongWithAnalysis.songId);
+        }
+      } else {
+        throw new Error(result.error || 'Failed to fetch songs');
+      }
+    } catch (err) {
+      setSongsError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching songs:', err);
+    } finally {
+      setIsLoadingSongs(false);
+    }
+  };
+
+  // Load songs on component mount
+  useEffect(() => {
+    fetchAvailableSongs();
+  }, []);
 
   const handleMLAccuracyInfo = () => {
     mlAccuracyPosition.updateTooltipPosition();
@@ -89,262 +138,129 @@ const RecommendationsPage = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Recommendation Engine</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Machine learning-powered suggestions to optimize your music success
-                </p>
-              </div>
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Recommendation Engine</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Get personalized recommendations to optimize your music success
+              </p>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={exportRecommendations}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <Download className="h-4 w-4" />
-                <span>Export Report</span>
-              </button>
-            </div>
+            <div className="w-10"></div> {/* Spacer for centering */}
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">ML Accuracy</p>
-                <p className="text-2xl font-bold">94.2%</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Brain className="h-8 w-8 text-blue-200" />
-                <button
-                  ref={mlAccuracyPosition.buttonRef}
-                  onClick={handleMLAccuracyInfo}
-                  className="p-1 rounded-full bg-blue-400 hover:bg-blue-300 transition-colors duration-200"
-                  title="Click for more information"
-                >
-                  <Info className="w-4 h-4 text-white" />
-                </button>
-              </div>
+        {/* Song Selection */}
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select a Song for Analysis</h2>
+          
+          {isLoadingSongs ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 text-blue-600 animate-spin mr-3" />
+              <span className="text-gray-600 dark:text-gray-400">Loading your songs...</span>
             </div>
-            <p className="text-blue-100 text-sm mt-2">Based on 10,000+ songs</p>
-            
-            {/* Tooltip */}
-            {showMLAccuracyTooltip && (
-              <div className={`absolute top-0 w-[300px] bg-blue-600 text-white p-4 rounded-lg shadow-lg z-[99999] 
-                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
-                md:w-[300px] md:left-auto md:right-auto md:mx-auto
-                ${mlAccuracyPosition.tooltipPosition === 'right' 
-                  ? 'md:left-full md:ml-2' 
-                  : 'md:right-full md:mr-2'
-                }
-              `}>
-                <div className={`absolute top-4 hidden md:block ${
-                  mlAccuracyPosition.tooltipPosition === 'right' 
-                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600' 
-                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-blue-600'
-                }`}></div>
-                <h4 className="font-semibold mb-2">ML Accuracy</h4>
-                <p className="text-sm mb-3">
-                  Machine Learning Accuracy represents the reliability of our AI predictions and recommendations. 
-                  This percentage indicates how often our model's predictions align with actual outcomes.
-                </p>
-                <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Scale Information:</p>
-                  <p>• 90-100%: Excellent accuracy, highly reliable predictions</p>
-                  <p>• 80-89%: Very good accuracy, reliable for most decisions</p>
-                  <p>• 70-79%: Good accuracy, use with some caution</p>
-                  <p>• Below 70%: Lower accuracy, consider additional factors</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Blue gradient: Represents AI/ML technology and trust</p>
-                  <p>• Current score (94.2%): Indicates excellent model performance</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Success Rate</p>
-                <p className="text-2xl font-bold">87.5%</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Target className="h-8 w-8 text-green-200" />
-                <button
-                  ref={successRatePosition.buttonRef}
-                  onClick={handleSuccessRateInfo}
-                  className="p-1 rounded-full bg-green-400 hover:bg-green-300 transition-colors duration-200"
-                  title="Click for more information"
-                >
-                  <Info className="w-4 h-4 text-white" />
-                </button>
-              </div>
+          ) : songsError ? (
+            <div className="text-center py-8">
+              <p className="text-red-600 dark:text-red-400 mb-4">{songsError}</p>
+              <button
+                onClick={fetchAvailableSongs}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
             </div>
-            <p className="text-green-100 text-sm mt-2">Following recommendations</p>
-            
-            {/* Tooltip */}
-            {showSuccessRateTooltip && (
-              <div className={`absolute top-0 w-[300px] bg-green-600 text-white p-4 rounded-lg shadow-lg z-[99999] 
-                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
-                md:w-[300px] md:left-auto md:right-auto md:mx-auto
-                ${successRatePosition.tooltipPosition === 'right' 
-                  ? 'md:left-full md:ml-2' 
-                  : 'md:right-full md:mr-2'
-                }
-              `}>
-                <div className={`absolute top-4 hidden md:block ${
-                  successRatePosition.tooltipPosition === 'right' 
-                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-green-600' 
-                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-green-600'
-                }`}></div>
-                <h4 className="font-semibold mb-2">Success Rate</h4>
-                <p className="text-sm mb-3">
-                  Success Rate measures how often artists achieve their goals when following our AI-powered recommendations. 
-                  This percentage shows the effectiveness of our suggestion system in real-world applications.
-                </p>
-                <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Scale Information:</p>
-                  <p>• 90-100%: Exceptional success rate, highly effective recommendations</p>
-                  <p>• 80-89%: Very good success rate, reliable guidance system</p>
-                  <p>• 70-79%: Good success rate, useful with some discretion</p>
-                  <p>• Below 70%: Lower success rate, consider alternative approaches</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Green gradient: Represents success, growth, and positive outcomes</p>
-                  <p>• Current score (87.5%): Indicates very good recommendation effectiveness</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100">A/B Tests</p>
-                <p className="text-2xl font-bold">156</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <TestTube className="h-8 w-8 text-purple-200" />
-                <button
-                  ref={abTestsPosition.buttonRef}
-                  onClick={handleABTestsInfo}
-                  className="p-1 rounded-full bg-purple-400 hover:bg-purple-300 transition-colors duration-200"
-                  title="Click for more information"
-                >
-                  <Info className="w-4 h-4 text-white" />
-                </button>
-              </div>
+          ) : availableSongs.length === 0 ? (
+            <div className="text-center py-8">
+              <Music className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Songs Found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Upload a song first to get personalized recommendations
+              </p>
+              <button
+                onClick={() => navigate('/upload')}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Upload Your First Song
+              </button>
             </div>
-            <p className="text-purple-100 text-sm mt-2">Active experiments</p>
-            
-            {/* Tooltip */}
-            {showABTestsTooltip && (
-              <div className={`absolute top-0 w-[300px] bg-purple-600 text-white p-4 rounded-lg shadow-lg z-[99999] 
-                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
-                md:w-[300px] md:left-auto md:right-auto md:mx-auto
-                ${abTestsPosition.tooltipPosition === 'right' 
-                  ? 'md:left-full md:ml-2' 
-                  : 'md:right-full md:mr-2'
-                }
-              `}>
-                <div className={`absolute top-4 hidden md:block ${
-                  abTestsPosition.tooltipPosition === 'right' 
-                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-purple-600' 
-                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-purple-600'
-                }`}></div>
-                <h4 className="font-semibold mb-2">A/B Tests</h4>
-                <p className="text-sm mb-3">
-                  A/B Tests represent ongoing experiments that compare different versions of features, 
-                  recommendations, or strategies to determine which performs better with your audience.
-                </p>
-                <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Scale Information:</p>
-                  <p>• 200+: Extensive testing, comprehensive optimization</p>
-                  <p>• 100-199: Active testing, good optimization coverage</p>
-                  <p>• 50-99: Moderate testing, basic optimization</p>
-                  <p>• Below 50: Limited testing, consider expanding experiments</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {availableSongs.map((song) => (
+                  <div
+                    key={song.songId}
+                    onClick={() => setSelectedSongId(song.songId)}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                      selectedSongId === song.songId
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white">{song.title}</h3>
+                      {song.hasAnalysis ? (
+                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 text-xs rounded-full">
+                          Analyzed
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 text-xs rounded-full">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{song.artist}</p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {new Date(song.uploadDate).toLocaleDateString()}
+                      </span>
+                      {song.hasAnalysis && (
+                        <span className="font-medium text-blue-600">
+                          Score: {song.overallScore}/100
+                        </span>
+                      )}
+                    </div>
+                    {song.hasAnalysis && song.topRecommendation && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate">
+                        {song.topRecommendation}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {availableSongs.some(song => !song.hasAnalysis) && (
+                <div className="text-center pt-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Some songs need analysis before recommendations can be generated
+                  </p>
+                  <button
+                    onClick={() => navigate('/analysis')}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm underline"
+                  >
+                    Go to Analysis Page
+                  </button>
                 </div>
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Purple gradient: Represents experimentation, innovation, and testing</p>
-                  <p>• Current count (156): Indicates active and comprehensive testing program</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100">Avg. Improvement</p>
-                <p className="text-2xl font-bold">+23.4%</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-8 w-8 text-yellow-200" />
-                <button
-                  ref={avgImprovementPosition.buttonRef}
-                  onClick={handleAvgImprovementInfo}
-                  className="p-1 rounded-full bg-yellow-400 hover:bg-yellow-300 transition-colors duration-200"
-                  title="Click for more information"
-                >
-                  <Info className="w-4 h-4 text-white" />
-                </button>
-              </div>
+              )}
             </div>
-            <p className="text-yellow-100 text-sm mt-2">Streaming performance</p>
-            
-            {/* Tooltip */}
-            {showAvgImprovementTooltip && (
-              <div className={`absolute top-0 w-[300px] bg-yellow-600 text-white p-4 rounded-lg shadow-lg z-[99999] 
-                left-0 right-0 mx-2 w-auto max-w-[calc(100vw-1rem)]
-                md:w-[300px] md:left-auto md:right-auto md:mx-auto
-                ${avgImprovementPosition.tooltipPosition === 'right' 
-                  ? 'md:left-full md:ml-2' 
-                  : 'md:right-full md:mr-2'
-                }
-              `}>
-                <div className={`absolute top-4 hidden md:block ${
-                  avgImprovementPosition.tooltipPosition === 'right' 
-                    ? '-left-2 border-t-4 border-b-4 border-r-4 border-transparent border-r-yellow-600' 
-                    : '-right-2 border-t-4 border-b-4 border-l-4 border-transparent border-l-yellow-600'
-                }`}></div>
-                <h4 className="font-semibold mb-2">Average Improvement</h4>
-                <p className="text-sm mb-3">
-                  Average Improvement measures the typical performance boost artists experience 
-                  when implementing our recommendations, specifically in streaming metrics and audience engagement.
-                </p>
-                <div className="text-sm mb-3">
-                  <p className="font-medium mb-1">Scale Information:</p>
-                  <p>• +30%+: Exceptional improvement, outstanding results</p>
-                  <p>• +20-29%: Very good improvement, strong performance gains</p>
-                  <p>• +10-19%: Good improvement, noticeable positive impact</p>
-                  <p>• Below +10%: Lower improvement, may need strategy adjustment</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Color Coding:</p>
-                  <p>• Yellow gradient: Represents growth, optimism, and positive trends</p>
-                  <p>• Current score (+23.4%): Indicates very good improvement performance</p>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Main Engine */}
-        <RecommendationEngine />
+        {selectedSongId ? (
+          <RecommendationEngine songId={selectedSongId} />
+        ) : availableSongs.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700 text-center">
+            <Music className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select a Song</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Choose a song from the list above to view personalized recommendations
+            </p>
+          </div>
+        )}
 
         {/* Feature Highlights */}
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -447,7 +363,7 @@ const RecommendationsPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-green-800 dark:text-green-200">Best For</span>
-                  <span className="text-sm font-medium text-green-900 dark:text-green-100">Genre switching</span>
+                  <span className="text-sm font-medium text-green-900 dark:text-green-100">Collaborations</span>
                 </div>
               </div>
             </div>

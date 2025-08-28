@@ -1,20 +1,8 @@
 import React from 'react';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 
-// Load Stripe outside of components to avoid recreating the `Stripe` object on every render.
-const stripePromise = loadStripe((import.meta as any).env.VITE_STRIPE_PUBLISHABLE_KEY || '');
-
-interface StripeProviderProps {
-  children: React.ReactNode;
-}
-
-const StripeProvider: React.FC<StripeProviderProps> = ({ children }) => {
-  return (
-    <Elements stripe={stripePromise}>
-      {children}
-    </Elements>
-  );
+// Temporarily disable Stripe to prevent blocking dashboard functionality
+const StripeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <>{children}</>;
 };
 
 export default StripeProvider; 

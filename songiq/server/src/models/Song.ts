@@ -18,6 +18,7 @@ export interface ISong extends Document {
   genre?: string; // Genre classification
   targetReleaseDate?: Date; // Planned release date
   isPrivate?: boolean; // Private/unlisted tracks
+  isTemporary?: boolean; // Temporary upload from unauthenticated user
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +103,10 @@ const SongSchema = new Schema<ISong>({
     }
   },
   isPrivate: {
+    type: Boolean,
+    default: false
+  },
+  isTemporary: {
     type: Boolean,
     default: false
   }

@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// import { API_ENDPOINTS } from '../config/api';
 
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  bandName: string;
+  bandName: string; // Artist/Band/Company Name
   username: string;
   telephone: string;
   profilePicture?: string;
@@ -25,7 +26,15 @@ export interface User {
     status: 'active' | 'inactive' | 'cancelled';
     expiresAt: string;
     features: string[];
+    usage?: {
+      songsAnalyzed: number;
+      currentPeriodStart: string;
+      currentPeriodEnd: string;
+    };
   };
+  songLimit?: number;
+  remainingSongs?: number;
+  canAnalyzeSong?: boolean;
   profile: {
     bio?: string;
     location?: string;
@@ -67,6 +76,7 @@ export interface AuthContextType extends AuthState {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   updateProfile: (profileData: Partial<User>) => Promise<void>;
+  markAsVerified: () => void;
   resetPassword: (email: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   verifyEmail: (token: string) => Promise<void>;
@@ -79,13 +89,39 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  bandName: string;
+  bandName: string; // Artist/Band/Company Name
   username: string;
   telephone: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
+  // TODO: Fix import issue with API_ENDPOINTS
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+  const API_ENDPOINTS = {
+    AUTH: {
+      LOGIN: `${API_BASE_URL}/api/auth/login`,
+      REGISTER: `${API_BASE_URL}/api/auth/register`,
+      PROFILE: `${API_BASE_URL}/api/auth/profile`,
+      LOGOUT: `${API_BASE_URL}/api/auth/logout`,
+    },
+    SONGS: {
+      UPLOAD: `${API_BASE_URL}/api/songs/upload`,
+      SONG: `${API_BASE_URL}/api/songs/upload`,
+      LIST: `${API_BASE_URL}/api/songs`,
+      ANALYSIS: `${API_BASE_URL}/api/analysis`,
+      GET_BY_ID: (id: string) => `${API_BASE_URL}/api/songs/${id}`,
+    },
+    UPLOAD: {
+      SONG: `${API_BASE_URL}/api/songs/upload`,
+      LYRICS: `${API_BASE_URL}/api/lyrics/upload`,
+    },
+    ANALYSIS: {
+      START: (songId: string) => `${API_BASE_URL}/api/analysis/start/${songId}`,
+      STATUS: (songId: string) => `${API_BASE_URL}/api/analysis/status/${songId}`,
+      RESULTS: (songId: string) => `${API_BASE_URL}/api/analysis/results/${songId}`,
+      PROGRESS: (songId: string) => `${API_BASE_URL}/api/analysis/progress/${songId}`,
+    },
+  };
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -107,7 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (token) {
           // Verify existing token with backend using profile endpoint
-          const response = await fetch('http://localhost:9001/api/auth/profile', {
+          const response = await fetch(`${API_ENDPOINTS.AUTH.PROFILE}`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -166,7 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
       // Real API call to backend
-      const response = await fetch('http://localhost:9001/api/auth/login', {
+      const response = await fetch(`${API_ENDPOINTS.AUTH.LOGIN}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +241,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
       // Real API call to backend
-      const response = await fetch('http://localhost:9001/api/auth/register', {
+      const response = await fetch(`${API_ENDPOINTS.AUTH.REGISTER}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -221,12 +257,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
       const { token, user } = data;
       
+      // Store token but don't mark as fully authenticated until verification
       localStorage.setItem('songiq_token', token);
       
       setAuthState({
         user,
         token,
-        isAuthenticated: true,
+        isAuthenticated: false, // Keep as false until verification
         isLoading: false,
         error: null,
       });
@@ -272,6 +309,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: error instanceof Error ? error.message : 'Profile update failed',
       }));
     }
+  };
+
+  const markAsVerified = (): void => {
+    setAuthState(prev => ({
+      ...prev,
+      isAuthenticated: true,
+    }));
   };
 
   const resetPassword = async (_email: string): Promise<void> => {
@@ -358,6 +402,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     updateProfile,
+    markAsVerified,
     resetPassword,
     changePassword,
     verifyEmail,

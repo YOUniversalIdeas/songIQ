@@ -71,46 +71,114 @@ export function createBaseTemplate(content: string, data: Partial<EmailTemplateD
 }
 
 // Email verification template
-export const createVerificationEmail = (data: EmailTemplateData): string => {
-  const content = `
-    <h2 style="color: #333; margin-bottom: 20px;">Welcome to songIQ, ${data.userName}!</h2>
-    
-    <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
-      Thank you for signing up! To complete your registration and start analyzing your music, 
-      please verify your email address by clicking the button below.
-    </p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${data.verificationUrl}" class="btn">
-        Verify Email Address
-      </a>
-    </div>
-    
-    <p style="color: #666; line-height: 1.6; margin-bottom: 15px;">
-      If the button doesn't work, you can copy and paste this link into your browser:
-    </p>
-    
-    <div class="highlight-box">
-      <h3>Verification Link:</h3>
-      <p>${data.verificationUrl}</p>
-    </div>
-    
-    <div class="highlight-box">
-      <h3>What's next?</h3>
-      <ul>
-        <li>Verify your email to activate your account</li>
-        <li>Start analyzing up to 3 songs with your free plan</li>
-        <li>Explore advanced features and upgrade when ready</li>
-      </ul>
-    </div>
-    
-    <div class="footer">
-      This link will expire in 24 hours. If you didn't create an account with songIQ, 
-      you can safely ignore this email.
-    </div>
+export const createVerificationEmail = (userName: string, code: string): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>songIQ - Verify Your Account</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+      
+      <!-- Header with Orange Background -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ff6b35;">
+        <tr>
+          <td style="padding: 40px 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 36px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+              songIQ
+            </h1>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">
+              Music Analysis Platform
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Main Content -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: white; max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="padding: 40px 30px;">
+            
+            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px; text-align: center;">
+              🔐 Verify Your Account
+            </h2>
+            
+            <p style="color: #666; line-height: 1.6; margin-bottom: 25px; font-size: 16px;">
+              Hi <strong>${userName}</strong>, welcome to songIQ! To complete your account setup, please verify your email address using the verification code below.
+            </p>
+            
+            <!-- Verification Code Box -->
+            <div style="background-color: #fff3e0; padding: 30px; border-radius: 15px; text-align: center; margin: 30px 0; border: 3px solid #ff6b35;">
+              <h3 style="color: #e65100; margin-top: 0; font-size: 18px; margin-bottom: 20px;">
+                Your Verification Code
+              </h3>
+              <div style="font-size: 48px; font-weight: bold; color: #ff6b35; letter-spacing: 8px; font-family: 'Courier New', monospace; background-color: white; padding: 20px; border-radius: 10px; border: 2px solid #ff8c42; display: inline-block;">
+                ${code}
+              </div>
+              <p style="color: #e65100; margin: 20px 0 0 0; font-size: 14px; font-weight: bold;">
+                ⏰ This code expires in 10 minutes
+              </p>
+            </div>
+            
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #4caf50;">
+              <h4 style="color: #2e7d32; margin-top: 0; font-size: 16px;">📱 SMS Verification Also Sent</h4>
+              <p style="color: #666; margin: 0; line-height: 1.5; font-size: 14px;">
+                We've also sent a verification code to your phone number. You can use either code to verify your account.
+              </p>
+            </div>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 14px; margin: 30px 0;">
+              <strong>Security Note:</strong> Never share this verification code with anyone. songIQ staff will never ask for your verification code.
+            </p>
+            
+            <!-- CTA Button -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+              <tr>
+                <td style="text-align: center;">
+                  <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                    <tr>
+                      <td style="background-color: #ff6b35; padding: 15px 30px; border-radius: 25px;">
+                        <a href="${process.env.FRONTEND_URL || 'http://localhost:3001'}/verify" 
+                           style="color: white; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+                          ✅ Complete Verification
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 14px;">
+              If you didn't create an account with songIQ, please ignore this email. Your email address will not be added to any mailing lists.
+            </p>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer with Orange Background -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ff8c42;">
+        <tr>
+          <td style="padding: 30px 20px; text-align: center;">
+            <p style="color: white; margin: 0; font-size: 16px; font-weight: bold;">
+              songIQ
+            </p>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">
+              Powered by AI • Transforming Music Analysis
+            </p>
+            <p style="color: white; margin: 15px 0 0 0; font-size: 12px; opacity: 0.7;">
+              © 2024 songIQ. All rights reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
   `;
-  
-  return createBaseTemplate(content, data);
 };
 
 // Welcome email template

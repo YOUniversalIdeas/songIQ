@@ -17,6 +17,8 @@ export interface IUser extends Document {
   lastLogin?: Date;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
+  smsVerificationCode?: string;
+  smsVerificationExpires?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   spotifyToken?: string;
@@ -69,6 +71,8 @@ export interface IUser extends Document {
   resetUsageIfNeeded(): void;
   generateEmailVerificationToken(): string;
   isEmailVerificationExpired(): boolean;
+  generateSMSVerificationCode(): string;
+  isSMSVerificationExpired(): boolean;
   generatePasswordResetToken(): string;
   isPasswordResetExpired(): boolean;
 }
@@ -80,7 +84,7 @@ const UserSchema = new Schema<IUser>({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
@@ -102,9 +106,36 @@ const UserSchema = new Schema<IUser>({
   },
   bandName: {
     type: String,
-    required: [true, 'Band name is required'],
-    trim: true,
-    maxlength: [100, 'Band name cannot be more than 100 characters']
+    required: [true, 'Please select your role in the music industry'],
+    enum: [
+      // Primary Decision Makers
+      'A&R Representative',
+      'Record Label Executive', 
+      'Music Publisher',
+      'Artist Manager',
+      'Talent Agent/Booking Agent',
+      'Music Supervisor',
+      'Playlist Curator',
+      'Radio Program Director',
+      // Creative & Production
+      'Producer',
+      'Songwriter',
+      'Composer',
+      'Artist/Musician',
+      'Sound Engineer',
+      'Mixing Engineer',
+      // Industry Analysts & Tastemakers
+      'Music Journalist/Critic',
+      'Music Blogger/Influencer',
+      'DJ/Radio Host',
+      'Concert Promoter',
+      'Streaming Platform Coordinator',
+      // Business & Legal
+      'Entertainment Lawyer',
+      'Business Manager',
+      'Digital Marketing Specialist',
+      'Music Distributor'
+    ]
   },
   username: {
     type: String,
@@ -153,6 +184,14 @@ const UserSchema = new Schema<IUser>({
     default: null
   },
   emailVerificationExpires: {
+    type: Date,
+    default: null
+  },
+  smsVerificationCode: {
+    type: String,
+    default: null
+  },
+  smsVerificationExpires: {
     type: Date,
     default: null
   },
@@ -395,6 +434,21 @@ UserSchema.methods.generateEmailVerificationToken = function(): string {
 UserSchema.methods.isEmailVerificationExpired = function(): boolean {
   if (!this.emailVerificationExpires) return true;
   return new Date() > this.emailVerificationExpires;
+};
+
+// Instance method to generate SMS verification code
+UserSchema.methods.generateSMSVerificationCode = function(): string {
+  const crypto = require('crypto');
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  this.smsVerificationCode = code;
+  this.smsVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  return code;
+};
+
+// Instance method to check if SMS verification code is expired
+UserSchema.methods.isSMSVerificationExpired = function(): boolean {
+  if (!this.smsVerificationExpires) return true;
+  return new Date() > this.smsVerificationExpires;
 };
 
 // Instance method to generate password reset token

@@ -14,6 +14,56 @@ const requireStripe = (req: express.Request, res: express.Response, next: expres
 
 const router = express.Router();
 
+// Twilio webhook handler for SMS status updates
+router.post('/twilio', (req, res) => {
+  try {
+    const {
+      MessageSid,
+      MessageStatus,
+      To,
+      From,
+      ErrorCode,
+      ErrorMessage
+    } = req.body;
+
+    console.log('📱 Twilio Webhook Received:');
+    console.log('  Message SID:', MessageSid);
+    console.log('  Status:', MessageStatus);
+    console.log('  To:', To);
+    console.log('  From:', From);
+    console.log('  Error Code:', ErrorCode);
+    console.log('  Error Message:', ErrorMessage);
+
+    // Handle different message statuses
+    switch (MessageStatus) {
+      case 'delivered':
+        console.log('✅ SMS delivered successfully to:', To);
+        break;
+      case 'failed':
+        console.log('❌ SMS failed to deliver to:', To);
+        console.log('  Error Code:', ErrorCode);
+        console.log('  Error Message:', ErrorMessage);
+        break;
+      case 'undelivered':
+        console.log('⚠️ SMS undelivered to:', To);
+        console.log('  Error Code:', ErrorCode);
+        console.log('  Error Message:', ErrorMessage);
+        break;
+      case 'sent':
+        console.log('📤 SMS sent to Twilio for delivery to:', To);
+        break;
+      default:
+        console.log('ℹ️ SMS status update:', MessageStatus, 'for:', To);
+    }
+
+    // Respond to Twilio (required)
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('❌ Error processing Twilio webhook:', error);
+    res.status(500).send('Error processing webhook');
+  }
+});
+
 // Stripe webhook handler
 router.post('/stripe', requireStripe, express.raw({ type: 'application/json' }), async (req, res): Promise<void> => {
   const sig = req.headers['stripe-signature'];

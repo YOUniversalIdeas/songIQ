@@ -3,11 +3,8 @@
 
 import React from 'react';
 import LyricsAnalysis from '@/components/LyricsAnalysis';
-import { useAuth } from '@/components/AuthProvider';
 
 const LyricsPage: React.FC = () => {
-  const { user } = useAuth();
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -23,25 +20,24 @@ const LyricsPage: React.FC = () => {
 
         {/* Main Content */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          {user ? (
-            <LyricsAnalysis />
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🎵</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Sign in to analyze lyrics
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Connect your account to start analyzing lyrics for unreleased songs with AI-powered insights.
-              </p>
-              <a
-                href="/auth"
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
-              >
-                Sign In
-              </a>
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  Demo Mode Available
+                </h3>
+                <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                  <p>Try lyrics analysis with text input (no signup required). For file uploads and unlimited analysis, please sign up for a free account.</p>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+          <LyricsAnalysis />
         </div>
 
         {/* Features Section */}

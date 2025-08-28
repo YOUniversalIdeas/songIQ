@@ -84,7 +84,7 @@ Create a `.env` file in the `songiq/client/` directory:
 
 ```env
 # API Configuration
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5001
 
 # Stripe Configuration
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
