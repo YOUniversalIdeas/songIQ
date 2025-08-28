@@ -16,6 +16,10 @@ pnpm-debug.log*
 env.production
 env.staging
 
+# Sensitive files with actual API keys
+env.development
+setup_stripe.sh
+
 # Build outputs
 dist/
 build/
