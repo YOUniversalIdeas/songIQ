@@ -38,7 +38,7 @@ Update your environment files with:
 
 ```bash
 # Twilio Configuration
-TWILIO_ACCOUNT_SID=AC1234567890abcdef1234567890abcdef
+TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
 TWILIO_AUTH_TOKEN=your_auth_token_here
 TWILIO_PHONE_NUMBER=+1234567890
 ```
@@ -50,7 +50,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 Your SendGrid is already configured in the environment files:
 - `EMAIL_SERVICE=sendgrid`
 - `EMAIL_USER=apikey`
-- `EMAIL_PASSWORD=SG.KNG5qgk3twd8adt!jnf`
+- `EMAIL_PASSWORD=your_sendgrid_api_key_here`
 
 ---
 
