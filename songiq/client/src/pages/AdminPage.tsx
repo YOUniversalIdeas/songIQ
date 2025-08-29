@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAuth } from '@/components/AuthProvider';
-import AdminDashboard from '@/components/AdminDashboard';
+import { useAuth } from '../components/AuthProvider';
+import AdminDashboard from '../components/AdminDashboard';
 import { Shield, AlertTriangle } from 'lucide-react';
 
 const AdminPage: React.FC = () => {

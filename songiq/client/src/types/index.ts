@@ -1,5 +1,5 @@
-// Re-export shared types
-export * from '../../../shared/types'
+// Local types to avoid import issues
+export * from './local'
 
 // Client-specific types
 export interface AudioAnalysisState {

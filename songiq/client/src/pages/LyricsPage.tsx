@@ -2,7 +2,7 @@
 // This page supports lyrics analysis for unreleased songs
 
 import React from 'react';
-import LyricsAnalysis from '@/components/LyricsAnalysis';
+import LyricsAnalysis from '../components/LyricsAnalysis';
 
 const LyricsPage: React.FC = () => {
   return (

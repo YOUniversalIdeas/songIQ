@@ -1,7 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/AuthProvider';
-import UserProfile from '@/components/UserProfile';
+import { useAuth } from '../components/AuthProvider';
+import UserProfile from '../components/UserProfile';
 import { ArrowLeft, LogOut, Shield, Crown, TrendingUp, Settings } from 'lucide-react';
 
 const ProfilePage = () => {

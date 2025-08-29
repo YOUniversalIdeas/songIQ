@@ -1,7 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Globe, Calendar, Target, Share2, Download, BarChart3, Info } from 'lucide-react';
-import TrendAnalysisDashboard from '@/components/TrendAnalysisDashboard';
+import TrendAnalysisDashboard from '../components/TrendAnalysisDashboard';
 import { useState, useRef, useEffect } from 'react';
 
 // Custom hook for dynamic tooltip positioning (same as Recommendations page)

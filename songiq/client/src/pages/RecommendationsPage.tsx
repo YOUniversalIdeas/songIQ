@@ -1,7 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Zap, Target, Users, Calendar, Share2, TestTube, Download, TrendingUp, Brain, Info, Music, Loader2 } from 'lucide-react';
-import RecommendationEngine from '@/components/RecommendationEngine';
+import RecommendationEngine from '../components/RecommendationEngine';
 import { useState, useRef, useEffect } from 'react';
 
 // Custom hook for dynamic tooltip positioning
