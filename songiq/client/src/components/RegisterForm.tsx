@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -19,6 +19,14 @@ interface ValidationErrors {
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const { register, isLoading, error, clearError } = useAuth();
+  
+  // Clear success state when error occurs
+  useEffect(() => {
+    if (error) {
+      setIsSuccess(false);
+    }
+  }, [error]);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -430,7 +438,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
             {error && (
               <div className="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <AlertCircle className="h-5 w-5 text-red-600" />
-                <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
+                <span className="text-sm text-red-700 dark:text-red-300">
+                  {error === 'User with this email already exists' 
+                    ? 'An account with this email already exists. Please sign in instead.'
+                    : error}
+                </span>
               </div>
             )}
             
@@ -450,7 +462,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         )}
 
         {/* Success Message */}
-        {isSuccess && Object.keys(validationErrors).length === 0 && (
+        {isSuccess && !error && Object.keys(validationErrors).length === 0 && (
           <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-center space-x-2 mb-3">
               <CheckCircle className="h-5 w-5 text-green-600" />
