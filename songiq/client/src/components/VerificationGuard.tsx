@@ -11,17 +11,11 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  console.log('🔒 VerificationGuard:', {
-    pathname: location.pathname,
-    hasToken: !!token,
-    isAuthenticated,
-    hasUser: !!user
-  });
+
 
   useEffect(() => {
     // Only run verification check if we're not on auth or verify pages
     if (location.pathname === '/auth' || location.pathname === '/verify') {
-      console.log('🔓 Skipping verification check on auth/verify pages');
       return;
     }
 
@@ -42,14 +36,12 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
             const data = await response.json();
             if (!data.isVerified) {
               // User is not verified, redirect to verification page
-              console.log('⚠️ User not verified, redirecting to /verify');
               navigate('/verify');
             }
           }
         } catch (error) {
           console.error('Error checking verification status:', error);
           // If we can't check, redirect to verification to be safe
-          console.log('⚠️ Verification check failed, redirecting to /verify');
           navigate('/verify');
         }
       };
@@ -59,7 +51,7 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
   }, [token, user, isAuthenticated, navigate, location.pathname]);
 
   // If user is not authenticated and not on allowed pages, redirect to auth
-  const allowedUnauthenticatedPaths = ['/auth', '/', '/upload'];
+  const allowedUnauthenticatedPaths = ['/auth', '/', '/upload', '/pricing'];
   if (!token && !isAuthenticated && !allowedUnauthenticatedPaths.includes(location.pathname)) {
     navigate('/auth');
     return null;
@@ -67,13 +59,11 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
 
   // Don't interfere with navigation to auth page
   if (location.pathname === '/auth') {
-    console.log('🔓 Allowing access to auth page without interference');
     return <>{children}</>;
   }
 
   // Temporary: Allow all navigation to auth-related routes
   if (location.pathname.includes('/auth')) {
-    console.log('🔓 Allowing access to auth-related route:', location.pathname);
     return <>{children}</>;
   }
 
