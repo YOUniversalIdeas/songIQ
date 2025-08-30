@@ -87,10 +87,6 @@ const UploadPage = () => {
   }
 
   const handleUpload = async () => {
-    console.log('🎯 handleUpload called!');
-    console.log('📁 uploadedFile:', uploadedFile);
-    console.log('🔐 isAuthenticated:', isAuthenticated);
-    console.log('👤 user:', user);
     
     // Force re-validate token if it exists
     if (token) {
@@ -102,13 +98,11 @@ const UploadPage = () => {
         });
         
         if (!response.ok) {
-          console.log('⚠️ Token is invalid, clearing authentication state');
           localStorage.removeItem('songiq_token');
           window.location.reload(); // Force reload to reset auth state
           return;
         }
       } catch (error) {
-        console.log('⚠️ Token validation failed, clearing authentication state');
         localStorage.removeItem('songiq_token');
         window.location.reload(); // Force reload to reset auth state
         return;
@@ -116,29 +110,23 @@ const UploadPage = () => {
     }
     
     if (!uploadedFile) {
-      console.log('❌ No file selected');
       setError('Please select a file to upload')
       return
     }
 
     // Check if user can analyze another song
     if (isAuthenticated && user && user.remainingSongs !== undefined && user.remainingSongs <= 0) {
-      console.log('❌ User hit song limit');
       setError('You have reached your song analysis limit for this month. Please upgrade your plan to analyze more songs.')
       return
     }
 
-    console.log('🚀 Starting analysis process...');
-    console.log('📊 Setting isAnalyzing to true...');
     setIsAnalyzing(true)
     setError(null)
     setAnalysisProgress(0)
     setUploadStatus('Starting analysis...')
-    console.log('📊 State updated, should show progress bars now');
 
     try {
       // Step 1: Real-time audio analysis
-      console.log('📊 Step 1: Setting progress to 10%');
       setAnalysisProgress(10)
       setUploadStatus('Analyzing audio features...')
       
@@ -146,9 +134,7 @@ const UploadPage = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const audioFeatures = await audioAnalyzer.analyzeAudioFile(uploadedFile);
-      console.log('✅ Audio analysis completed:', audioFeatures);
       
-      console.log('📊 Step 2: Setting progress to 30%');
       setAnalysisProgress(30)
       setUploadStatus('Running ML success prediction...')
       
@@ -157,9 +143,7 @@ const UploadPage = () => {
 
       // Step 2: ML success prediction
       const successScore = await mlPredictor.predictSuccess(audioFeatures, 'Pop');
-      console.log('✅ ML prediction completed:', successScore);
       
-      console.log('📊 Step 3: Setting progress to 60%');
       setAnalysisProgress(60)
       setUploadStatus('Preparing results...')
       
@@ -167,7 +151,6 @@ const UploadPage = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Step 3: Send to server for storage
-      console.log('📊 Step 4: Setting progress to 70%');
       setAnalysisProgress(70);
       setUploadStatus('Uploading to server and finalizing analysis...');
       
@@ -181,12 +164,6 @@ const UploadPage = () => {
       // Force unauthenticated state for upload (temporary fix)
       const forceUnauthenticated = true;
       const endpoint = forceUnauthenticated ? API_ENDPOINTS.SONGS.UPLOAD_TEMP : API_ENDPOINTS.SONGS.UPLOAD;
-      
-      console.log('🔗 Upload endpoint:', endpoint);
-      console.log('🔐 Authentication status:', isAuthenticated);
-      console.log('🔑 Token exists:', !!token);
-      console.log('👤 User exists:', !!user);
-      console.log('🔄 Force unauthenticated:', forceUnauthenticated);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -198,9 +175,7 @@ const UploadPage = () => {
       }
 
       const result = await response.json();
-      console.log('✅ Server upload successful:', result);
       
-      console.log('📊 Step 5: Setting progress to 90%');
       setAnalysisProgress(90);
       setUploadStatus('Processing results...');
       
@@ -212,7 +187,6 @@ const UploadPage = () => {
         // Unauthenticated user - show auth gate
         if (result.data.requiresAccount) {
           setAnalysisResults(result.data);
-          console.log('📊 Step 6: Setting progress to 100%');
           setAnalysisProgress(100);
           setUploadStatus('Analysis complete! Account required to view results.');
           // Keep progress bars visible for a longer time so user can see them
@@ -235,7 +209,6 @@ const UploadPage = () => {
         // Wait a moment to show completion, then navigate
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        console.log('🚀 Navigating to analysis page with results...');
         navigate(`/analysis/${realSongId}`, { 
           state: { 
             analysisResults: {
@@ -249,7 +222,6 @@ const UploadPage = () => {
         // Unauthenticated user - show auth gate
         if (result.data.requiresAccount) {
           setAnalysisResults(result.data);
-          console.log('📊 Step 6: Setting progress to 100%');
           setAnalysisProgress(100);
           setUploadStatus('Analysis complete! Account required to view results.');
           // Keep progress bars visible for a longer time so user can see them
@@ -262,7 +234,6 @@ const UploadPage = () => {
       }
 
     } catch (err) {
-      console.error('❌ Audio analysis failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(`Audio analysis failed: ${errorMessage}. Please try again.`);
       setUploadStatus('Analysis failed');
@@ -303,22 +274,15 @@ const UploadPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button
                   onClick={() => {
-                    console.log('🔘 Create Free Account button clicked');
-                    console.log('📍 Navigating to /auth?mode=register');
-                    
                     // Try React Router first
                     try {
                       navigate('/auth?mode=register');
-                      console.log('✅ React Router navigation attempted');
                     } catch (error) {
-                      console.log('❌ React Router navigation failed:', error);
+                      // Fallback: Force navigation with window.location
+                      setTimeout(() => {
+                        window.location.href = '/auth?mode=register';
+                      }, 100);
                     }
-                    
-                    // Fallback: Force navigation with window.location
-                    setTimeout(() => {
-                      console.log('🔄 Fallback: Using window.location');
-                      window.location.href = '/auth?mode=register';
-                    }, 100);
                   }}
                   className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-lg"
                 >
@@ -489,16 +453,7 @@ const UploadPage = () => {
           </div>
         )}
 
-        {/* Debug Display */}
-        <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl p-4 mb-8">
-          <div className="text-yellow-300 text-sm">
-            <p><strong>Debug Info:</strong></p>
-            <p>isAnalyzing: {isAnalyzing ? 'true' : 'false'}</p>
-            <p>analysisProgress: {analysisProgress}%</p>
-            <p>uploadStatus: {uploadStatus}</p>
-            <p>hasAnalysisResults: {analysisResults ? 'true' : 'false'}</p>
-          </div>
-        </div>
+
 
         {/* Error Display */}
         {error && (
