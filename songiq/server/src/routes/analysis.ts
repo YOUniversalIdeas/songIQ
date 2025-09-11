@@ -41,7 +41,7 @@ router.post('/start/:songId', async (req, res) => {
     const songMetadata = song ? {
       title: song.title,
       description: song.description,
-      tags: song.tags || []
+      tags: (song as any).tags || []
     } : undefined;
 
     // Start the enhanced analysis process

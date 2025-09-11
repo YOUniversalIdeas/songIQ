@@ -385,12 +385,12 @@ export class EnsembleGenreDetectionService {
         
         if (threshold) {
           const thresholdScore = this.calculateThresholdScore(normalizedValue, threshold);
-          alignment += thresholdScore * weight;
+          alignment += (thresholdScore as number) * (weight as number);
         } else {
-          alignment += normalizedValue * weight;
+          alignment += (normalizedValue as number) * (weight as number);
         }
         
-        totalWeight += weight;
+        totalWeight += (weight as number);
       }
     }
 
@@ -549,7 +549,7 @@ export class EnsembleGenreDetectionService {
       subGenres: result.subGenres,
       confidence: result.confidence,
       genreProbabilities: result.genreProbabilities,
-      method: result.method,
+      method: result.method as 'audio' | 'metadata' | 'ensemble',
       features: result.features
     });
   }

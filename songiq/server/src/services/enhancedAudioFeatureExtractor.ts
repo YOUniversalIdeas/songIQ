@@ -289,13 +289,21 @@ export class EnhancedAudioFeatureExtractor {
       duration: basicFeatures.duration || 0,
       
       // Spectral features
-      ...spectralFeatures,
+      spectralCentroid: spectralFeatures.spectralCentroid || 0,
+      spectralRolloff: spectralFeatures.spectralRolloff || 0,
+      spectralFlatness: spectralFeatures.spectralFlatness || 0,
+      spectralBandwidth: spectralFeatures.spectralBandwidth || 0,
+      zeroCrossingRate: spectralFeatures.zeroCrossingRate || 0,
       
       // Rhythmic features
-      ...rhythmicFeatures,
+      rhythmStrength: rhythmicFeatures.rhythmStrength || 0,
+      beatConfidence: rhythmicFeatures.beatConfidence || 0,
+      onsetRate: rhythmicFeatures.onsetRate || 0,
       
       // Tonal features
-      ...tonalFeatures,
+      keyConfidence: tonalFeatures.keyConfidence || 0,
+      harmonicComplexity: tonalFeatures.harmonicComplexity || 0,
+      pitchVariability: tonalFeatures.pitchVariability || 0,
       
       // Dynamic features
       rms: basicFeatures.rms || 0,
@@ -303,10 +311,25 @@ export class EnhancedAudioFeatureExtractor {
       crestFactor: basicFeatures.crestFactor || 0,
       
       // Perceptual features
-      ...perceptualFeatures,
+      danceability: perceptualFeatures.danceability || 0,
+      energy: perceptualFeatures.energy || 0,
+      valence: perceptualFeatures.valence || 0,
+      acousticness: perceptualFeatures.acousticness || 0,
+      instrumentalness: perceptualFeatures.instrumentalness || 0,
+      liveness: perceptualFeatures.liveness || 0,
+      speechiness: perceptualFeatures.speechiness || 0,
       
       // Genre-specific features
-      ...genreFeatures
+      rockness: genreFeatures.rockness || 0,
+      popness: genreFeatures.popness || 0,
+      electronicness: genreFeatures.electronicness || 0,
+      jazzness: genreFeatures.jazzness || 0,
+      classicalness: genreFeatures.classicalness || 0,
+      hiphopness: genreFeatures.hiphopness || 0,
+      countryness: genreFeatures.countryness || 0,
+      folkness: genreFeatures.folkness || 0,
+      metalness: genreFeatures.metalness || 0,
+      rnbness: genreFeatures.rnbness || 0
     };
   }
 

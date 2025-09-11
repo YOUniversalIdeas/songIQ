@@ -130,8 +130,8 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
       title: song.title,
       artist: song.artist,
       analysisResults: song.analysisResults,
-      audioFeatures: song.audioFeatures,
-      successScore: song.successScore
+      audioFeatures: song.audioFeatures || song.analysisResults?.audioFeatures,
+      successScore: song.successScore?.overallScore || song.analysisResults?.successScore
     });
   });
 
@@ -222,15 +222,15 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
       score = song.analysisResults.successScore;
     } else if (song.analysisResults?.successPrediction?.score) {
       score = song.analysisResults.successPrediction.score;
-    } else if (song.successScore) {
-      score = song.successScore;
+    } else if (song.successScore?.overallScore) {
+      score = song.successScore.overallScore;
     } else {
       // Fallback: generate some dummy data for testing
       score = 65 + (index * 15); // 65% for first song, 80% for second song
     }
     console.log(`Chart data for ${song.title}:`, {
       analysisResults: song.analysisResults,
-      successScore: song.successScore,
+      successScore: song.successScore?.overallScore,
       finalScore: score
     });
     return score;
@@ -508,8 +508,8 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
                   <div className="text-center space-y-2">
                     <h4 className="font-medium text-gray-900 dark:text-white truncate">{song.title}</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{song.artist}</p>
-                    <div className={`text-3xl font-bold ${getScoreColor(song.analysisResults?.successScore || song.successScore || 65)}`}>
-                      {Math.round(song.analysisResults?.successScore || song.successScore || 65)}%
+                    <div className={`text-3xl font-bold ${getScoreColor(song.analysisResults?.successScore || song.successScore?.overallScore || 65)}`}>
+                      {Math.round(song.analysisResults?.successScore || song.successScore?.overallScore || 65)}%
                     </div>
                     <div className="flex items-center justify-center space-x-1">
                       <Star className="h-4 w-4 text-yellow-500" />

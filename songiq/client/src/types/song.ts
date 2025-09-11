@@ -33,6 +33,26 @@ export interface SongData {
     liveness: number;
     speechiness: number;
   };
+  analysisResults?: {
+    successScore?: number;
+    confidence?: number;
+    audioFeatures?: {
+      danceability: number;
+      energy: number;
+      valence: number;
+      tempo: number;
+      loudness: number;
+      acousticness: number;
+      instrumentalness: number;
+      liveness: number;
+      speechiness: number;
+    };
+    marketPotential?: number;
+    socialScore?: number;
+    riskFactors?: string[];
+  };
+  keyInsights?: string[];
+  recommendations?: string[];
   waveformData?: number[];
   uploadDate: string;
 }

@@ -99,8 +99,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
               alt={`${user.firstName} ${user.lastName}`}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
             />
-            <div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${getSubscriptionColor(user.subscription.tier)}`}>
-              {getSubscriptionIcon(user.subscription.tier)}
+            <div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${getSubscriptionColor(user.subscription.plan)}`}>
+              {getSubscriptionIcon(user.subscription.plan)}
             </div>
           </div>
           <div>
@@ -380,8 +380,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Current Subscription</h3>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSubscriptionColor(user.subscription.tier)}`}>
-                  {user.subscription.tier.toUpperCase()}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSubscriptionColor(user.subscription.plan)}`}>
+                  {user.subscription.plan.toUpperCase()}
                 </span>
               </div>
               
@@ -390,7 +390,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                   <Calendar className="h-8 w-8 text-gray-600 mx-auto mb-2" />
                   <p className="text-sm text-gray-600 dark:text-gray-400">Expires</p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {new Date(user.subscription.expiresAt).toLocaleDateString()}
+                    {user.subscription.endDate ? new Date(user.subscription.endDate).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
                 <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -440,7 +440,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     name: 'Free',
                     price: '$0',
                     features: ['3 song analyses per month', 'Basic analytics', 'Community support'],
-                    current: user.subscription.tier === 'free'
+                    current: user.subscription.plan === 'free'
                   },
                   {
                     tier: 'pro',
@@ -448,7 +448,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     price: '$19.99',
                     period: '/month',
                     features: ['100 song analyses per month', 'Advanced analytics', 'AI recommendations', 'Priority support'],
-                    current: user.subscription.tier === 'pro'
+                    current: user.subscription.plan === 'pro'
                   },
                   {
                     tier: 'enterprise',
@@ -456,7 +456,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     price: '$99.99',
                     period: '/month',
                     features: ['Unlimited song analyses', 'Team collaboration', 'Custom integrations', 'Dedicated support'],
-                    current: user.subscription.tier === 'enterprise'
+                    current: user.subscription.plan === 'enterprise'
                   }
                 ].map((plan) => (
                   <div

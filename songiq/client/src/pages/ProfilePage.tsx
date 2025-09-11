@@ -57,7 +57,7 @@ const ProfilePage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Subscription</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white capitalize">{user.subscription.tier}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white capitalize">{user.subscription.plan}</p>
               </div>
               <Crown className="h-8 w-8 text-yellow-600" />
             </div>
@@ -200,10 +200,10 @@ const ProfilePage = () => {
         </div>
 
         {/* Subscription Benefits */}
-        {user.subscription.tier !== 'free' && (
+        {user.subscription.plan !== 'free' && (
           <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {user.subscription.tier === 'pro' ? 'Pro' : 'Enterprise'} Benefits
+              {user.subscription.plan === 'pro' ? 'Pro' : 'Enterprise'} Benefits
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
