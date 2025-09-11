@@ -1,23 +1,41 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 import { AudioFeatures } from '../models';
+import { EnsembleGenreDetectionService, EnsembleGenreDetectionResult } from './ensembleGenreDetectionService';
+import { EnhancedAudioFeatures } from './enhancedAudioFeatureExtractor';
 
 export interface AnalysisProgress {
   songId: string;
   progress: number;
   currentStep: string;
   status: 'processing' | 'completed' | 'failed';
-  audioFeatures?: any;
+  audioFeatures?: EnhancedAudioFeatures;
   genre?: string;
+  subGenres?: string[];
+  genreConfidence?: number;
+  genreProbabilities?: { [genre: string]: number };
   successPrediction?: any;
   insights?: string[];
   recommendations?: string[];
+  genreAnalysis?: {
+    primaryGenre: string;
+    subGenres: string[];
+    confidence: number;
+    method: string;
+    marketPotential: number;
+    optimizationTips: string[];
+  };
 }
 
 export interface RealTimeAnalysisOptions {
   songId: string;
   audioFilePath: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+    tags?: string[];
+  };
   onProgress: (progress: AnalysisProgress) => void;
   onComplete: (results: AnalysisProgress) => void;
   onError: (error: string) => void;
@@ -25,9 +43,14 @@ export interface RealTimeAnalysisOptions {
 
 class RealTimeAnalysisService {
   private activeAnalyses: Map<string, ChildProcessWithoutNullStreams> = new Map();
+  private ensembleGenreDetector: EnsembleGenreDetectionService;
+
+  constructor() {
+    this.ensembleGenreDetector = new EnsembleGenreDetectionService();
+  }
 
   async startAnalysis(options: RealTimeAnalysisOptions): Promise<void> {
-    const { songId, audioFilePath, onProgress, onComplete, onError } = options;
+    const { songId, audioFilePath, metadata, onProgress, onComplete, onError } = options;
 
     try {
       // Check if file exists
@@ -39,11 +62,11 @@ class RealTimeAnalysisService {
       onProgress({
         songId,
         progress: 0,
-        currentStep: 'Initializing audio analysis...',
+        currentStep: 'Initializing enhanced audio analysis...',
         status: 'processing'
       });
 
-      // Start FFmpeg process for audio analysis
+      // Start FFmpeg process for basic audio analysis
       const ffmpegProcess = spawn('ffmpeg', [
         '-i', audioFilePath,
         '-af', 'volumedetect',
@@ -62,10 +85,12 @@ class RealTimeAnalysisService {
           progress += Math.random() * 15;
           progress = Math.min(progress, 90);
 
-          if (progress > 20) currentStep = 'Extracting audio features...';
-          if (progress > 40) currentStep = 'Analyzing frequency spectrum...';
-          if (progress > 60) currentStep = 'Processing rhythmic patterns...';
-          if (progress > 80) currentStep = 'Generating insights...';
+          if (progress > 10) currentStep = 'Extracting enhanced audio features...';
+          if (progress > 25) currentStep = 'Analyzing frequency spectrum...';
+          if (progress > 40) currentStep = 'Processing rhythmic patterns...';
+          if (progress > 55) currentStep = 'Performing genre classification...';
+          if (progress > 70) currentStep = 'Running ensemble analysis...';
+          if (progress > 85) currentStep = 'Generating insights and recommendations...';
 
           onProgress({
             songId,
@@ -88,27 +113,83 @@ class RealTimeAnalysisService {
         this.activeAnalyses.delete(songId);
 
         if (code === 0) {
-          // Parse audio analysis results
-          const audioFeatures = await this.parseAudioFeatures(audioData);
-          const genre = await this.classifyGenre(audioFeatures);
-          const successPrediction = await this.predictSuccess(audioFeatures, genre);
-          const insights = await this.generateInsights(audioFeatures, genre);
-          const recommendations = await this.generateRecommendations(audioFeatures, genre, successPrediction);
+          try {
+            // Parse basic audio analysis results
+            const basicAudioFeatures = await this.parseAudioFeatures(audioData);
+            
+            // Perform enhanced genre detection
+            onProgress({
+              songId,
+              progress: 95,
+              currentStep: 'Performing ensemble genre detection...',
+              status: 'processing'
+            });
 
-          // Complete the analysis
-          const results: AnalysisProgress = {
-            songId,
-            progress: 100,
-            currentStep: 'Analysis completed',
-            status: 'completed',
-            audioFeatures,
-            genre,
-            successPrediction,
-            insights,
-            recommendations
-          };
+            const genreResult = await this.ensembleGenreDetector.detectGenre({
+              audioFilePath,
+              metadata,
+              enableAudioAnalysis: true,
+              enableMetadataAnalysis: !!metadata,
+              enableMLAnalysis: true,
+              confidenceThreshold: 0.3
+            });
 
-          onComplete(results);
+            // Generate success prediction using enhanced features
+            const successPrediction = await this.predictSuccess(genreResult.features || basicAudioFeatures, genreResult.primaryGenre);
+            
+            // Generate insights and recommendations
+            const insights = await this.generateInsights(genreResult.features || basicAudioFeatures, genreResult.primaryGenre);
+            const recommendations = await this.generateRecommendations(genreResult.features || basicAudioFeatures, genreResult.primaryGenre, successPrediction);
+
+            // Complete the analysis
+            const results: AnalysisProgress = {
+              songId,
+              progress: 100,
+              currentStep: 'Enhanced analysis completed',
+              status: 'completed',
+              audioFeatures: genreResult.features,
+              genre: genreResult.primaryGenre,
+              subGenres: genreResult.subGenres,
+              genreConfidence: genreResult.confidence,
+              genreProbabilities: genreResult.genreProbabilities,
+              successPrediction,
+              insights,
+              recommendations,
+              genreAnalysis: {
+                primaryGenre: genreResult.primaryGenre,
+                subGenres: genreResult.subGenres,
+                confidence: genreResult.confidence,
+                method: genreResult.method,
+                marketPotential: genreResult.recommendations.marketPotential,
+                optimizationTips: genreResult.recommendations.optimizationTips
+              }
+            };
+
+            onComplete(results);
+          } catch (genreError) {
+            console.error('Enhanced genre detection failed, falling back to basic analysis:', genreError);
+            
+            // Fallback to basic analysis
+            const audioFeatures = await this.parseAudioFeatures(audioData);
+            const genre = await this.classifyGenre(audioFeatures);
+            const successPrediction = await this.predictSuccess(audioFeatures, genre);
+            const insights = await this.generateInsights(audioFeatures, genre);
+            const recommendations = await this.generateRecommendations(audioFeatures, genre, successPrediction);
+
+            const results: AnalysisProgress = {
+              songId,
+              progress: 100,
+              currentStep: 'Basic analysis completed (enhanced detection failed)',
+              status: 'completed',
+              audioFeatures,
+              genre,
+              successPrediction,
+              insights,
+              recommendations
+            };
+
+            onComplete(results);
+          }
         } else {
           onError('Audio analysis failed');
         }

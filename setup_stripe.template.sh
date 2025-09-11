@@ -6,9 +6,10 @@
 echo "Setting up Stripe configuration..."
 
 # Replace these with your actual Stripe API keys
-STRIPE_PUBLISHABLE_KEY="your_stripe_publishable_key_here"
-STRIPE_SECRET_KEY="your_stripe_secret_key_here"
-STRIPE_WEBHOOK_SECRET="your_stripe_webhook_secret_here"
+# Get these from: https://dashboard.stripe.com/test/apikeys
+STRIPE_PUBLISHABLE_KEY=""
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
 
 # Update environment files
 echo "Updating environment files..."

@@ -19,18 +19,14 @@ const AnalysisPage = () => {
   const [progressFlowTriggered, setProgressFlowTriggered] = useState(false)
   const progressFlowRunning = useRef(false)
 
-  // Debug current state
-  console.log('🔍 AnalysisPage render - Current state:', { analysisStatus, progress, currentStep, analysisData })
 
 
 
   const startProgressFlow = (analysisResults: any) => {
     if (progressFlowRunning.current) {
-      console.log('⏸️ Progress flow already running, skipping...')
       return
     }
     
-    console.log('🚀 Starting progress flow...')
     progressFlowRunning.current = true
     setAnalysisStatus('processing')
     setProgress(0)
@@ -57,9 +53,22 @@ const AnalysisPage = () => {
         } else {
           // Show final results
           setTimeout(() => {
-            setAnalysisData(analysisResults)
+            // TODO: Replace with real API call to get analysis results
+            // const response = await fetch(`/api/analysis/${songId}/results`);
+            // const data = await response.json();
+            // setAnalysisData(data);
+            
+            // For now, show empty state to indicate real data needed
+            setAnalysisData(null)
             setAnalysisStatus('completed')
             progressFlowRunning.current = false // Reset the running flag
+            
+            // Automatically redirect to dashboard after a short delay
+            setTimeout(() => {
+              if (songId) {
+                navigate(`/dashboard/${songId}`)
+              }
+            }, 2000) // 2 second delay to let user see completion
           }, 500)
         }
       }
@@ -70,19 +79,12 @@ const AnalysisPage = () => {
   }
 
   const startAnalysisProcess = () => {
-    console.log('🚀 startAnalysisProcess called!')
-    console.log('📊 Current state before:', { analysisStatus, progress, currentStep })
     
     setAnalysisStatus('processing')
     setProgress(0)
     setCurrentStep('Initializing analysis...')
     
-    console.log('📊 State set to processing, progress: 0, step: Initializing analysis...')
     
-    // Force a re-render check
-    setTimeout(() => {
-      console.log('🔍 State after setState:', { analysisStatus, progress, currentStep })
-    }, 100)
     
     // Simulate analysis steps with progress updates
     const steps = [
@@ -101,7 +103,6 @@ const AnalysisPage = () => {
     const updateProgress = () => {
       if (currentStepIndex < steps.length) {
         const { progress: newProgress, step: newStep } = steps[currentStepIndex]
-        console.log(`📈 Progress update: ${newProgress}% - ${newStep}`)
         setProgress(newProgress)
         setCurrentStep(newStep)
         currentStepIndex++
@@ -110,85 +111,22 @@ const AnalysisPage = () => {
           setTimeout(updateProgress, 1500) // Update every 1.5 seconds
         } else {
           // Analysis complete, show results
-          console.log('🎉 Analysis complete, showing results...')
           setTimeout(() => {
             setAnalysisStatus('completed')
-            // Generate mock analysis data for demonstration
-            const mockData = {
-              audioFeatures: {
-                // Basic audio properties
-                duration: 180,
-                sampleRate: 44100,
-                channels: 2,
-                
-                // Spectral features
-                spectralCentroid: 2000,
-                spectralRolloff: 8000,
-                spectralFlatness: 0.3,
-                spectralBandwidth: 4000,
-                
-                // Rhythmic features
-                tempo: 128,
-                rhythmStrength: 0.8,
-                beatConfidence: 0.9,
-                
-                // Tonal features
-                key: 'F',
-                mode: 'major',
-                keyConfidence: 0.85,
-                harmonicComplexity: 0.7,
-                
-                // Dynamic features
-                rms: -12,
-                dynamicRange: 15,
-                crestFactor: 8,
-                
-                // Perceptual features
-                danceability: 0.75,
-                energy: 0.8,
-                valence: 0.6,
-                acousticness: 0.2,
-                instrumentalness: 0.1,
-                liveness: 0.3,
-                speechiness: 0.05
-              },
-              successPrediction: {
-                score: 87,
-                confidence: 0.92,
-                factors: ['Strong hook', 'Trending genre', 'Optimal length', 'High energy'],
-                marketPotential: 85,
-                socialScore: 78,
-                genreAlignment: 90,
-                seasonalFactors: 75,
-                recommendations: [
-                  {
-                    category: 'marketing' as const,
-                    title: 'Focus on social media promotion',
-                    description: 'Your song has high viral potential for short-form video content',
-                    priority: 'high' as const,
-                    impact: 85,
-                    implementation: 'Create engaging social media content',
-                    estimatedROI: 3.2
-                  },
-                  {
-                    category: 'timing' as const,
-                    title: 'Release during peak listening hours',
-                    description: 'Timing your release can increase initial engagement by 40%',
-                    priority: 'medium' as const,
-                    impact: 70,
-                    implementation: 'Schedule release for 6-8 PM local time',
-                    estimatedROI: 2.1
-                  }
-                ],
-                riskAssessment: {
-                  overallRisk: 'low' as const,
-                  riskScore: 15,
-                  riskFactors: ['Market saturation', 'Seasonal timing'],
-                  mitigationStrategies: ['Focus on unique sound', 'Target niche audience']
-                }
+            // TODO: Replace with real API call to get analysis results
+            // const response = await fetch(`/api/analysis/${songId}/results`);
+            // const data = await response.json();
+            // setAnalysisData(data);
+            
+            // For now, show empty state to indicate real data needed
+            setAnalysisData(null)
+            
+            // Automatically redirect to dashboard after a short delay
+            setTimeout(() => {
+              if (songId) {
+                navigate(`/dashboard/${songId}`)
               }
-            }
-            setAnalysisData(mockData)
+            }, 2000) // 2 second delay to let user see completion
           }, 1000)
         }
       }
@@ -200,33 +138,20 @@ const AnalysisPage = () => {
 
   // Check if we have analysis results from navigation state
   useEffect(() => {
-    console.log('🔍 AnalysisPage useEffect triggered')
-    console.log('📍 Current location state:', location.state)
-    console.log('🎵 Song ID from params:', songId)
     
     // Reset progress flow flag when song ID changes
     if (songId && progressFlowTriggered) {
-      console.log('🔄 New song ID detected, resetting progress flow flag')
       setProgressFlowTriggered(false)
     }
     
     // Don't override the processing state if we're intentionally showing progress bars
     if (analysisStatus === 'processing') {
-      console.log('⏸️ Skipping useEffect - currently processing')
       return
     }
     
     if (location.state?.analysisResults) {
-      console.log('✅ Using analysis results from navigation state:', location.state.analysisResults)
-      console.log('📊 Data structure check:', {
-        hasAudioFeatures: !!location.state.analysisResults.audioFeatures,
-        hasSuccessPrediction: !!location.state.analysisResults.successPrediction,
-        successPredictionKeys: location.state.analysisResults.successPrediction ? Object.keys(location.state.analysisResults.successPrediction) : 'none'
-      })
       // Check if we should trigger the progress flow
       if (location.state?.triggerProgressFlow && !progressFlowTriggered) {
-        console.log('🚀 Triggering progress flow for upload...')
-        console.log('📊 Progress flow flag detected:', location.state.triggerProgressFlow)
         
         // Set flag to prevent re-triggering
         setProgressFlowTriggered(true)
@@ -234,21 +159,17 @@ const AnalysisPage = () => {
         // Start progress flow using the dedicated function
         startProgressFlow(location.state.analysisResults)
       } else if (location.state?.triggerProgressFlow && progressFlowTriggered) {
-        console.log('⏸️ Progress flow already triggered, skipping...')
       } else {
         // Direct completion without progress flow
         setAnalysisData(location.state.analysisResults)
         setProgress(100)
         setCurrentStep('Analysis completed')
         setAnalysisStatus('completed')
-        console.log('🎉 Analysis status set to completed')
       }
     } else if (location.state?.isNewUpload) {
       // Start analysis process for new upload
-      console.log('🚀 Starting analysis process for new upload')
       startAnalysisProcess()
     } else {
-      console.log('🔄 No navigation state, fetching existing results...')
       // Try to fetch existing results
       fetchExistingResults()
     }
@@ -270,12 +191,10 @@ const AnalysisPage = () => {
       return
     }
 
-    console.log('Fetching existing results for songId:', songId)
     try {
       const response = await fetch(`/api/analysis/results/${songId}`)
       if (response.ok) {
         const data = await response.json()
-        console.log('API response received:', data)
         if (data.success) {
           // Transform API data to match expected structure
           const transformedData = {
@@ -305,12 +224,10 @@ const AnalysisPage = () => {
               }
             }
           }
-          console.log('Transformed data:', transformedData)
           setAnalysisData(transformedData)
           setProgress(100)
           setCurrentStep('Analysis completed')
           setAnalysisStatus('completed')
-          console.log('Analysis status set to completed')
         } else {
           // If no results, show pending state
           setAnalysisStatus('pending')
@@ -328,10 +245,9 @@ const AnalysisPage = () => {
   }
 
   if (analysisStatus === 'pending') {
-    console.log('🎯 Rendering PENDING state')
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="text-center">
             <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <BarChart3 className="w-12 h-12 text-white" />
@@ -397,10 +313,9 @@ const AnalysisPage = () => {
   }
 
   if (analysisStatus === 'processing') {
-    console.log('🎯 Rendering PROCESSING state with progress:', progress, 'step:', currentStep)
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="text-center">
             <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Loader2 className="w-12 h-12 text-white animate-spin" />
@@ -509,7 +424,7 @@ const AnalysisPage = () => {
   if (analysisStatus === 'failed') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="text-center">
             <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertCircle className="w-12 h-12 text-white" />
@@ -542,7 +457,7 @@ const AnalysisPage = () => {
   if (!analysisData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="text-center">
             <Loader2 className="w-24 h-24 text-blue-400 animate-spin mx-auto mb-6" />
             <h1 className="text-4xl font-bold text-white mb-4">Loading Analysis...</h1>
@@ -570,7 +485,7 @@ const AnalysisPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-      <div className="max-w-6xl mx-auto px-4 py-16">
+      <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="w-24 h-24 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-6">

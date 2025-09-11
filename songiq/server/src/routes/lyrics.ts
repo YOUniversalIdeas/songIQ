@@ -289,14 +289,14 @@ router.post('/upload', authenticateToken, upload.single('lyricsFile'), async (re
       });
     }
 
-    if (!user.canAnalyzeSong()) {
+    if (!(await user.canAnalyzeSong())) {
       return res.status(403).json({
         success: false,
         error: 'Song analysis limit reached',
         details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
         currentUsage: user.subscription.usage.songsAnalyzed,
         songLimit: user.getSongLimit(),
-        remainingSongs: user.getRemainingSongs()
+        remainingSongs: await user.getRemainingSongs()
       });
     }
 
@@ -413,14 +413,14 @@ router.post('/analyze-text', authenticateToken, async (req: express.Request, res
       });
     }
 
-    if (!user.canAnalyzeSong()) {
+    if (!(await user.canAnalyzeSong())) {
       return res.status(403).json({
         success: false,
         error: 'Song analysis limit reached',
         details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
         currentUsage: user.subscription.usage.songsAnalyzed,
         songLimit: user.getSongLimit(),
-        remainingSongs: user.getRemainingSongs()
+        remainingSongs: await user.getRemainingSongs()
       });
     }
 

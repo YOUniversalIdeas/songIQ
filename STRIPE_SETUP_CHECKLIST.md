@@ -34,21 +34,21 @@
 
 ### 2.1 Server Environment
 - [ ] Copy `env-template.txt` to `.env.production`
-- [ ] Replace placeholder values with real Stripe keys:
+- [ ] Add real Stripe keys to environment files:
   ```
-  STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_key_here
-  STRIPE_SECRET_KEY=sk_live_your_actual_key_here
-  STRIPE_WEBHOOK_SECRET=whsec_your_actual_webhook_secret_here
-  STRIPE_BASIC_PLAN_PRICE_ID=price_your_actual_basic_price_id_here
-  STRIPE_PRO_PLAN_PRICE_ID=price_your_actual_pro_price_id_here
-  STRIPE_ENTERPRISE_PLAN_PRICE_ID=price_your_actual_enterprise_price_id_here
+  # STRIPE_PUBLISHABLE_KEY=
+  # STRIPE_SECRET_KEY=
+  # STRIPE_WEBHOOK_SECRET=
+  # STRIPE_BASIC_PLAN_PRICE_ID=
+  # STRIPE_PRO_PLAN_PRICE_ID=
+  # STRIPE_ENTERPRISE_PLAN_PRICE_ID=
   ```
 
 ### 2.2 Client Environment
 - [ ] Copy `env-template.txt` to `.env.production` in client directory
-- [ ] Replace placeholder value:
+- [ ] Add real Stripe key:
   ```
-  VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_key_here
+  # VITE_STRIPE_PUBLISHABLE_KEY=
   ```
 
 ## ✅ Step 3: Test Your Setup

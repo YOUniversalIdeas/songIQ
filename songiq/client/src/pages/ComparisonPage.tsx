@@ -1,124 +1,79 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Upload, BarChart3, Album, Music, TrendingUp } from 'lucide-react';
 import SongComparison from '../components/SongComparison';
 import BatchAnalysis from '../components/BatchAnalysis';
-
-// Sample data for demonstration
-const sampleSongs = [
-  {
-    id: 'song-1',
-    title: "Midnight Dreams",
-    artist: "Demo Artist",
-    genre: "pop",
-    duration: 225,
-    audioFeatures: {
-      danceability: 0.75,
-      energy: 0.68,
-      valence: 0.62,
-      acousticness: 0.15,
-      instrumentalness: 0.08,
-      liveness: 0.12,
-      speechiness: 0.05,
-      tempo: 128,
-      loudness: -8.5,
-      key: 1,
-      mode: 1
-    },
-    successScore: {
-      overallScore: 78,
-      confidence: 0.85,
-      breakdown: {
-        audioFeatures: 82,
-        marketTrends: 75,
-        genreAlignment: 80,
-        seasonalFactors: 70
-      },
-      recommendations: [
-        {
-          category: "Production",
-          priority: "high" as const,
-          title: "Enhance Dynamic Range",
-          description: "Add more contrast between quiet and loud sections",
-          impact: 85,
-          implementation: "Work with your producer to add build-ups and drops"
-        },
-        {
-          category: "Marketing",
-          priority: "medium" as const,
-          title: "Target Pop Audience",
-          description: "Focus marketing efforts on pop listeners",
-          impact: 70,
-          implementation: "Create playlists and collaborate with similar artists"
-        }
-      ],
-      riskFactors: [
-        "Competition from established artists",
-        "Limited differentiation from trends"
-      ],
-      marketPotential: 75,
-      socialScore: 72
-    },
-    uploadDate: new Date().toISOString()
-  },
-  {
-    id: 'song-2',
-    title: "Summer Vibes",
-    artist: "Demo Artist",
-    genre: "pop",
-    duration: 198,
-    audioFeatures: {
-      danceability: 0.82,
-      energy: 0.75,
-      valence: 0.78,
-      acousticness: 0.08,
-      instrumentalness: 0.05,
-      liveness: 0.15,
-      speechiness: 0.04,
-      tempo: 132,
-      loudness: -7.8,
-      key: 5,
-      mode: 1
-    },
-    successScore: {
-      overallScore: 85,
-      confidence: 0.90,
-      breakdown: {
-        audioFeatures: 88,
-        marketTrends: 82,
-        genreAlignment: 85,
-        seasonalFactors: 88
-      },
-      recommendations: [
-        {
-          category: "Production",
-          priority: "low" as const,
-          title: "Minor Mix Adjustments",
-          description: "Fine-tune the bass frequencies for better club sound",
-          impact: 45,
-          implementation: "Work with your engineer on EQ settings"
-        }
-      ],
-      riskFactors: [
-        "Seasonal timing dependency"
-      ],
-      marketPotential: 88,
-      socialScore: 85
-    },
-    uploadDate: new Date().toISOString()
-  }
-];
+import SongSelectionModal from '../components/SongSelectionModal';
+import { getStoredToken } from '../utils/auth';
+import { API_ENDPOINTS } from '../config/api';
 
 const ComparisonPage = () => {
   const navigate = useNavigate();
+  const [songs, setSongs] = useState<any[]>([]);
+  const [selectedSongs, setSelectedSongs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeMode, setActiveMode] = useState<'comparison' | 'batch'>('comparison');
+  const [isSongSelectionOpen, setIsSongSelectionOpen] = useState(false);
+
+  useEffect(() => {
+    loadUserSongs();
+  }, []);
+
+  const loadUserSongs = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = getStoredToken();
+      if (!token) {
+        setError('Please log in to view your songs');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.SONGS.LIST, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Please log in to view your songs');
+        } else {
+          throw new Error(`Failed to fetch songs: ${response.status}`);
+        }
+        return;
+      }
+
+      const result = await response.json();
+      console.log('ComparisonPage - API response:', result);
+      if (result.success) {
+        console.log('ComparisonPage - Songs data:', result.data);
+        setSongs(result.data || []);
+      } else {
+        throw new Error(result.error || 'Failed to fetch songs');
+      }
+    } catch (err) {
+      console.error('Failed to load user songs:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load songs for comparison');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddSong = () => {
-    alert('Song selection feature would open here');
+    setIsSongSelectionOpen(true);
   };
 
   const handleUploadAlbum = () => {
     alert('Album upload feature would open here');
+  };
+
+  const handleSongSelection = (selectedSongs: any[]) => {
+    setSelectedSongs(selectedSongs);
   };
 
   return (
@@ -191,7 +146,101 @@ const ComparisonPage = () => {
 
         {/* Content */}
         <div className="space-y-6">
-          {activeMode === 'comparison' && (
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Loading your songs...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                    {error.includes('log in') ? 'Authentication Required' : 'Error loading songs'}
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+                  <div className="mt-2 flex space-x-2">
+                    {error.includes('log in') ? (
+                      <>
+                        <button
+                          onClick={() => navigate('/auth')}
+                          className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
+                        >
+                          Go to Login
+                        </button>
+                        <button
+                          onClick={loadUserSongs}
+                          className="text-sm text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 underline"
+                        >
+                          Try again
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={loadUserSongs}
+                        className="text-sm text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 underline"
+                      >
+                        Try again
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Content - Only show when not loading and no errors */}
+          {!isLoading && !error && songs.length === 0 && (
+            <div className="text-center">
+              <Music className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No songs to compare yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Upload and analyze some songs first to use the comparison tools
+              </p>
+              <button
+                onClick={() => navigate('/upload')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Your First Song
+              </button>
+            </div>
+          )}
+
+          {/* Show song selection prompt when user has songs but none selected */}
+          {!isLoading && !error && songs.length > 0 && selectedSongs.length === 0 && (
+            <div className="text-center">
+              <Music className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Select songs to compare
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Choose songs from your library to start comparing
+              </p>
+              <button
+                onClick={handleAddSong}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Songs
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !error && songs.length > 0 && selectedSongs.length > 0 && activeMode === 'comparison' && (
             <div>
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -203,12 +252,12 @@ const ComparisonPage = () => {
               </div>
               
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-                <SongComparison songs={sampleSongs} />
+                <SongComparison songs={selectedSongs} />
               </div>
             </div>
           )}
 
-          {activeMode === 'batch' && (
+          {!isLoading && !error && songs.length > 0 && selectedSongs.length > 0 && activeMode === 'batch' && (
             <div>
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -220,7 +269,7 @@ const ComparisonPage = () => {
               </div>
               
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-                <BatchAnalysis songs={sampleSongs} albumTitle="Demo Album" />
+                <BatchAnalysis songs={selectedSongs} albumTitle="Your Songs" />
               </div>
             </div>
           )}
@@ -277,6 +326,15 @@ const ComparisonPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Song Selection Modal */}
+      <SongSelectionModal
+        isOpen={isSongSelectionOpen}
+        onClose={() => setIsSongSelectionOpen(false)}
+        onSelectSongs={handleSongSelection}
+        selectedSongs={selectedSongs}
+        maxSelections={4}
+      />
     </div>
   );
 };

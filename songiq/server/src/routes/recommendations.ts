@@ -34,7 +34,7 @@ router.get('/:songId', async (req, res) => {
     }
 
     // Get current market trends
-    let marketTrends;
+    let marketTrends: any;
     try {
       marketTrends = await getCurrentMarketTrends();
     } catch (error) {
@@ -48,17 +48,17 @@ router.get('/:songId', async (req, res) => {
       };
     }
 
-    // Generate audio feature recommendations
-    const audioFeatures = song.audioFeatures;
-    const audioFeatureRecommendations = [];
+    // Generate audio feature recommendations based on release status
+    const audioFeatures = song.audioFeatures as any;
+    const audioFeatureRecommendations: any[] = [];
     
     if (audioFeatures) {
       const features = [
-        { name: 'Danceability', current: audioFeatures.danceability, optimal: { min: 0.6, max: 0.9, peak: 0.75 } },
-        { name: 'Energy', current: audioFeatures.energy, optimal: { min: 0.5, max: 0.9, peak: 0.7 } },
-        { name: 'Valence', current: audioFeatures.valence, optimal: { min: 0.4, max: 0.8, peak: 0.6 } },
-        { name: 'Tempo', current: audioFeatures.tempo, optimal: { min: 100, max: 140, peak: 120 } },
-        { name: 'Loudness', current: audioFeatures.loudness, optimal: { min: -12, max: -6, peak: -9 } }
+        { name: 'Danceability', current: audioFeatures.danceability || 0.5, optimal: { min: 0.6, max: 0.9, peak: 0.75 } },
+        { name: 'Energy', current: audioFeatures.energy || 0.5, optimal: { min: 0.5, max: 0.9, peak: 0.7 } },
+        { name: 'Valence', current: audioFeatures.valence || 0.5, optimal: { min: 0.4, max: 0.8, peak: 0.6 } },
+        { name: 'Tempo', current: audioFeatures.tempo || 120, optimal: { min: 100, max: 140, peak: 120 } },
+        { name: 'Loudness', current: audioFeatures.loudness || -9, optimal: { min: -12, max: -6, peak: -9 } }
       ];
 
       features.forEach(feature => {
@@ -69,20 +69,40 @@ router.get('/:songId', async (req, res) => {
         let difficulty = 'easy';
         let description = '';
 
-        if (current < optimal.min) {
-          recommended = optimal.peak;
-          impact = Math.round((optimal.peak - current) * 100);
-          difficulty = current < optimal.min * 0.5 ? 'hard' : 'medium';
-          description = `Increase ${feature.name.toLowerCase()} to appeal to current market trends`;
-        } else if (current > optimal.max) {
-          recommended = optimal.peak;
-          impact = Math.round((current - optimal.peak) * 100);
-          difficulty = current > optimal.max * 1.5 ? 'hard' : 'medium';
-          description = `Reduce ${feature.name.toLowerCase()} to match optimal ranges`;
+        if (song.isReleased) {
+          // For released songs, focus on analysis and marketing insights rather than production changes
+          if (current < optimal.min) {
+            recommended = current; // Don't suggest changes to released songs
+            impact = Math.round((optimal.peak - current) * 50); // Lower impact since it's just analysis
+            difficulty = 'n/a';
+            description = `This ${feature.name.toLowerCase()} level (${current.toFixed(2)}) is below optimal range. Consider this insight for future releases.`;
+          } else if (current > optimal.max) {
+            recommended = current; // Don't suggest changes to released songs
+            impact = Math.round((current - optimal.peak) * 50); // Lower impact since it's just analysis
+            difficulty = 'n/a';
+            description = `This ${feature.name.toLowerCase()} level (${current.toFixed(2)}) is above optimal range. This may explain certain market performance patterns.`;
+          } else {
+            impact = Math.round((optimal.peak - Math.abs(current - optimal.peak)) * 30);
+            difficulty = 'n/a';
+            description = `Excellent ${feature.name.toLowerCase()} level (${current.toFixed(2)}) - this aligns well with current market trends and likely contributed to your song's success.`;
+          }
         } else {
-          impact = Math.round((optimal.peak - Math.abs(current - optimal.peak)) * 50);
-          difficulty = 'easy';
-          description = `Fine-tune ${feature.name.toLowerCase()} for maximum impact`;
+          // For unreleased songs, provide actionable production recommendations
+          if (current < optimal.min) {
+            recommended = optimal.peak;
+            impact = Math.round((optimal.peak - current) * 100);
+            difficulty = current < optimal.min * 0.5 ? 'hard' : 'medium';
+            description = `Increase ${feature.name.toLowerCase()} to appeal to current market trends`;
+          } else if (current > optimal.max) {
+            recommended = optimal.peak;
+            impact = Math.round((current - optimal.peak) * 100);
+            difficulty = current > optimal.max * 1.5 ? 'hard' : 'medium';
+            description = `Reduce ${feature.name.toLowerCase()} to match optimal ranges`;
+          } else {
+            impact = Math.round((optimal.peak - Math.abs(current - optimal.peak)) * 50);
+            difficulty = 'easy';
+            description = `Fine-tune ${feature.name.toLowerCase()} for maximum impact`;
+          }
         }
 
         audioFeatureRecommendations.push({
@@ -91,14 +111,15 @@ router.get('/:songId', async (req, res) => {
           recommendedValue: Math.round(recommended * 100) / 100,
           impact: Math.min(100, Math.max(0, impact)),
           difficulty,
-          description
+          description,
+          isReleased: song.isReleased
         });
       });
     }
 
-    // Generate genre recommendations
+    // Generate genre recommendations based on release status
     const currentGenre = analysis.genreAnalysis?.primaryGenre || 'unknown';
-    const genreRecommendations = [];
+    const genreRecommendations: any[] = [];
     
     const genreOptions = ['pop', 'hip_hop', 'electronic', 'rock', 'rnb', 'country', 'indie', 'latin'];
     genreOptions.forEach(genre => {
@@ -108,21 +129,45 @@ router.get('/:songId', async (req, res) => {
         const audienceOverlap = Math.round(50 + Math.random() * 30);
         const transitionDifficulty = successProbability > 80 ? 'easy' : successProbability > 60 ? 'medium' : 'hard';
         
-        genreRecommendations.push({
-          genre: genre.charAt(0).toUpperCase() + genre.slice(1),
-          currentGenre: currentGenre.charAt(0).toUpperCase() + currentGenre.slice(1),
-          successProbability,
-          marketTrend,
-          audienceOverlap,
-          transitionDifficulty,
-          keyFactors: [
-            'Strong vocal performance',
-            'Catchy melodies',
-            'Radio-friendly structure',
-            'Modern production techniques'
-          ],
-          estimatedGrowth: Math.round(successProbability * 0.3)
-        });
+        if (song.isReleased) {
+          // For released songs, focus on audience expansion and remix opportunities
+          genreRecommendations.push({
+            genre: genre.charAt(0).toUpperCase() + genre.slice(1),
+            currentGenre: currentGenre.charAt(0).toUpperCase() + currentGenre.slice(1),
+            successProbability,
+            marketTrend,
+            audienceOverlap,
+            transitionDifficulty: 'n/a', // Not applicable for released songs
+            keyFactors: [
+              'Remix potential for this genre',
+              'Cross-genre collaboration opportunities',
+              'Audience expansion strategies',
+              'Playlist crossover potential'
+            ],
+            estimatedGrowth: Math.round(successProbability * 0.2), // Lower growth potential for released songs
+            recommendationType: 'audience_expansion',
+            description: `Consider creating a ${genre} remix or collaborating with ${genre} artists to expand your audience reach.`
+          });
+        } else {
+          // For unreleased songs, provide genre transition recommendations
+          genreRecommendations.push({
+            genre: genre.charAt(0).toUpperCase() + genre.slice(1),
+            currentGenre: currentGenre.charAt(0).toUpperCase() + currentGenre.slice(1),
+            successProbability,
+            marketTrend,
+            audienceOverlap,
+            transitionDifficulty,
+            keyFactors: [
+              'Strong vocal performance',
+              'Catchy melodies',
+              'Radio-friendly structure',
+              'Modern production techniques'
+            ],
+            estimatedGrowth: Math.round(successProbability * 0.3),
+            recommendationType: 'genre_transition',
+            description: `Consider transitioning to ${genre} for your next release to capitalize on current market trends.`
+          });
+        }
       }
     });
 
@@ -163,35 +208,73 @@ router.get('/:songId', async (req, res) => {
       }
     ];
 
-    // Generate release timing recommendations
+    // Generate release timing recommendations based on release status
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 15);
-    const releaseTiming = {
-      recommendedDate: nextMonth.toISOString().split('T')[0],
-      confidence: Math.round(70 + Math.random() * 25),
-      marketConditions: {
-        competition: Math.round(60 + Math.random() * 30),
-        seasonalFactor: Math.round(70 + Math.random() * 25),
-        trendAlignment: Math.round(75 + Math.random() * 20)
-      },
-      alternativeDates: [
-        {
-          date: new Date(now.getFullYear(), now.getMonth() + 2, 1).toISOString().split('T')[0],
-          score: Math.round(65 + Math.random() * 20),
-          reason: 'Lower competition period'
+    
+    let releaseTiming;
+    if (song.isReleased) {
+      // For released songs, focus on performance analysis and follow-up strategy
+      releaseTiming = {
+        releaseDate: song.releaseDate ? song.releaseDate.toISOString().split('T')[0] : 'Unknown',
+        performanceAnalysis: {
+          timingScore: Math.round(70 + Math.random() * 25),
+          marketConditions: {
+            competition: Math.round(60 + Math.random() * 30),
+            seasonalFactor: Math.round(70 + Math.random() * 25),
+            trendAlignment: Math.round(75 + Math.random() * 20)
+          },
+          insights: [
+            'Your release timing aligned well with market trends',
+            'Consider the seasonal factors that may have influenced performance',
+            'Analyze competitor releases during your launch window'
+          ]
         },
-        {
-          date: new Date(now.getFullYear(), now.getMonth() + 3, 15).toISOString().split('T')[0],
-          score: Math.round(70 + Math.random() * 20),
-          reason: 'Spring release momentum'
-        }
-      ],
-      riskFactors: [
-        'High competition in current month',
-        'Seasonal trend alignment',
-        'Market saturation risk'
-      ]
-    };
+        followUpStrategy: {
+          nextReleaseWindow: nextMonth.toISOString().split('T')[0],
+          confidence: Math.round(70 + Math.random() * 25),
+          strategy: 'Build on current momentum with strategic follow-up releases',
+          recommendations: [
+            'Maintain consistent release schedule',
+            'Leverage current song success for next release',
+            'Consider seasonal timing for maximum impact'
+          ]
+        },
+        riskFactors: [
+          'Market saturation in your genre',
+          'Seasonal trend changes',
+          'Competitor release timing'
+        ]
+      };
+    } else {
+      // For unreleased songs, provide optimal release timing recommendations
+      releaseTiming = {
+        recommendedDate: nextMonth.toISOString().split('T')[0],
+        confidence: Math.round(70 + Math.random() * 25),
+        marketConditions: {
+          competition: Math.round(60 + Math.random() * 30),
+          seasonalFactor: Math.round(70 + Math.random() * 25),
+          trendAlignment: Math.round(75 + Math.random() * 20)
+        },
+        alternativeDates: [
+          {
+            date: new Date(now.getFullYear(), now.getMonth() + 2, 1).toISOString().split('T')[0],
+            score: Math.round(65 + Math.random() * 20),
+            reason: 'Lower competition period'
+          },
+          {
+            date: new Date(now.getFullYear(), now.getMonth() + 3, 15).toISOString().split('T')[0],
+            score: Math.round(70 + Math.random() * 20),
+            reason: 'Spring release momentum'
+          }
+        ],
+        riskFactors: [
+          'High competition in current month',
+          'Seasonal trend alignment',
+          'Market saturation risk'
+        ]
+      };
+    }
 
     // Generate marketing strategies
     const marketingStrategies = [

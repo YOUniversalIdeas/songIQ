@@ -37,10 +37,10 @@ const HomePage = () => {
   ]
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-16">
       {/* Hero Section */}
-      <section className="text-center space-y-6">
-        <div className="space-y-4">
+      <section className="text-center space-y-8">
+        <div className="space-y-6">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-gray-100">
             Unlock Your Song's
             <span className="text-primary-600"> Potential</span>
@@ -60,6 +60,13 @@ const HomePage = () => {
             <span>Upload Your Song</span>
           </Link>
           <Link
+            to="/trends"
+            className="btn-secondary text-lg px-8 py-3 flex items-center justify-center space-x-2"
+          >
+            <TrendingUp className="h-5 w-5" />
+            <span>View Charts</span>
+          </Link>
+          <Link
             to="/dashboard"
             className="btn-secondary text-lg px-8 py-3 flex items-center justify-center space-x-2"
           >
@@ -70,7 +77,7 @@ const HomePage = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="space-y-8">
+      <section className="space-y-12">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Everything You Need to Succeed
@@ -109,8 +116,8 @@ const HomePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="text-center space-y-6">
-        <div className="space-y-4">
+      <section className="text-center space-y-8">
+        <div className="space-y-6">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Ready to Discover Your Song's Potential?
           </h2>

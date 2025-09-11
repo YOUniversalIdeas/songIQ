@@ -3,17 +3,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Create a placeholder Stripe instance if keys aren't available
-export const stripe = process.env.STRIPE_SECRET_KEY 
+// Create Stripe instance only if valid keys are available
+export const stripe = process.env.STRIPE_SECRET_KEY && 
+  process.env.STRIPE_SECRET_KEY.startsWith('sk_') &&
+  process.env.STRIPE_SECRET_KEY.length > 20
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-07-30.basil',
     })
   : null;
 
 export const STRIPE_CONFIG = {
-  publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
-  secretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
-  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
+  publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+  secretKey: process.env.STRIPE_SECRET_KEY || '',
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
 };
 
 // Subscription plans configuration
@@ -32,7 +34,7 @@ export const SUBSCRIPTION_PLANS = {
   },
   basic: {
     name: 'Basic Plan',
-    priceId: process.env.STRIPE_BASIC_PLAN_PRICE_ID || 'price_basic_placeholder',
+    priceId: process.env.STRIPE_BASIC_PLAN_PRICE_ID || '',
     price: 9.99,
     songLimit: 10,
     features: [
@@ -43,7 +45,7 @@ export const SUBSCRIPTION_PLANS = {
   },
   pro: {
     name: 'Pro Plan',
-    priceId: process.env.STRIPE_PRO_PLAN_PRICE_ID || 'price_pro_placeholder',
+    priceId: process.env.STRIPE_PRO_PLAN_PRICE_ID || '',
     price: 29.99,
     songLimit: 100,
     features: [
@@ -55,7 +57,7 @@ export const SUBSCRIPTION_PLANS = {
   },
   enterprise: {
     name: 'Enterprise Plan',
-    priceId: process.env.STRIPE_ENTERPRISE_PLAN_PRICE_ID || 'price_enterprise_placeholder',
+    priceId: process.env.STRIPE_ENTERPRISE_PLAN_PRICE_ID || '',
     price: 99.99,
     songLimit: -1, // -1 = unlimited
     features: [

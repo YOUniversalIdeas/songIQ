@@ -22,6 +22,7 @@ const VerificationPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [verificationComplete, setVerificationComplete] = useState(false);
 
   // Check if user is authenticated
   useEffect(() => {
@@ -49,10 +50,10 @@ const VerificationPage: React.FC = () => {
         console.log('📊 Verification status received:', data);
         setVerificationStatus(data);
         
-        // If already verified, redirect to dashboard
-        if (data.isVerified) {
-          console.log('🎉 User verified, redirecting to dashboard');
-          navigate('/dashboard');
+        // If already verified and not showing success message, redirect to upload for new users
+        if (data.isVerified && !verificationComplete) {
+          console.log('🎉 User verified, redirecting to upload page');
+          navigate('/upload');
         }
       } else {
         console.error('❌ Failed to fetch verification status:', response.status);
@@ -85,14 +86,28 @@ const VerificationPage: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('Email verified successfully!');
         setEmailCode('');
-        fetchVerificationStatus(); // Refresh status
         
-        // If both verified, mark as authenticated and redirect to dashboard
+        // If both verified, mark as authenticated and show success message
         if (data.isVerified) {
+          setMessage('🎉 Account verification complete! Welcome to songIQ!');
           markAsVerified(); // Mark user as verified in auth context
-          setTimeout(() => navigate('/dashboard'), 2000);
+          // Small delay to ensure message is visible before hiding forms
+          setTimeout(() => {
+            setVerificationComplete(true);
+          }, 100);
+          // Check if there are pending analysis results to show
+          const pendingAnalysis = localStorage.getItem('songiq_pending_analysis');
+          if (pendingAnalysis) {
+            // Redirect to dashboard to show their analysis results
+            setTimeout(() => navigate('/dashboard'), 3000);
+          } else {
+            // Redirect to upload page for new users
+            setTimeout(() => navigate('/upload'), 3000);
+          }
+        } else {
+          setMessage('Email verified successfully!');
+          fetchVerificationStatus(); // Refresh status only if not fully verified
         }
       } else {
         setError(data.error || 'Failed to verify email');
@@ -127,14 +142,28 @@ const VerificationPage: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('SMS verified successfully!');
         setSmsCode('');
-        fetchVerificationStatus(); // Refresh status
         
-        // If both verified, mark as authenticated and redirect to dashboard
+        // If both verified, mark as authenticated and show success message
         if (data.isVerified) {
+          setMessage('🎉 Account verification complete! Welcome to songIQ!');
           markAsVerified(); // Mark user as verified in auth context
-          setTimeout(() => navigate('/dashboard'), 2000);
+          // Small delay to ensure message is visible before hiding forms
+          setTimeout(() => {
+            setVerificationComplete(true);
+          }, 100);
+          // Check if there are pending analysis results to show
+          const pendingAnalysis = localStorage.getItem('songiq_pending_analysis');
+          if (pendingAnalysis) {
+            // Redirect to dashboard to show their analysis results
+            setTimeout(() => navigate('/dashboard'), 3000);
+          } else {
+            // Redirect to upload page for new users
+            setTimeout(() => navigate('/upload'), 3000);
+          }
+        } else {
+          setMessage('SMS verified successfully!');
+          fetchVerificationStatus(); // Refresh status only if not fully verified
         }
       } else {
         setError(data.error || 'Failed to verify SMS');
@@ -176,14 +205,14 @@ const VerificationPage: React.FC = () => {
 
   if (!verificationStatus) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-start justify-center pt-4">
         <div className="text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-900 flex items-start justify-center pt-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -231,7 +260,7 @@ const VerificationPage: React.FC = () => {
         </div>
 
         {/* Email Verification */}
-        {!verificationStatus.emailVerified && (
+        {!verificationStatus.emailVerified && !verificationComplete && (
           <div className="bg-gray-800 rounded-lg p-6 space-y-4">
             <h3 className="text-lg font-medium text-white">📧 Email Verification</h3>
             <p className="text-gray-400 text-sm mb-3">
@@ -266,7 +295,7 @@ const VerificationPage: React.FC = () => {
         )}
 
         {/* SMS Verification */}
-        {!verificationStatus.smsVerified && (
+        {!verificationStatus.smsVerified && !verificationComplete && (
           <div className="bg-gray-800 rounded-lg p-6 space-y-4">
             <h3 className="text-lg font-medium text-white">📱 SMS Verification</h3>
             <p className="text-gray-400 text-sm mb-3">
@@ -275,7 +304,7 @@ const VerificationPage: React.FC = () => {
             
             <div className="bg-green-900/20 border border-green-700 rounded-lg p-3 mb-3">
               <p className="text-green-200 text-xs">
-                <strong>📱 Check your phone:</strong> Look for a text message from <strong>+18888923244</strong> with your 6-digit verification code
+                <strong>📱 Check your phone:</strong> Look for a text message with your 6-digit verification code
               </p>
             </div>
             
@@ -300,39 +329,64 @@ const VerificationPage: React.FC = () => {
           </div>
         )}
 
+
         {/* Resend Codes */}
-        <div className="text-center space-y-3">
-          <button
-            onClick={resendCodes}
-            disabled={loading}
-            className="text-orange-400 hover:text-orange-300 disabled:text-gray-500 text-sm font-medium transition duration-200 disabled:cursor-not-allowed"
-          >
-            Didn't receive codes? Resend
-          </button>
+        {!verificationComplete && (
+          <div className="text-center space-y-3">
+            <button
+              onClick={resendCodes}
+              disabled={loading}
+              className="text-orange-400 hover:text-orange-300 disabled:text-gray-500 text-sm font-medium transition duration-200 disabled:cursor-not-allowed"
+            >
+              Didn't receive codes? Resend
+            </button>
           
           <div className="bg-gray-800 rounded-lg p-4">
             <h4 className="text-sm font-medium text-white mb-2">💡 Verification Tips:</h4>
             <ul className="text-xs text-gray-400 space-y-1 text-left">
               <li>• Check your spam/junk folder for the email</li>
               <li>• Make sure your phone can receive SMS messages</li>
+              <li>• Both email and SMS verification are required</li>
               <li>• Codes expire in 10 minutes for security</li>
               <li>• You can resend codes if needed</li>
             </ul>
           </div>
-        </div>
+          </div>
+        )}
 
         {/* Messages */}
         {message && (
-          <div className="bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded-md">
+          <div className={`border px-4 py-3 rounded-md ${
+            verificationComplete 
+              ? 'bg-green-900 border-green-700 text-green-200' 
+              : 'bg-green-900 border-green-700 text-green-200'
+          }`}>
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-400" />
               <span className="font-medium">{message}</span>
             </div>
-            {message.includes('Email verified') || message.includes('SMS verified') ? (
+            {verificationComplete ? (
+              <div className="mt-3 space-y-2">
+                <p className="text-sm opacity-90">
+                  🎉 Congratulations! Your account is now fully verified and secure.
+                </p>
+                <p className="text-sm opacity-80">
+                  You'll be redirected to your dashboard in a few seconds...
+                </p>
+                <div className="flex items-center space-x-2 text-sm opacity-70">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-400"></div>
+                  <span>Redirecting to dashboard...</span>
+                </div>
+              </div>
+            ) : message.includes('Email verified') || message.includes('SMS verified') ? (
               <p className="text-sm mt-2 opacity-80">
-                Great progress! {verificationStatus?.emailVerified && verificationStatus?.smsVerified 
+                Great progress! {verificationStatus?.emailVerified && verificationStatus?.smsVerified
                   ? 'Both verifications complete! Redirecting to dashboard...' 
-                  : 'Continue with the other verification to complete your account setup.'}
+                  : verificationStatus?.emailVerified
+                  ? 'Email verified! Now verify your SMS to complete setup.'
+                  : verificationStatus?.smsVerified
+                  ? 'SMS verified! Now verify your email to complete setup.'
+                  : 'Continue with verification to complete your account setup.'}
               </p>
             ) : null}
           </div>
@@ -350,7 +404,7 @@ const VerificationPage: React.FC = () => {
         {/* Skip for now (optional) */}
         <div className="text-center">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/upload')}
             className="text-gray-400 hover:text-gray-300 text-sm font-medium transition duration-200"
           >
             Skip for now

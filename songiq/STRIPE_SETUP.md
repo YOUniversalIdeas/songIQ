@@ -68,14 +68,14 @@ Create a `.env` file in the `songiq/server/` directory:
 # Existing variables...
 
 # Stripe Configuration
-STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
-STRIPE_SECRET_KEY=sk_test_your_secret_key_here
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+# STRIPE_PUBLISHABLE_KEY=
+# STRIPE_SECRET_KEY=
+# STRIPE_WEBHOOK_SECRET=
 
 # Stripe Price IDs
-STRIPE_BASIC_PLAN_PRICE_ID=price_your_basic_plan_id
-STRIPE_PRO_PLAN_PRICE_ID=price_your_pro_plan_id
-STRIPE_ENTERPRISE_PLAN_PRICE_ID=price_your_enterprise_plan_id
+# STRIPE_BASIC_PLAN_PRICE_ID=
+# STRIPE_PRO_PLAN_PRICE_ID=
+# STRIPE_ENTERPRISE_PLAN_PRICE_ID=
 ```
 
 ### 2.2 Frontend (.env file in client directory)
@@ -87,7 +87,7 @@ Create a `.env` file in the `songiq/client/` directory:
 VITE_API_URL=http://localhost:5001
 
 # Stripe Configuration
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+# VITE_STRIPE_PUBLISHABLE_KEY=
 ```
 
 ## Step 3: Install Dependencies

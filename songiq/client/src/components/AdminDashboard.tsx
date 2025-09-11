@@ -93,116 +93,79 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'ai-models' | 'content' | 'users' | 'business' | 'artist-management'>('overview');
   const [poseAsArtist, setPoseAsArtist] = useState<any>(null);
 
-  const [metrics] = useState<AdminMetrics>({
-    recommendationAccuracy: 87.3,
-    clickThroughRate: 23.5,
-    averageSessionDuration: 18.5,
-    songsPerSession: 12.3,
-    skipRate: 34.2,
-    apiResponseTime: 245,
-    errorRate: 0.8,
-    uptime: 99.7,
-    totalUsers: 15420,
-    activeUsers: 8920,
-    newUsers: 234,
-    churnRate: 2.1,
-    retentionRate: 78.5,
-    modelVersion: 'v2.1.4',
-    trainingStatus: 'completed',
-    modelAccuracy: 89.2,
-    featureImportance: {
-      'Tempo': 0.23,
-      'Energy': 0.19,
-      'Danceability': 0.17,
-      'Valence': 0.15,
-      'Acousticness': 0.12,
-      'Instrumentalness': 0.08,
-      'Liveness': 0.06
-    },
-    totalSongs: 125430,
-    pendingUploads: 45,
-    contentModerationFlags: 12,
-    revenue: 125000,
-    subscriptionConversions: 8.7,
-    featureUsage: {
-      'Song Upload': 67,
-      'Analysis': 89,
-      'Recommendations': 92,
-      'Comparison': 45,
-      'Trends': 38
-    }
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    recommendationAccuracy: 0,
+    clickThroughRate: 0,
+    averageSessionDuration: 0,
+    songsPerSession: 0,
+    skipRate: 0,
+    apiResponseTime: 0,
+    errorRate: 0,
+    uptime: 0,
+    totalUsers: 0,
+    activeUsers: 0,
+    newUsers: 0,
+    churnRate: 0,
+    retentionRate: 0,
+    modelVersion: '',
+    trainingStatus: 'pending',
+    modelAccuracy: 0,
+    featureImportance: {},
+    totalSongs: 0,
+    pendingUploads: 0,
+    contentModerationFlags: 0,
+    revenue: 0,
+    subscriptionConversions: 0,
+    featureUsage: {}
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load data when component mounts
   useEffect(() => {
-    // Placeholder for future API integration
+    loadDashboardData();
   }, []);
 
-  // Mock data for charts
-  const performanceData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      {
-        label: 'Recommendation Accuracy',
-        data: [85, 87, 86, 89, 88, 90, 87],
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
-      },
-      {
-        label: 'Click Through Rate',
-        data: [20, 22, 21, 25, 24, 26, 24],
-        borderColor: 'rgb(16, 185, 129)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        tension: 0.4,
-      },
-    ],
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // TODO: Replace with real API calls
+      // const response = await fetch('/api/admin/dashboard-metrics');
+      // const data = await response.json();
+      // setMetrics(data);
+      
+      // For now, set loading to false to show empty state
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+      setError('Failed to load dashboard data');
+      setIsLoading(false);
+    }
   };
 
-  const userEngagementData = {
-    labels: ['0-5min', '5-15min', '15-30min', '30-60min', '60+min'],
-    datasets: [
-      {
-        label: 'Users',
-        data: [1200, 2100, 3400, 2800, 1500],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(139, 92, 246, 0.8)',
-        ],
-      },
-    ],
-  };
+  // Chart data will be populated from real API calls
+  const [performanceData, setPerformanceData] = useState({
+    labels: [],
+    datasets: []
+  });
 
-  const featureImportanceData = {
-    labels: Object.keys(metrics.featureImportance),
-    datasets: [
-      {
-        label: 'Importance Score',
-        data: Object.values(metrics.featureImportance),
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-        borderColor: 'rgb(59, 130, 246)',
-        borderWidth: 1,
-      },
-    ],
-  };
+  const [userEngagementData, setUserEngagementData] = useState({
+    labels: [],
+    datasets: []
+  });
 
-  const revenueData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Revenue ($)',
-        data: [85000, 92000, 88000, 105000, 115000, 125000],
-        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-        borderColor: 'rgb(16, 185, 129)',
-        borderWidth: 2,
-      },
-    ],
-  };
+  const [featureImportanceData, setFeatureImportanceData] = useState({
+    labels: [],
+    datasets: []
+  });
+
+  const [revenueData, setRevenueData] = useState({
+    labels: [],
+    datasets: []
+  });
 
   const chartOptions = {
     responsive: true,
@@ -330,7 +293,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
 
       {/* Content */}
       <div className="p-6 space-y-6">
-        {activeTab === 'overview' && (
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading dashboard data...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error loading dashboard</h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+                <button
+                  onClick={loadDashboardData}
+                  className="mt-2 text-sm text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 underline"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dashboard Content - Only show when not loading and no errors */}
+        {!isLoading && !error && activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -480,24 +477,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Geographic Distribution</h3>
                 <div className="space-y-3">
-                  {[
-                    { country: 'United States', users: 45, growth: '+12%' },
-                    { country: 'United Kingdom', users: 18, growth: '+8%' },
-                    { country: 'Canada', users: 12, growth: '+15%' },
-                    { country: 'Australia', users: 10, growth: '+6%' },
-                    { country: 'Germany', users: 8, growth: '+9%' },
-                  ].map((item, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <Globe className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">{item.country}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold">{item.users}%</span>
-                        <span className="text-green-600 text-sm">{item.growth}</span>
-                      </div>
-                    </div>
-                  ))}
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    Geographic data will be loaded from real user analytics
+                  </p>
                 </div>
               </div>
             </div>
@@ -859,28 +841,7 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
   // Download artists as CSV
   const downloadArtistsCSV = async () => {
     try {
-      // For now, create CSV from mock data
-      const csvHeader = 'Name,Artist/Band/Company Name,Email,Phone,Role,Subscription,Status,Created Date\n';
-      const csvRows = artists.map(artist => {
-        const name = `${artist.firstName} ${artist.lastName}`;
-        const status = artist.isActive ? 'Active' : 'Inactive';
-        const subscription = artist.subscriptionPlan ? artist.subscriptionPlan.charAt(0).toUpperCase() + artist.subscriptionPlan.slice(1) : 'Free';
-        const createdDate = artist.createdAt.toISOString().split('T')[0];
-        return `"${name}","${artist.bandName}","${artist.email}","${artist.telephone}","${artist.role}","${subscription}","${status}","${createdDate}"`;
-      }).join('\n');
-      
-      const csvContent = csvHeader + csvRows;
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'artists_data.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      // Uncomment when API is ready:
+      // TODO: Replace with real API call
       // const response = await fetch('/api/admin/artists/download');
       // const blob = await response.blob();
       // const url = window.URL.createObjectURL(blob);
@@ -891,6 +852,9 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
       // a.click();
       // window.URL.revokeObjectURL(url);
       // document.body.removeChild(a);
+      
+      // For now, show message that this feature needs API integration
+      alert('CSV download requires API integration');
     } catch (error) {
       console.error('Failed to download CSV:', error);
     }
@@ -899,57 +863,7 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
   // Pose as artist
   const handlePoseAsArtist = async (artistId: string) => {
     try {
-      // For now, create mock artist data
-      const artist = artists.find(a => a._id === artistId);
-      if (artist) {
-        const mockArtistData = {
-          originalAdminId: 'admin123',
-          artistId: artist._id,
-          artistEmail: artist.email,
-          artistName: `${artist.firstName} ${artist.lastName}`,
-          bandName: artist.bandName,
-          role: artist.role,
-          impersonationStartTime: new Date(),
-          artistData: {
-            profile: {
-              firstName: artist.firstName,
-              lastName: artist.lastName,
-              bandName: artist.bandName,
-              email: artist.email,
-              telephone: artist.telephone,
-              bio: 'Sample bio for demonstration',
-              profilePicture: artist.profilePicture
-            },
-            songs: [
-              { title: 'Sample Song 1', artist: artist.bandName, analysisStatus: 'completed' },
-              { title: 'Sample Song 2', artist: artist.bandName, analysisStatus: 'pending' },
-              { title: 'Sample Song 3', artist: artist.bandName, analysisStatus: 'completed' }
-            ],
-            favorites: [
-              { title: 'Favorite Song 1', artist: 'Other Artist', genre: 'Rock' },
-              { title: 'Favorite Song 2', artist: 'Another Artist', genre: 'Pop' }
-            ],
-            stats: {
-              totalSongs: 3,
-              totalAnalyses: 2,
-              totalPlays: 150,
-              memberSince: new Date('2024-01-01')
-            },
-            subscription: {
-              plan: 'pro',
-              status: 'active',
-              usage: {
-                songsAnalyzed: 2
-              }
-            }
-          }
-        };
-        
-        onPoseAsArtist(mockArtistData);
-        alert(`Successfully posing as ${mockArtistData.artistName}. You can now access their dashboard and make edits.`);
-      }
-      
-      // Uncomment when API is ready:
+      // TODO: Replace with real API call
       // const response = await fetch(`/api/admin/artists/${artistId}/pose`, {
       //   method: 'POST',
       //   headers: {
@@ -963,6 +877,9 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
       //   onPoseAsArtist(data.data);
       //   alert(`Successfully posing as ${data.data.artistName}. You can now access their dashboard and make edits.`);
       // }
+      
+      // For now, show message that this feature needs API integration
+      alert('Artist impersonation requires API integration');
     } catch (error) {
       console.error('Failed to pose as artist:', error);
       alert('Failed to pose as artist. Please try again.');
@@ -974,91 +891,26 @@ const ArtistManagementTab: React.FC<ArtistManagementTabProps> = ({ onPoseAsArtis
     e.preventDefault();
     setCurrentPage(1);
     
-    if (searchTerm.trim()) {
-      const filtered = mockArtists.filter(artist => 
-        artist.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        artist.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        artist.bandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        artist.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        artist.telephone.includes(searchTerm) ||
-        artist.subscriptionPlan.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setArtists(filtered);
-      setTotalPages(1);
-    } else {
-      setArtists(mockArtists);
-      setTotalPages(1);
-    }
+    // TODO: Replace with real search API call
+    // if (searchTerm.trim()) {
+    //   loadArtists(1, searchTerm);
+    // } else {
+    //   loadArtists(1);
+    // }
     
-    // Uncomment when API is ready:
-    // loadArtists(1, searchTerm);
+    // For now, show message that search needs API integration
+    alert('Search functionality requires API integration');
   };
-
-  // Mock data for demonstration (remove when real API is connected)
-  const mockArtists = [
-    {
-      _id: '1',
-      firstName: 'Sarah',
-      lastName: 'Wilson',
-      bandName: 'Midnight Dreams',
-      email: 'sarah@midnightdreams.com',
-      telephone: '+1 (555) 123-4567',
-      role: 'artist',
-      isActive: true,
-      subscriptionPlan: 'pro',
-      createdAt: new Date('2024-01-15'),
-      profilePicture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face'
-    },
-    {
-      _id: '2',
-      firstName: 'DJ',
-      lastName: 'Max',
-      bandName: 'Electric Soul Collective',
-      email: 'max@electricsoul.com',
-      telephone: '+1 (555) 234-5678',
-      role: 'producer',
-      isActive: true,
-      subscriptionPlan: 'enterprise',
-      createdAt: new Date('2024-02-20'),
-      profilePicture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
-    },
-    {
-      _id: '3',
-      firstName: 'The',
-      lastName: 'Calm',
-      bandName: 'Ocean Waves',
-      email: 'info@oceanswaves.com',
-      telephone: '+1 (555) 345-6789',
-      role: 'label',
-      isActive: true,
-      subscriptionPlan: 'basic',
-      createdAt: new Date('2024-03-10'),
-      profilePicture: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face'
-    },
-    {
-      _id: '4',
-      firstName: 'Alex',
-      lastName: 'Rivers',
-      bandName: 'Urban Beats',
-      email: 'alex@urbanbeats.com',
-      telephone: '+1 (555) 456-7890',
-      role: 'artist',
-      isActive: false,
-      subscriptionPlan: 'free',
-      createdAt: new Date('2024-01-05'),
-      profilePicture: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face'
-    }
-  ];
 
   // Load artists on component mount
   useEffect(() => {
-    // For now, use mock data instead of API call
-    setArtists(mockArtists);
-    setTotalPages(1);
-    setCurrentPage(1);
-    
-    // Uncomment when API is ready:
+    // TODO: Replace with real API call
     // loadArtists();
+    
+    // For now, set empty state
+    setArtists([]);
+    setTotalPages(0);
+    setCurrentPage(1);
   }, []);
 
   return (

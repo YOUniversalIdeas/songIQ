@@ -88,7 +88,7 @@ export const sendEmail = async (options: EmailOptions): Promise<EmailResult> => 
 // Send email verification
 export const sendVerificationEmail = async (email: string, userName: string, token: string): Promise<boolean> => {
   try {
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
     
     const templateData: EmailTemplateData = {
@@ -121,7 +121,7 @@ export const sendVerificationEmail = async (email: string, userName: string, tok
 // Send welcome email after verification
 export const sendWelcomeEmail = async (email: string, userName: string): Promise<boolean> => {
   try {
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     
     const templateData: EmailTemplateData = {
       userName,
@@ -152,7 +152,7 @@ export const sendWelcomeEmail = async (email: string, userName: string): Promise
 // Send password reset email
 export const sendPasswordResetEmail = async (email: string, userName: string, token: string): Promise<boolean> => {
   try {
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
     
     const templateData: EmailTemplateData = {
@@ -185,7 +185,7 @@ export const sendPasswordResetEmail = async (email: string, userName: string, to
 // Send password reset confirmation email
 export const sendPasswordResetConfirmationEmail = async (email: string, userName: string): Promise<boolean> => {
   try {
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     
     const templateData: EmailTemplateData = {
       userName,

@@ -32,10 +32,19 @@ const EmailVerificationPage: React.FC = () => {
         // Store the verified user data
         localStorage.setItem('songiq_user', JSON.stringify(response.data.user));
         
-        // Redirect to dashboard after 3 seconds
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 3000);
+        // Check if there are pending analysis results to show
+        const pendingAnalysis = localStorage.getItem('songiq_pending_analysis');
+        if (pendingAnalysis) {
+          // Redirect to dashboard to show their analysis results
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 3000);
+        } else {
+          // Redirect to upload page for new users (they should upload their first song)
+          setTimeout(() => {
+            navigate('/upload');
+          }, 3000);
+        }
       } else {
         setStatus('error');
         setMessage(response.data.message);
@@ -70,7 +79,7 @@ const EmailVerificationPage: React.FC = () => {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-start justify-center pt-4">
         <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-md p-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -83,7 +92,7 @@ const EmailVerificationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-900 flex items-start justify-center pt-4">
       <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-md p-8">
         <div className="text-center">
           {status === 'success' ? (
@@ -105,13 +114,13 @@ const EmailVerificationPage: React.FC = () => {
                 </ul>
               </div>
               <p className="text-sm text-gray-400 mb-4">
-                Redirecting to dashboard in 3 seconds...
+                Redirecting to upload page in 3 seconds...
               </p>
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/upload')}
                 className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors duration-200"
               >
-                Go to Dashboard Now
+                Upload Your First Song
               </button>
             </>
           ) : (

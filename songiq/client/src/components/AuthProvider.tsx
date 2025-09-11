@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { getStoredToken, clearAuthStorage } from '../utils/auth';
 // import { API_ENDPOINTS } from '../config/api';
 
 export interface User {
@@ -22,9 +23,13 @@ export interface User {
   role?: 'user' | 'artist' | 'producer' | 'label' | 'admin' | 'superadmin';
   spotifyToken?: string;
   subscription: {
-    tier: 'free' | 'pro' | 'enterprise';
-    status: 'active' | 'inactive' | 'cancelled';
-    expiresAt: string;
+    plan: 'free' | 'basic' | 'pro' | 'enterprise';
+    status: 'active' | 'inactive' | 'cancelled' | 'canceled' | 'past_due' | 'unpaid' | 'trialing';
+    startDate: string;
+    endDate?: string;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    stripePriceId?: string;
     features: string[];
     usage?: {
       songsAnalyzed: number;
@@ -72,7 +77,7 @@ export interface AuthState {
 }
 
 export interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   updateProfile: (profileData: Partial<User>) => Promise<void>;
@@ -81,6 +86,8 @@ export interface AuthContextType extends AuthState {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   verifyEmail: (token: string) => Promise<void>;
   refreshToken: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
+  updateSongCount: (newCount: number) => void;
   clearError: () => void;
 }
 
@@ -94,32 +101,54 @@ export interface RegisterData {
   telephone: string;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-  // TODO: Fix import issue with API_ENDPOINTS
-  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+// Create a default context value to prevent "useAuth must be used within an AuthProvider" errors
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  isLoading: true, // Start with loading true to prevent premature renders
+  error: null,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
+  updateProfile: async () => {},
+  markAsVerified: () => {},
+  resetPassword: async () => {},
+  changePassword: async () => {},
+  verifyEmail: async () => {},
+  refreshToken: async () => {},
+  refreshUserData: async () => {},
+  updateSongCount: () => {},
+  clearError: () => {},
+};
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext);
+
+
+  // Use relative URLs to go through Vite proxy
   const API_ENDPOINTS = {
     AUTH: {
-      LOGIN: `${API_BASE_URL}/api/auth/login`,
-      REGISTER: `${API_BASE_URL}/api/auth/register`,
-      PROFILE: `${API_BASE_URL}/api/auth/profile`,
-      LOGOUT: `${API_BASE_URL}/api/auth/logout`,
+      LOGIN: `/api/auth/login`,
+      REGISTER: `/api/auth/register`,
+      PROFILE: `/api/auth/profile`,
+      LOGOUT: `/api/auth/logout`,
     },
     SONGS: {
-      UPLOAD: `${API_BASE_URL}/api/songs/upload`,
-      SONG: `${API_BASE_URL}/api/songs/upload`,
-      LIST: `${API_BASE_URL}/api/songs`,
-      ANALYSIS: `${API_BASE_URL}/api/analysis`,
-      GET_BY_ID: (id: string) => `${API_BASE_URL}/api/songs/${id}`,
+      UPLOAD: `/api/songs/upload`,
+      SONG: `/api/songs/upload`,
+      LIST: `/api/songs`,
+      ANALYSIS: `/api/analysis`,
+      GET_BY_ID: (id: string) => `/api/songs/${id}`,
     },
     UPLOAD: {
-      SONG: `${API_BASE_URL}/api/songs/upload`,
-      LYRICS: `${API_BASE_URL}/api/lyrics/upload`,
+      SONG: `/api/songs/upload`,
+      LYRICS: `/api/lyrics/upload`,
     },
     ANALYSIS: {
-      START: (songId: string) => `${API_BASE_URL}/api/analysis/start/${songId}`,
-      STATUS: (songId: string) => `${API_BASE_URL}/api/analysis/status/${songId}`,
-      RESULTS: (songId: string) => `${API_BASE_URL}/api/analysis/results/${songId}`,
-      PROGRESS: (songId: string) => `${API_BASE_URL}/api/analysis/progress/${songId}`,
+      START: (songId: string) => `/api/analysis/start/${songId}`,
+      STATUS: (songId: string) => `/api/analysis/status/${songId}`,
+      RESULTS: (songId: string) => `/api/analysis/results/${songId}`,
+      PROGRESS: (songId: string) => `/api/analysis/progress/${songId}`,
     },
   };
 interface AuthProviderProps {
@@ -135,13 +164,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from localStorage or sessionStorage
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem('songiq_token');
+        // Get token from appropriate storage location
+        const token = getStoredToken();
+        const rememberMe = localStorage.getItem('songiq_remember_me') === 'true';
         
         if (token) {
+          // Set loading state while verifying token
+          setAuthState(prev => ({
+            ...prev,
+            isLoading: true,
+            isAuthenticated: false, // Don't assume authenticated until verified
+          }));
+
           // Verify existing token with backend using profile endpoint
           const response = await fetch(`${API_ENDPOINTS.AUTH.PROFILE}`, {
             method: 'GET',
@@ -151,7 +189,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
 
           if (response.ok) {
-            const user = await response.json();
+            const responseData = await response.json();
+            
+            // Extract the user object from the response
+            const user = responseData.user || responseData;
             setAuthState({
               user,
               token,
@@ -197,7 +238,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<void> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
@@ -207,7 +248,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       if (!response.ok) {
@@ -218,7 +259,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
       const { token, user } = data;
 
-      localStorage.setItem('songiq_token', token);
+      // Store token based on remember me choice
+      if (rememberMe) {
+        // Store in localStorage for persistent login (longer expiration)
+        localStorage.setItem('songiq_token', token);
+        localStorage.setItem('songiq_remember_me', 'true');
+      } else {
+        // Store in sessionStorage for session-only login (shorter expiration)
+        sessionStorage.setItem('songiq_token', token);
+        localStorage.removeItem('songiq_token');
+        localStorage.removeItem('songiq_remember_me');
+      }
       
       setAuthState({
         user,
@@ -277,7 +328,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = (): void => {
-    localStorage.removeItem('songiq_token');
+    // Clear all auth-related storage
+    clearAuthStorage();
     setAuthState({
       user: null,
       token: null,
@@ -376,24 +428,112 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!authState.token) return;
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const newToken = 'mock_jwt_token_' + Date.now();
-      localStorage.setItem('songiq_token', newToken);
-      
-      setAuthState(prev => ({
-        ...prev,
-        token: newToken,
-      }));
+      // For now, just return without doing anything
+      // Real token refresh would require server-side implementation
+      return;
     } catch (error) {
       console.error('Token refresh failed:', error);
       logout();
     }
   };
 
+  // Add rate limiting for refreshUserData
+  const refreshUserDataRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRefreshTime = useRef<number>(0);
+  const REFRESH_COOLDOWN = 5000; // 5 seconds cooldown
+
+  const refreshUserData = async (): Promise<void> => {
+    try {
+      // Get token from appropriate storage location
+      const token = getStoredToken();
+      if (!token) {
+        return;
+      }
+
+      // Check if we're in cooldown period
+      const now = Date.now();
+      if (now - lastRefreshTime.current < REFRESH_COOLDOWN) {
+        return;
+      }
+
+      // Clear any existing timeout
+      if (refreshUserDataRef.current) {
+        clearTimeout(refreshUserDataRef.current);
+      }
+
+      // Debounce the call
+      refreshUserDataRef.current = setTimeout(async () => {
+        try {
+          lastRefreshTime.current = Date.now();
+          
+          const response = await fetch(`${API_ENDPOINTS.AUTH.PROFILE}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const responseData = await response.json();
+            // Extract the user object from the response
+            const user = responseData.user || responseData;
+            setAuthState(prev => ({
+              ...prev,
+              user,
+            }));
+          } else {
+            if (response.status === 401) {
+              // Don't logout on 401 during refresh - this could be a temporary server issue
+              // Only logout if the token is actually invalid (handled in main auth flow)
+            } else if (response.status === 429) {
+              // Don't logout on rate limit, just log it
+            }
+            // Don't logout on profile API failures - just log the error
+            // The user might still be authenticated, just the profile data couldn't be refreshed
+          }
+        } catch (error) {
+          console.error('Failed to refresh user data:', error);
+          // Don't logout on network errors - just log the error
+        }
+      }, 1000); // 1 second debounce
+    } catch (error) {
+      console.error('Error in refreshUserData:', error);
+    }
+  };
+
   const clearError = (): void => {
     setAuthState(prev => ({ ...prev, error: null }));
+  };
+
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshUserDataRef.current) {
+        clearTimeout(refreshUserDataRef.current);
+      }
+    };
+  }, []);
+
+  const updateSongCount = (newCount: number): void => {
+    setAuthState(prev => {
+      if (prev.user && prev.user.subscription && prev.user.subscription.usage) {
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            subscription: {
+              ...prev.user.subscription,
+              usage: {
+                ...prev.user.subscription.usage,
+                songsAnalyzed: newCount
+              }
+            }
+          }
+        };
+      }
+      return prev;
+    });
   };
 
   const value: AuthContextType = {
@@ -407,8 +547,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     changePassword,
     verifyEmail,
     refreshToken,
+    refreshUserData,
+    updateSongCount,
     clearError,
   };
+
+
 
   return (
     <AuthContext.Provider value={value}>
@@ -419,8 +563,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
   return context;
 }; 

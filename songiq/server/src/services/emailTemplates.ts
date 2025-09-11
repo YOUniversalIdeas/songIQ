@@ -4,7 +4,7 @@ import { EmailTemplateData } from '../types/email';
 export function createBaseTemplate(content: string, data: Partial<EmailTemplateData> = {}): string {
   const defaultData = {
     userName: data.userName || 'User',
-    baseUrl: data.baseUrl || 'http://localhost:3000',
+    baseUrl: data.baseUrl || 'http://localhost:3001',
     ...data
   };
 

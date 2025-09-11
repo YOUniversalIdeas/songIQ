@@ -87,6 +87,7 @@ export const sendEmailVerification = async (
   }
 };
 
+// TEMPORARILY DISABLED: SMS verification due to Twilio delivery issues
 // Combined verification sending
 export const sendVerificationCodes = async (
   email: string,
@@ -107,11 +108,16 @@ export const sendVerificationCodes = async (
     phoneNumberLength: phoneNumber?.length
   });
   
+  // TEMPORARILY DISABLED: SMS verification
   // Send both verifications concurrently
-  const [emailResult, smsResult] = await Promise.all([
-    sendEmailVerification(email, code, userName),
-    sendSMSVerification(phoneNumber, code, userName)
-  ]);
+  // const [emailResult, smsResult] = await Promise.all([
+  //   sendEmailVerification(email, code, userName),
+  //   sendSMSVerification(phoneNumber, code, userName)
+  // ]);
+
+  // TEMPORARILY: Only send email verification
+  const emailResult = await sendEmailVerification(email, code, userName);
+  const smsResult = { success: false, error: 'SMS verification temporarily disabled due to Twilio delivery issues' };
 
   console.log('📊 Verification results:', {
     email: emailResult,

@@ -220,6 +220,13 @@ export const loginSchema = Joi.object({
     .messages({
       'string.empty': 'Password is required',
       'any.required': 'Password is required'
+    }),
+  
+  rememberMe: Joi.boolean()
+    .optional()
+    .default(false)
+    .messages({
+      'boolean.base': 'Remember me must be a boolean value'
     })
 });
 

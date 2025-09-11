@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Music, Play, X, Eye, Heart, MessageCircle, Info } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { useAuth } from './AuthProvider';
+import { getStoredToken } from '../utils/auth';
 
 // YouTube Music Types
 interface YouTubeTrack {
@@ -192,6 +194,7 @@ const YouTubeMusicIntegration: React.FC = () => {
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalResults, setTotalResults] = useState(0);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [isPhaseModalOpen, setIsPhaseModalOpen] = useState(false);
 
@@ -208,17 +211,38 @@ const YouTubeMusicIntegration: React.FC = () => {
       setAnalysis(null);
       setIsModalOpen(false);
       setCurrentPage(1);
+      setNextPageToken(null);
     } else {
       setIsLoadingMore(true);
     }
 
     try {
-      const limit = 20;
-      const offset = (page - 1) * limit;
-      const response = await fetch(
-        `${API_BASE_URL}/api/youtube-music/search?q=${encodeURIComponent(searchQuery)}&limit=${limit}&offset=${offset}`
-      );
+      const limit = 50; // Maximum allowed by YouTube API per request
+      const token = getStoredToken();
+      
+      if (!token) {
+        setError('Please log in to search YouTube Music');
+        return;
+      }
+      
+      console.log('Searching with token:', token ? 'Present' : 'Missing');
+      
+      // Build URL with pageToken for pagination
+      const url = new URL(`${API_BASE_URL}/api/youtube-music/search`);
+      url.searchParams.set('q', searchQuery);
+      url.searchParams.set('limit', limit.toString());
+      if (nextPageToken && page > 1) {
+        url.searchParams.set('pageToken', nextPageToken);
+      }
+      
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
+      console.log('YouTube search response:', data);
 
       if (data.success) {
         // Handle both old API structure (data.data) and new structure (data.tracks)
@@ -230,11 +254,13 @@ const YouTubeMusicIntegration: React.FC = () => {
           setSearchResults(tracks);
         }
         
-        setTotalResults(data.total || tracks.length);
-        setHasMoreResults(tracks.length === limit && data.total > (currentPage * limit));
+        setTotalResults(data.totalResults || tracks.length);
+        setNextPageToken(data.nextPageToken || null);
+        setHasMoreResults(!!data.nextPageToken && tracks.length === limit);
         setCurrentPage(page);
       } else {
-        setError(data.error || 'Search failed');
+        console.error('YouTube search failed:', data);
+        setError(data.error || data.details || 'Search failed');
       }
     } catch (err) {
       setError('Failed to search tracks');
@@ -261,7 +287,13 @@ const YouTubeMusicIntegration: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/youtube-music/track/${track.id}`);
+      const token = getStoredToken();
+      const response = await fetch(`${API_BASE_URL}/api/youtube-music/track/${track.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -378,7 +410,7 @@ const YouTubeMusicIntegration: React.FC = () => {
         {searchResults && searchResults.length > 0 && (
           <div className="bg-white/5 rounded-xl p-6 mb-6">
             <h3 className="text-xl font-semibold text-white mb-4">
-              Search Results ({totalResults || 0} tracks found)
+              Search Results ({searchResults?.length || 0} loaded{totalResults > 0 ? ` of ${totalResults.toLocaleString()}` : ''} tracks)
             </h3>
             <div className="grid gap-4">
               {searchResults && searchResults.map((track, index) => (
@@ -440,10 +472,12 @@ const YouTubeMusicIntegration: React.FC = () => {
                       Loading More...
                     </>
                   ) : (
-                                      <>
-                    Load More Results
-                    <span className="text-sm opacity-75">({searchResults?.length || 0} of {totalResults})</span>
-                  </>
+                    <>
+                      Load More Results
+                      <span className="text-sm opacity-75">
+                        ({searchResults?.length || 0} loaded{totalResults > 0 ? ` of ${totalResults.toLocaleString()}` : ''})
+                      </span>
+                    </>
                   )}
                 </button>
               </div>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import RealTimeStats from '../components/RealTimeStats';
+import { useAuth } from '../components/AuthProvider';
 
 interface Plan {
   name: string;
@@ -11,6 +12,7 @@ interface Plan {
 }
 
 const PricingPage: React.FC = () => {
+  const { user, isAuthenticated, token, refreshUserData } = useAuth();
   const [plans, setPlans] = useState<Record<string, Plan>>({});
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -25,19 +27,57 @@ const PricingPage: React.FC = () => {
     bandName: '',
     telephone: ''
   });
+  
+  // Ref for the upgrade box to enable auto-scrolling
+  const upgradeBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchPlans();
   }, []);
 
+  // Auto-scroll to upgrade box when a plan is selected
+  useEffect(() => {
+    if (selectedPlan && upgradeBoxRef.current) {
+      // Small delay to ensure the upgrade box is rendered
+      setTimeout(() => {
+        upgradeBoxRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+      }, 100);
+    }
+  }, [selectedPlan]);
+
+  // Handle scroll to pricing plans section when URL has hash
+  useEffect(() => {
+    if (window.location.hash === '#pricing-plans') {
+      setTimeout(() => {
+        const element = document.getElementById('pricing-plans');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, []);
+
+  // Handle Stripe checkout return (only for cancelled case)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const upgrade = urlParams.get('upgrade');
+    
+    if (upgrade === 'cancelled') {
+      setError('Payment was cancelled. You can try again anytime.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   const fetchPlans = async () => {
     try {
-      console.log('Fetching plans...');
       const response = await axios.get('/api/payments/plans');
-      console.log('Plans response:', response.data);
       if (response.data.success) {
         setPlans(response.data.plans);
-        console.log('Plans set:', response.data.plans);
       }
     } catch (error) {
       console.error('Error fetching plans:', error);
@@ -46,6 +86,7 @@ const PricingPage: React.FC = () => {
   };
 
   const handleSubscribe = async (planType: string) => {
+    
     setLoading(true);
     setError('');
 
@@ -55,7 +96,35 @@ const PricingPage: React.FC = () => {
         throw new Error('Plan not found');
       }
 
-      // Handle free plan differently (no payment required)
+      // If user is already authenticated, handle as upgrade
+      if (isAuthenticated && user) {
+        if (planType === 'free') {
+          setError('You are already on the free plan. Please choose a paid plan to upgrade.');
+          return;
+        }
+
+        // Create Stripe checkout session for upgrade
+        const response = await axios.post('/api/payments/create-checkout-session', {
+          planType: planType,
+          priceId: plan.priceId
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Failed to create checkout session');
+        }
+
+        // Redirect to Stripe checkout
+        window.location.href = response.data.url;
+        return;
+      }
+
+      // Handle new user signup
       if (planType === 'free') {
         // Validate form data for free signup
         if (!userForm.email || !userForm.firstName || !userForm.lastName || !userForm.username || !userForm.password) {
@@ -112,7 +181,7 @@ const PricingPage: React.FC = () => {
         return;
       }
 
-      // For paid plans, show message about Stripe being disabled
+      // For paid plans for new users, show message about Stripe being disabled
       setError('Paid subscriptions are currently being configured. Please contact support for assistance.');
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Subscription failed';
@@ -132,7 +201,7 @@ const PricingPage: React.FC = () => {
       )}
       
       {/* Header */}
-      <div className="text-center py-16 px-4">
+      <div id="pricing-plans" className="text-center py-16 px-4">
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
           Choose Your Plan
         </h1>
@@ -151,7 +220,6 @@ const PricingPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 pb-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {Object.entries(plans).map(([planType, plan], index) => {
-            console.log(`Rendering plan ${index}:`, planType, plan);
             return (
             <div
               key={planType}
@@ -213,121 +281,156 @@ const PricingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Signup Form for Selected Plan */}
+        {/* Form for Selected Plan */}
         {selectedPlan && (
-          <div className="max-w-md mx-auto">
+          <div ref={upgradeBoxRef} className="max-w-md mx-auto">
             <div className="bg-gray-800 p-6 rounded-xl border border-gray-600">
-              <h3 className="text-xl font-bold text-white mb-4 text-center">
-                Sign up for {plans[selectedPlan]?.name}
-              </h3>
-              
-              <form onSubmit={(e) => { e.preventDefault(); handleSubscribe(selectedPlan); }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
-                    <input
-                      type="text"
-                      value={userForm.firstName}
-                      onChange={(e) => setUserForm({...userForm, firstName: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                      placeholder="First Name"
-                      required
-                    />
+              {isAuthenticated ? (
+                // Upgrade form for existing users
+                <>
+                  <h3 className="text-xl font-bold text-white mb-4 text-center">
+                    Upgrade to {plans[selectedPlan]?.name}
+                  </h3>
+                  <div className="text-center mb-6">
+                    <p className="text-gray-300 mb-2">Welcome back, {user?.firstName}!</p>
+                    <p className="text-sm text-gray-400">
+                      You're currently on the {user?.subscription?.plan || 'free'} plan.
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Last Name</label>
-                    <input
-                      type="text"
-                      value={userForm.lastName}
-                      onChange={(e) => setUserForm({...userForm, lastName: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                      placeholder="Last Name"
-                      required
-                    />
+                  
+                  <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-6">
+                    <h4 className="font-semibold text-blue-300 mb-2">Upgrade Benefits:</h4>
+                    <ul className="text-sm text-blue-200 space-y-1">
+                      <li>• Analyze up to {plans[selectedPlan]?.songLimit === -1 ? 'unlimited' : plans[selectedPlan]?.songLimit} songs</li>
+                      <li>• Access to all premium features</li>
+                      <li>• Priority support</li>
+                    </ul>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Artist/Band/Company Name</label>
-                    <input
-                      type="text"
-                      value={userForm.bandName}
-                      onChange={(e) => setUserForm({...userForm, bandName: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                                              placeholder="Artist/Band/Company Name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
-                    <input
-                      type="tel"
-                      value={userForm.telephone}
-                      onChange={(e) => setUserForm({...userForm, telephone: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                      placeholder="Phone Number"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Username</label>
-                  <input
-                    type="text"
-                    value={userForm.username}
-                    onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                    placeholder="Username"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                    placeholder="Email"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
-                  <input
-                    type="password"
-                    value={userForm.password}
-                    onChange={(e) => setUserForm({...userForm, password: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                    placeholder="Password (min 8 characters)"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    value={userForm.confirmPassword}
-                    onChange={(e) => setUserForm({...userForm, confirmPassword: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                    placeholder="Confirm Password"
-                    required
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                >
-                  {loading ? 'Processing...' : `Sign Up for ${plans[selectedPlan]?.name}`}
-                </button>
-              </form>
+                  
+                  <button
+                    onClick={() => handleSubscribe(selectedPlan)}
+                    disabled={loading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200"
+                  >
+                    {loading ? 'Processing...' : `Upgrade to ${plans[selectedPlan]?.name}`}
+                  </button>
+                </>
+              ) : (
+                // Signup form for new users
+                <>
+                  <h3 className="text-xl font-bold text-white mb-4 text-center">
+                    Sign up for {plans[selectedPlan]?.name}
+                  </h3>
+                  
+                  <form onSubmit={(e) => { e.preventDefault(); handleSubscribe(selectedPlan); }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
+                        <input
+                          type="text"
+                          value={userForm.firstName}
+                          onChange={(e) => setUserForm({...userForm, firstName: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                          placeholder="First Name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Last Name</label>
+                        <input
+                          type="text"
+                          value={userForm.lastName}
+                          onChange={(e) => setUserForm({...userForm, lastName: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                          placeholder="Last Name"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Artist/Band/Company Name</label>
+                        <input
+                          type="text"
+                          value={userForm.bandName}
+                          onChange={(e) => setUserForm({...userForm, bandName: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                          placeholder="Artist/Band/Company Name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={userForm.telephone}
+                          onChange={(e) => setUserForm({...userForm, telephone: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                          placeholder="Phone Number"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                      <input
+                        type="text"
+                        value={userForm.username}
+                        onChange={(e) => setUserForm({...userForm, username: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                        placeholder="Username"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={userForm.email}
+                        onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                        placeholder="Email"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={userForm.password}
+                        onChange={(e) => setUserForm({...userForm, password: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                        placeholder="Password (min 8 characters)"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+                      <input
+                        type="password"
+                        value={userForm.confirmPassword}
+                        onChange={(e) => setUserForm({...userForm, confirmPassword: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                        placeholder="Confirm Password"
+                        required
+                      />
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    >
+                      {loading ? 'Processing...' : `Sign Up for ${plans[selectedPlan]?.name}`}
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         )}

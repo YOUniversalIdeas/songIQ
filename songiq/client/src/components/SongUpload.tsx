@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Music, FileAudio, AlertCircle, CheckCircle, X, Loader2 } from 'lucide-react';
+import { getStoredToken } from '../utils/auth';
 
 type UploadStatus = 'idle' | 'uploading' | 'processing' | 'analyzing' | 'completed' | 'error';
 
@@ -160,6 +161,9 @@ const SongUpload: React.FC<SongUploadProps> = ({ onUploadComplete, className = '
 
       const response = await fetch('/api/songs/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getStoredToken()}`
+        },
         body: data
       });
 

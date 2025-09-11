@@ -1,7 +1,7 @@
 # Copy this content to your .env file in the server directory
 
 # Server Configuration
-PORT=5000
+PORT=5001
 NODE_ENV=development
 
 # Database Configuration
@@ -18,7 +18,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 EMAIL_SERVICE=gmail
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-password
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3001
 
 # Twilio Configuration (SMS Verification)
 TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
@@ -30,7 +30,7 @@ MAX_FILE_SIZE=52428800
 UPLOAD_PATH=./uploads
 
 # CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005
+ALLOWED_ORIGINS=http://localhost:3001
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -41,14 +41,12 @@ LOG_LEVEL=info
 
 # Stripe Configuration
 # Get these from: https://dashboard.stripe.com/developers/api-keys
-STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_stripe_publishable_key_here
-STRIPE_SECRET_KEY=sk_live_your_actual_stripe_secret_key_here
-
-# Get this from: https://dashboard.stripe.com/developers/webhooks
-STRIPE_WEBHOOK_SECRET=whsec_your_actual_stripe_webhook_secret_here
+# STRIPE_PUBLISHABLE_KEY=
+# STRIPE_SECRET_KEY=
+# STRIPE_WEBHOOK_SECRET=
 
 # Stripe Price IDs - Create these products in your Stripe dashboard
 # Go to: https://dashboard.stripe.com/products
-STRIPE_BASIC_PLAN_PRICE_ID=price_your_actual_basic_plan_price_id_here
-STRIPE_PRO_PLAN_PRICE_ID=price_your_actual_pro_plan_price_id_here
-STRIPE_ENTERPRISE_PLAN_PRICE_ID=price_your_actual_enterprise_plan_price_id_here 
+# STRIPE_BASIC_PLAN_PRICE_ID=
+# STRIPE_PRO_PLAN_PRICE_ID=
+# STRIPE_ENTERPRISE_PLAN_PRICE_ID= 

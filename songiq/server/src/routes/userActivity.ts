@@ -3,6 +3,7 @@ import { authenticateToken } from '../middleware/auth';
 import User from '../models/User';
 import Song from '../models/Song';
 import Analysis from '../models/Analysis';
+import SimpleAnalysis from '../models/SimpleAnalysis';
 
 const router = express.Router();
 
@@ -13,14 +14,25 @@ router.get('/submissions', authenticateToken, async (req, res) => {
     const songs = await Song.find({ userId }).sort({ createdAt: -1 });
     const submissions = await Promise.all(
       songs.map(async (song: any) => {
+        // Check both Analysis and SimpleAnalysis models
         const analysis = await Analysis.findOne({ songId: song._id });
+        const simpleAnalysis = await SimpleAnalysis.findOne({ songId: song._id });
+        const hasAnalysis = analysis || simpleAnalysis;
+        
         return {
           id: song._id.toString(),
           songName: song.title,
+          artist: song.artist,
           submittedAt: song.createdAt,
-          status: analysis ? 'completed' : 'processing',
-          reportUrl: analysis ? `/api/user-activity/reports/${song._id}/download` : undefined,
-          analysisId: analysis?._id
+          status: hasAnalysis ? 'completed' : 'processing',
+          reportUrl: hasAnalysis ? `/api/user-activity/reports/${song._id}/download` : undefined,
+          analysisId: hasAnalysis?._id,
+          // Include the scores from the analysis (prefer SimpleAnalysis if available)
+          successScore: simpleAnalysis?.successScore || analysis?.successScore,
+          marketPotential: simpleAnalysis?.marketPotential || analysis?.marketPotential,
+          socialScore: simpleAnalysis?.socialScore || analysis?.socialScore,
+          genre: song.genre,
+          duration: song.duration
         };
       })
     );
@@ -31,36 +43,17 @@ router.get('/submissions', authenticateToken, async (req, res) => {
   }
 });
 
-// Demo endpoint for development (no authentication required)
+// TODO: Implement real user submissions endpoint
 router.get('/demo/submissions', async (req, res) => {
   try {
-    // Return mock data for demo purposes
-    const mockSubmissions = [
-      {
-        id: 'demo-song-1',
-        songName: 'Demo Song 1',
-        submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-        status: 'completed',
-        reportUrl: '/api/user-activity/reports/demo-song-1/download',
-        analysisId: 'demo-analysis-1'
-      },
-      {
-        id: 'demo-song-2',
-        songName: 'Demo Song 2',
-        submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-        status: 'completed',
-        reportUrl: '/api/user-activity/reports/demo-song-2/download',
-        analysisId: 'demo-analysis-2'
-      },
-      {
-        id: 'demo-song-3',
-        songName: 'Demo Song 3',
-        submittedAt: new Date().toISOString(), // Today
-        status: 'processing',
-        reportUrl: undefined,
-        analysisId: undefined
-      }
-    ];
+    // TODO: Replace with real database query
+    // TODO: Replace with real database query
+    // const submissions = await Song.find({ userId: req.user?.id })
+    //   .populate('analysisId')
+    //   .sort({ createdAt: -1 });
+    
+    // For now, return empty array to indicate no real data
+    const mockSubmissions: any[] = [];
     
     res.json(mockSubmissions);
   } catch (error) {

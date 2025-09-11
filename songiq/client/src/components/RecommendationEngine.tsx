@@ -18,8 +18,9 @@ interface AudioFeature {
   currentValue: number;
   recommendedValue: number;
   impact: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard' | 'n/a';
   description: string;
+  isReleased?: boolean;
 }
 
 interface GenreRecommendation {
@@ -28,9 +29,11 @@ interface GenreRecommendation {
   successProbability: number;
   marketTrend: number;
   audienceOverlap: number;
-  transitionDifficulty: 'easy' | 'medium' | 'hard';
+  transitionDifficulty: 'easy' | 'medium' | 'hard' | 'n/a';
   keyFactors: string[];
   estimatedGrowth: number;
+  recommendationType?: 'audience_expansion' | 'genre_transition';
+  description?: string;
 }
 
 interface CollaborationSuggestion {
@@ -324,29 +327,41 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ songId, cla
         {/* Audio Features View */}
         {activeView === 'features' && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Audio Feature Optimization</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {audioFeatureRecommendations.some(f => f.isReleased) ? 'Audio Feature Analysis' : 'Audio Feature Optimization'}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {audioFeatureRecommendations.map((feature, index) => (
                 <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium text-gray-900 dark:text-white">{feature.name}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      feature.difficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                      feature.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                    }`}>
-                      {feature.difficulty}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      {feature.isReleased && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                          Released
+                        </span>
+                      )}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        feature.difficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                        feature.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                        feature.difficulty === 'n/a' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' :
+                        'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                      }`}>
+                        {feature.difficulty}
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Current:</span>
                       <span className="font-medium">{feature.currentValue}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Recommended:</span>
-                      <span className="font-medium text-blue-600">{feature.recommendedValue}</span>
-                    </div>
+                    {!feature.isReleased && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Recommended:</span>
+                        <span className="font-medium text-blue-600">{feature.recommendedValue}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Impact:</span>
                       <span className="font-medium text-green-600">{feature.impact}%</span>
@@ -362,19 +377,29 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ songId, cla
         {/* Genre Strategy View */}
         {activeView === 'genre' && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Genre Strategy & Market Trends</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {genreRecommendations.some(g => g.recommendationType === 'audience_expansion') ? 'Audience Expansion & Remix Opportunities' : 'Genre Strategy & Market Trends'}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {genreRecommendations.slice(0, 6).map((genre, index) => (
                 <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="font-medium text-gray-900 dark:text-white">{genre.genre}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      genre.transitionDifficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                      genre.transitionDifficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                    }`}>
-                      {genre.transitionDifficulty}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      {genre.recommendationType === 'audience_expansion' && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                          Expansion
+                        </span>
+                      )}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        genre.transitionDifficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                        genre.transitionDifficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                        genre.transitionDifficulty === 'n/a' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' :
+                        'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                      }`}>
+                        {genre.transitionDifficulty}
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-2 mb-3">
                     <div className="flex justify-between text-sm">
@@ -391,6 +416,9 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({ songId, cla
                     </div>
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {genre.description && (
+                      <p className="mb-2 font-medium text-blue-600 dark:text-blue-400">{genre.description}</p>
+                    )}
                     <p className="font-medium mb-2">Key Factors:</p>
                     <ul className="list-disc list-inside space-y-1">
                       {genre.keyFactors.slice(0, 3).map((factor, idx) => (

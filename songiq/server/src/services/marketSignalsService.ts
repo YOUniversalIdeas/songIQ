@@ -1,5 +1,12 @@
 import axios from 'axios';
 import { MarketTrends } from './successScoringService';
+import YouTubeMusicService from './youtubeMusicService';
+import AppleMusicService from './appleMusicService';
+import TikTokService from './tiktokService';
+import SoundCloudService from './soundcloudService';
+import DeezerService from './deezerService';
+import AmazonMusicService from './amazonMusicService';
+import PandoraService from './pandoraService';
 
 export interface ChartData {
   position: number;
@@ -105,14 +112,44 @@ const MOCK_CHART_DATA: ChartData[] = [
  */
 export async function fetchBillboardCharts(): Promise<ChartData[]> {
   try {
-    // In production, this would call the Billboard API
-    // For now, we'll use mock data
     console.log('Fetching Billboard chart data...');
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // TODO: Replace with actual Billboard API when available
+    // For now, use Last.fm API as a proxy for chart data
+    const response = await fetch('https://ws.audioscrobbler.com/2.0/?method=chart.gettoptracks&api_key=' + process.env.LASTFM_API_KEY + '&format=json&limit=100');
     
-    return MOCK_CHART_DATA;
+    if (!response.ok) {
+      throw new Error(`Last.fm API error: ${response.status}`);
+    }
+    
+    const data = await response.json() as any;
+    
+    if (data.tracks && data.tracks.track) {
+      const tracks = data.tracks.track.slice(0, 20);
+      const chartData: ChartData[] = [];
+      
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+        const genre = await detectGenreFromArtist(track.artist.name);
+        const audioFeatures = await getAudioFeaturesFromLastfm(track.name, track.artist.name);
+        
+        chartData.push({
+          position: i + 1,
+          title: track.name,
+          artist: track.artist.name,
+          genre,
+          audioFeatures,
+          streams: parseInt(track.listeners) || 0,
+          peakPosition: i + 1,
+          weeksOnChart: 1
+        });
+      }
+      
+      return chartData;
+    }
+    
+    console.warn('No chart data available from Last.fm');
+    return [];
   } catch (error) {
     console.error('Error fetching Billboard charts:', error);
     return [];
@@ -126,19 +163,759 @@ export async function fetchSpotifyCharts(): Promise<ChartData[]> {
   try {
     console.log('Fetching Spotify chart data...');
     
-    // In production, this would call the Spotify Charts API
-    // For now, we'll use mock data with slight variations
-    const spotifyData = MOCK_CHART_DATA.map(song => ({
-      ...song,
-      position: song.position + Math.floor(Math.random() * 3) - 1,
-      streams: song.streams! + Math.floor(Math.random() * 500000) - 250000
-    }));
+    // Use Spotify Web API to get new releases (more reliable than specific playlists)
+    const response = await fetch('https://api.spotify.com/v1/browse/new-releases?limit=20', {
+      headers: {
+        'Authorization': `Bearer ${await getSpotifyAccessToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    await new Promise(resolve => setTimeout(resolve, 800));
+    if (!response.ok) {
+      throw new Error(`Spotify API error: ${response.status}`);
+    }
     
-    return spotifyData;
+    const data = await response.json() as any;
+    
+    if (data.albums && data.albums.items) {
+      const chartData: ChartData[] = [];
+      
+      for (let i = 0; i < data.albums.items.length; i++) {
+        const album = data.albums.items[i];
+        const track = album; // Use album as track for now
+        
+        try {
+          const audioFeatures = await getSpotifyAudioFeatures(album.id);
+          
+          chartData.push({
+            position: i + 1,
+            title: album.name,
+            artist: album.artists[0].name,
+            genre: await detectGenreFromSpotify(album.id),
+            audioFeatures,
+            streams: album.popularity * 10000, // Estimate based on popularity
+            peakPosition: i + 1,
+            weeksOnChart: 1
+          });
+        } catch (error) {
+          console.warn(`Error processing album ${album.name}:`, error);
+          // Continue with next album
+        }
+      }
+      
+      return chartData;
+    }
+    
+    console.warn('No chart data available from Spotify');
+    return [];
   } catch (error) {
     console.error('Error fetching Spotify charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Spotify Featured Playlists (Top Charts)
+ */
+export async function fetchSpotifyFeaturedPlaylists(): Promise<ChartData[]> {
+  try {
+    console.log('Fetching Spotify featured playlists...');
+    
+    // For now, return demo data while we debug the API issues
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Today\'s Top Hits',
+        artist: 'Spotify',
+        genre: 'various',
+        audioFeatures: { tempo: 120, key: 0, mode: 1, energy: 0.7, danceability: 0.8, valence: 0.6 },
+        streams: 25000000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'RapCaviar',
+        artist: 'Spotify',
+        genre: 'hip-hop',
+        audioFeatures: { tempo: 140, key: 2, mode: 1, energy: 0.9, danceability: 0.9, valence: 0.5 },
+        streams: 18000000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Rock Classics',
+        artist: 'Spotify',
+        genre: 'rock',
+        audioFeatures: { tempo: 130, key: 5, mode: 1, energy: 0.8, danceability: 0.6, valence: 0.7 },
+        streams: 15000000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Chill Hits',
+        artist: 'Spotify',
+        genre: 'chill',
+        audioFeatures: { tempo: 100, key: 3, mode: 0, energy: 0.4, danceability: 0.5, valence: 0.8 },
+        streams: 12000000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Viva Latino',
+        artist: 'Spotify',
+        genre: 'latin',
+        audioFeatures: { tempo: 125, key: 1, mode: 1, energy: 0.8, danceability: 0.9, valence: 0.8 },
+        streams: 10000000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Spotify featured playlists:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Spotify Top Tracks by Genre
+ */
+export async function fetchSpotifyTopTracks(): Promise<ChartData[]> {
+  try {
+    console.log('Fetching Spotify top tracks...');
+    
+    // Demo data for top tracks by genre
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'As It Was',
+        artist: 'Harry Styles',
+        genre: 'pop',
+        audioFeatures: { tempo: 173, key: 0, mode: 1, energy: 0.6, danceability: 0.7, valence: 0.8 },
+        streams: 2500000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Heat Waves',
+        artist: 'Glass Animals',
+        genre: 'indie',
+        audioFeatures: { tempo: 81, key: 7, mode: 1, energy: 0.5, danceability: 0.6, valence: 0.4 },
+        streams: 2200000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Stay',
+        artist: 'The Kid LAROI & Justin Bieber',
+        genre: 'pop',
+        audioFeatures: { tempo: 169, key: 0, mode: 1, energy: 0.7, danceability: 0.8, valence: 0.6 },
+        streams: 2000000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Good 4 U',
+        artist: 'Olivia Rodrigo',
+        genre: 'pop-rock',
+        audioFeatures: { tempo: 166, key: 0, mode: 1, energy: 0.8, danceability: 0.6, valence: 0.3 },
+        streams: 1800000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Levitating',
+        artist: 'Dua Lipa',
+        genre: 'pop',
+        audioFeatures: { tempo: 103, key: 0, mode: 1, energy: 0.8, danceability: 0.9, valence: 0.8 },
+        streams: 1600000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Spotify top tracks:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Spotify Viral Tracks (Trending)
+ */
+export async function fetchSpotifyViralTracks(): Promise<ChartData[]> {
+  try {
+    console.log('Fetching Spotify viral tracks...');
+    
+    // Demo data for viral/trending tracks
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Unholy',
+        artist: 'Sam Smith & Kim Petras',
+        genre: 'viral',
+        audioFeatures: { tempo: 95, key: 0, mode: 1, energy: 0.7, danceability: 0.8, valence: 0.4 },
+        streams: 3500000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Anti-Hero',
+        artist: 'Taylor Swift',
+        genre: 'viral',
+        audioFeatures: { tempo: 97, key: 0, mode: 1, energy: 0.6, danceability: 0.7, valence: 0.5 },
+        streams: 3200000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Lavender Haze',
+        artist: 'Taylor Swift',
+        genre: 'viral',
+        audioFeatures: { tempo: 96, key: 0, mode: 1, energy: 0.5, danceability: 0.6, valence: 0.6 },
+        streams: 3000000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Bad Habit',
+        artist: 'Steve Lacy',
+        genre: 'viral',
+        audioFeatures: { tempo: 120, key: 0, mode: 1, energy: 0.6, danceability: 0.7, valence: 0.7 },
+        streams: 2800000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'About Damn Time',
+        artist: 'Lizzo',
+        genre: 'viral',
+        audioFeatures: { tempo: 109, key: 0, mode: 1, energy: 0.8, danceability: 0.9, valence: 0.9 },
+        streams: 2600000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Spotify viral tracks:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch YouTube Music trending videos
+ */
+export async function fetchYouTubeMusicCharts(): Promise<ChartData[]> {
+  try {
+    console.log('Fetching YouTube Music chart data...');
+    
+    // Return demo data for YouTube Music charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Vampire',
+        artist: 'Olivia Rodrigo',
+        genre: 'pop',
+        audioFeatures: { tempo: 120, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.4 },
+        streams: 2500000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Cruel Summer',
+        artist: 'Taylor Swift',
+        genre: 'pop',
+        audioFeatures: { tempo: 125, key: 2, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 2200000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Kill Bill',
+        artist: 'SZA',
+        genre: 'r&b',
+        audioFeatures: { tempo: 95, key: 7, mode: 0, energy: 0.6, danceability: 0.7, valence: 0.4 },
+        streams: 1800000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Flowers',
+        artist: 'Miley Cyrus',
+        genre: 'pop',
+        audioFeatures: { tempo: 118, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.7 },
+        streams: 1600000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Last Night',
+        artist: 'Morgan Wallen',
+        genre: 'country',
+        audioFeatures: { tempo: 140, key: 2, mode: 1, energy: 0.8, danceability: 0.5, valence: 0.6 },
+        streams: 1400000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching YouTube Music charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Detect genre from text using keyword matching
+ */
+function detectGenreFromText(text: string): string {
+  const textLower = text.toLowerCase();
+  
+  const genrePatterns = [
+    { genre: 'pop', patterns: [/pop/i, /mainstream/i, /hit/i, /chart/i] },
+    { genre: 'hip-hop', patterns: [/hip.?hop/i, /rap/i, /beats/i, /urban/i] },
+    { genre: 'rock', patterns: [/rock/i, /guitar/i, /metal/i, /punk/i] },
+    { genre: 'electronic', patterns: [/electronic/i, /edm/i, /dance/i, /techno/i] },
+    { genre: 'country', patterns: [/country/i, /folk/i, /acoustic/i, /southern/i] },
+    { genre: 'r&b', patterns: [/r.?b/i, /soul/i, /blues/i] },
+    { genre: 'latin', patterns: [/latin/i, /reggaeton/i, /spanish/i] },
+    { genre: 'k-pop', patterns: [/k.?pop/i, /korean/i] }
+  ];
+  
+  for (const { genre, patterns } of genrePatterns) {
+    if (patterns.some(pattern => pattern.test(textLower))) {
+      return genre;
+    }
+  }
+  
+  return 'unknown';
+}
+
+/**
+ * Fetch Apple Music charts
+ */
+export async function fetchAppleMusicCharts(): Promise<ChartData[]> {
+  try {
+    console.log('🍎 Fetching Apple Music chart data...');
+    
+    // Return demo data for Apple Music charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Cruel Summer',
+        artist: 'Taylor Swift',
+        genre: 'pop',
+        audioFeatures: { tempo: 125, key: 2, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 2500000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Vampire',
+        artist: 'Olivia Rodrigo',
+        genre: 'pop',
+        audioFeatures: { tempo: 120, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.4 },
+        streams: 2200000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Last Night',
+        artist: 'Morgan Wallen',
+        genre: 'country',
+        audioFeatures: { tempo: 140, key: 2, mode: 1, energy: 0.8, danceability: 0.5, valence: 0.6 },
+        streams: 2000000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Kill Bill',
+        artist: 'SZA',
+        genre: 'r&b',
+        audioFeatures: { tempo: 95, key: 7, mode: 0, energy: 0.6, danceability: 0.7, valence: 0.4 },
+        streams: 1800000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Flowers',
+        artist: 'Miley Cyrus',
+        genre: 'pop',
+        audioFeatures: { tempo: 118, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.7 },
+        streams: 1600000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Apple Music charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch TikTok viral music charts
+ */
+export async function fetchTikTokCharts(): Promise<ChartData[]> {
+  try {
+    console.log('📱 Fetching TikTok viral music chart data...');
+    
+    // Return demo data for TikTok viral music charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Vampire',
+        artist: 'Olivia Rodrigo',
+        genre: 'pop',
+        audioFeatures: { tempo: 120, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.4 },
+        streams: 2500000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Cruel Summer',
+        artist: 'Taylor Swift',
+        genre: 'pop',
+        audioFeatures: { tempo: 125, key: 2, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 2200000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Kill Bill',
+        artist: 'SZA',
+        genre: 'r&b',
+        audioFeatures: { tempo: 95, key: 7, mode: 0, energy: 0.6, danceability: 0.7, valence: 0.4 },
+        streams: 1800000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Flowers',
+        artist: 'Miley Cyrus',
+        genre: 'pop',
+        audioFeatures: { tempo: 118, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.7 },
+        streams: 1600000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Last Night',
+        artist: 'Morgan Wallen',
+        genre: 'country',
+        audioFeatures: { tempo: 140, key: 2, mode: 1, energy: 0.8, danceability: 0.5, valence: 0.6 },
+        streams: 1400000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching TikTok charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch SoundCloud trending music charts
+ */
+export async function fetchSoundCloudCharts(): Promise<ChartData[]> {
+  try {
+    console.log('🎵 Fetching SoundCloud trending music chart data...');
+    
+    // Return demo data for SoundCloud charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Midnight City',
+        artist: 'M83',
+        genre: 'electronic',
+        audioFeatures: { tempo: 128, key: 0, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 3500000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Runaway',
+        artist: 'Kanye West',
+        genre: 'hip-hop',
+        audioFeatures: { tempo: 85, key: 7, mode: 0, energy: 0.6, danceability: 0.8, valence: 0.4 },
+        streams: 2800000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Teardrop',
+        artist: 'Massive Attack',
+        genre: 'trip-hop',
+        audioFeatures: { tempo: 90, key: 2, mode: 0, energy: 0.5, danceability: 0.6, valence: 0.3 },
+        streams: 2200000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Breathe',
+        artist: 'The Prodigy',
+        genre: 'electronic',
+        audioFeatures: { tempo: 140, key: 0, mode: 1, energy: 0.9, danceability: 0.8, valence: 0.7 },
+        streams: 1900000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Porcelain',
+        artist: 'Moby',
+        genre: 'ambient',
+        audioFeatures: { tempo: 95, key: 5, mode: 1, energy: 0.4, danceability: 0.5, valence: 0.6 },
+        streams: 1600000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching SoundCloud charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Deezer charts
+ */
+export async function fetchDeezerCharts(): Promise<ChartData[]> {
+  try {
+    console.log('🎧 Fetching Deezer chart data...');
+    
+    // Return demo data for Deezer charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Blinding Lights',
+        artist: 'The Weeknd',
+        genre: 'pop',
+        audioFeatures: { tempo: 171, key: 0, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 4200000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Dance Monkey',
+        artist: 'Tones and I',
+        genre: 'pop',
+        audioFeatures: { tempo: 98, key: 2, mode: 1, energy: 0.7, danceability: 0.8, valence: 0.8 },
+        streams: 3800000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Shape of You',
+        artist: 'Ed Sheeran',
+        genre: 'pop',
+        audioFeatures: { tempo: 96, key: 7, mode: 0, energy: 0.6, danceability: 0.8, valence: 0.7 },
+        streams: 3500000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Someone You Loved',
+        artist: 'Lewis Capaldi',
+        genre: 'pop',
+        audioFeatures: { tempo: 110, key: 0, mode: 1, energy: 0.5, danceability: 0.6, valence: 0.4 },
+        streams: 3200000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Bad Guy',
+        artist: 'Billie Eilish',
+        genre: 'pop',
+        audioFeatures: { tempo: 135, key: 7, mode: 0, energy: 0.6, danceability: 0.7, valence: 0.3 },
+        streams: 3000000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Deezer charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Amazon Music charts
+ */
+export async function fetchAmazonMusicCharts(): Promise<ChartData[]> {
+  try {
+    console.log('🛒 Fetching Amazon Music chart data...');
+    
+    // Return demo data for Amazon Music charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Anti-Hero',
+        artist: 'Taylor Swift',
+        genre: 'pop',
+        audioFeatures: { tempo: 97, key: 0, mode: 1, energy: 0.6, danceability: 0.7, valence: 0.5 },
+        streams: 3800000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Unholy',
+        artist: 'Sam Smith & Kim Petras',
+        genre: 'pop',
+        audioFeatures: { tempo: 125, key: 7, mode: 0, energy: 0.7, danceability: 0.8, valence: 0.4 },
+        streams: 3200000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Hold Me Closer',
+        artist: 'Elton John & Britney Spears',
+        genre: 'pop',
+        audioFeatures: { tempo: 120, key: 2, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 2800000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Late Night Talking',
+        artist: 'Harry Styles',
+        genre: 'pop',
+        audioFeatures: { tempo: 110, key: 0, mode: 1, energy: 0.6, danceability: 0.7, valence: 0.5 },
+        streams: 2600000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'About Damn Time',
+        artist: 'Lizzo',
+        genre: 'pop',
+        audioFeatures: { tempo: 130, key: 5, mode: 1, energy: 0.8, danceability: 0.8, valence: 0.7 },
+        streams: 2400000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Amazon Music charts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Pandora charts
+ */
+export async function fetchPandoraCharts(): Promise<ChartData[]> {
+  try {
+    console.log('📻 Fetching Pandora chart data...');
+    
+    // Return demo data for Pandora charts
+    const demoCharts: ChartData[] = [
+      {
+        position: 1,
+        title: 'Flowers',
+        artist: 'Miley Cyrus',
+        genre: 'pop',
+        audioFeatures: { tempo: 118, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.7 },
+        streams: 4200000,
+        peakPosition: 1,
+        weeksOnChart: 1
+      },
+      {
+        position: 2,
+        title: 'Last Night',
+        artist: 'Morgan Wallen',
+        genre: 'country',
+        audioFeatures: { tempo: 140, key: 2, mode: 1, energy: 0.8, danceability: 0.5, valence: 0.6 },
+        streams: 3800000,
+        peakPosition: 2,
+        weeksOnChart: 1
+      },
+      {
+        position: 3,
+        title: 'Kill Bill',
+        artist: 'SZA',
+        genre: 'r&b',
+        audioFeatures: { tempo: 95, key: 7, mode: 0, energy: 0.6, danceability: 0.7, valence: 0.4 },
+        streams: 3500000,
+        peakPosition: 3,
+        weeksOnChart: 1
+      },
+      {
+        position: 4,
+        title: 'Vampire',
+        artist: 'Olivia Rodrigo',
+        genre: 'pop',
+        audioFeatures: { tempo: 120, key: 0, mode: 1, energy: 0.7, danceability: 0.6, valence: 0.4 },
+        streams: 3200000,
+        peakPosition: 4,
+        weeksOnChart: 1
+      },
+      {
+        position: 5,
+        title: 'Cruel Summer',
+        artist: 'Taylor Swift',
+        genre: 'pop',
+        audioFeatures: { tempo: 125, key: 2, mode: 1, energy: 0.8, danceability: 0.7, valence: 0.6 },
+        streams: 3000000,
+        peakPosition: 5,
+        weeksOnChart: 1
+      }
+    ];
+    
+    return demoCharts;
+  } catch (error) {
+    console.error('Error fetching Pandora charts:', error);
     return [];
   }
 }
@@ -491,9 +1268,206 @@ export function scheduleMarketSignalsUpdate(): void {
   }, 24 * 60 * 60 * 1000); // 24 hours
 }
 
+// Helper functions for real API integration
+
+/**
+ * Get Spotify access token for API calls
+ */
+async function getSpotifyAccessToken(): Promise<string> {
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(
+          process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
+        ).toString('base64')
+      },
+      body: 'grant_type=client_credentials'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Spotify token error: ${response.status}`);
+    }
+
+    const data = await response.json() as any;
+    return data.access_token;
+  } catch (error) {
+    console.error('Error getting Spotify access token:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get audio features from Spotify for a track
+ */
+async function getSpotifyAudioFeatures(trackId: string): Promise<any> {
+  try {
+    const token = await getSpotifyAccessToken();
+    const response = await fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Spotify audio features error: ${response.status}`);
+    }
+
+    const data = await response.json();
+          return {
+        tempo: (data as any).tempo,
+        key: (data as any).key,
+        mode: (data as any).mode,
+        energy: (data as any).energy,
+        danceability: (data as any).danceability,
+        valence: (data as any).valence
+      };
+  } catch (error) {
+    console.error('Error getting Spotify audio features:', error);
+    return {
+      tempo: 120,
+      key: 0,
+      mode: 1,
+      energy: 0.5,
+      danceability: 0.5,
+      valence: 0.5
+    };
+  }
+}
+
+/**
+ * Detect genre from artist using Last.fm API
+ */
+async function detectGenreFromArtist(artistName: string): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${process.env.LASTFM_API_KEY}&format=json`
+    );
+
+    if (!response.ok) {
+      return 'unknown';
+    }
+
+    const data = await response.json();
+    if ((data as any).artist && (data as any).artist.tags && (data as any).artist.tags.tag) {
+      const topTag = (data as any).artist.tags.tag[0];
+      return topTag.name || 'unknown';
+    }
+
+    return 'unknown';
+  } catch (error) {
+    console.error('Error detecting genre from artist:', error);
+    return 'unknown';
+  }
+}
+
+/**
+ * Get audio features from Last.fm (limited data available)
+ */
+async function getAudioFeaturesFromLastfm(trackName: string, artistName: string): Promise<any> {
+  // Last.fm doesn't provide detailed audio features, so we'll return basic structure
+  return {
+    tempo: 120,
+    key: 0,
+    mode: 1,
+    energy: 0.5,
+    danceability: 0.5,
+    valence: 0.5
+  };
+}
+
+/**
+ * Detect genre from Spotify track
+ */
+async function detectGenreFromSpotify(trackId: string): Promise<string> {
+  try {
+    const token = await getSpotifyAccessToken();
+    const response = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      return 'unknown';
+    }
+
+    const data = await response.json();
+    if ((data as any).artists && (data as any).artists[0] && (data as any).artists[0].genres) {
+      return (data as any).artists[0].genres[0] || 'unknown';
+    }
+
+    return 'unknown';
+  } catch (error) {
+    console.error('Error detecting genre from Spotify:', error);
+    return 'unknown';
+  }
+}
+
+/**
+ * Analyze sentiment from social media data
+ */
+async function analyzeSentiment(data: any[]): Promise<'positive' | 'negative' | 'neutral'> {
+  // TODO: Implement real sentiment analysis using NLP services
+  // For now, return neutral as placeholder
+  return 'neutral';
+}
+
+/**
+ * Extract trending topics from social media data
+ */
+function extractTrendingTopics(data: any[]): string[] {
+  const topics: string[] = [];
+  
+  // Extract hashtags and common terms
+  data.forEach(tweet => {
+    if (tweet.text) {
+      const hashtags = tweet.text.match(/#\w+/g);
+      if (hashtags) {
+        topics.push(...hashtags);
+      }
+    }
+  });
+  
+  // Return unique topics, limited to top 5
+  return [...new Set(topics)].slice(0, 5);
+}
+
+/**
+ * Extract artist mentions from social media data
+ */
+async function extractArtistMentions(data: any[]): Promise<{ [artist: string]: number }> {
+  const mentions: { [artist: string]: number } = {};
+  
+  // TODO: Implement real artist name detection
+  // For now, return empty object
+  return mentions;
+}
+
+/**
+ * Extract genre mentions from social media data
+ */
+async function extractGenreMentions(data: any[]): Promise<{ [genre: string]: number }> {
+  const mentions: { [genre: string]: number } = {};
+  
+  // TODO: Implement real genre detection from text
+  // For now, return empty object
+  return mentions;
+}
+
 export default {
   fetchBillboardCharts,
   fetchSpotifyCharts,
+  fetchYouTubeMusicCharts,
+  fetchAppleMusicCharts,
+  fetchTikTokCharts,
+  fetchSoundCloudCharts,
+  fetchDeezerCharts,
+  fetchAmazonMusicCharts,
+  fetchPandoraCharts,
   fetchSocialMediaSignals,
   aggregateMarketSignals,
   getCurrentMarketTrends,

@@ -6,12 +6,15 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-// Generate JWT token
-const generateToken = (id: string, email: string, role: string): string => {
+// Generate JWT token with configurable expiration
+const generateToken = (id: string, email: string, role: string, rememberMe: boolean = false): string => {
+  // Set different expiration times based on remember me choice
+  const expiresIn = rememberMe ? '30d' : '24h'; // 30 days for remember me, 24 hours for session-only
+  
   return jwt.sign(
     { id, email, role },
     process.env.JWT_SECRET || 'your-secret-key',
-    { expiresIn: '7d' }
+    { expiresIn }
   );
 };
 
@@ -54,9 +57,9 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       password,
       firstName,
       lastName,
-      bandName: bandName || undefined,
+      bandName: bandName || 'Artist/Musician', // Default to a valid enum value
       username: username.toLowerCase(),
-      telephone: telephone || undefined,
+      telephone: telephone || '000-000-0000', // Default phone number for testing
       isVerified: false, // Start as unverified
       subscription: {
         plan: 'free',
@@ -70,6 +73,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       }
     });
 
+    // TEMPORARILY DISABLED: SMS verification due to Twilio delivery issues
     // Send verification codes (email + SMS)
     try {
       console.log('📱 Registration - Phone number details:', {
@@ -80,7 +84,8 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         firstName: user.firstName
       });
 
-      const { sendVerificationCodes } = await import('../services/verificationService');
+      // Send verification codes using new Verify service
+      const { sendVerificationCodes } = await import('../services/verifyService');
       const results = await sendVerificationCodes(
         user.email,
         user.telephone,
@@ -93,18 +98,22 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       }
       
+      // For SMS, we don't need to store the code since Twilio Verify handles it
+      // But we can store a flag to indicate SMS verification was initiated
       if (results.sms.success) {
-        user.smsVerificationCode = results.sms.code; // Store the actual code sent
-        user.smsVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        user.smsVerificationInitiated = true;
+        user.smsVerificationServiceSid = results.sms.serviceSid;
       }
+      
+      // Mark user as unverified until both email and SMS are verified
+      user.isVerified = false;
       
       await user.save();
       
       console.log('✅ Verification codes sent:', {
         email: results.email.success,
         sms: results.sms.success,
-        emailError: results.email.error,
-        smsError: results.sms.error
+        userVerified: user.isVerified
       });
     } catch (verificationError) {
       console.error('⚠️ Warning: Failed to send verification codes:', verificationError);
@@ -123,13 +132,14 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       bandName: user.bandName,
       username: user.username,
       telephone: user.telephone,
+      isVerified: user.isVerified, // Include verification status
       subscription: {
         plan: user.subscription.plan,
         status: user.subscription.status,
         usage: user.subscription.usage
       },
       songLimit: user.getSongLimit(),
-      remainingSongs: user.getRemainingSongs()
+      remainingSongs: await user.getRemainingSongs()
     };
 
     res.status(201).json({
@@ -151,7 +161,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 // Login user
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe = false } = req.body;
 
     // Validation
     if (!email || !password) {
@@ -186,8 +196,8 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Generate token
-    const token = generateToken(user._id.toString(), user.email, user.role);
+    // Generate token with remember me preference
+    const token = generateToken(user._id.toString(), user.email, user.role, rememberMe);
 
     // Return user data (excluding password)
     const userResponse = {
@@ -203,7 +213,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         usage: user.subscription.usage
       },
       songLimit: user.getSongLimit(),
-      remainingSongs: user.getRemainingSongs()
+      remainingSongs: await user.getRemainingSongs()
     };
 
     res.json({
@@ -225,6 +235,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 // Get current user profile
 router.get('/profile', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log(`Profile API called for user: ${req.user?.id} at ${new Date().toISOString()}`);
     const user = await User.findById(req.user?.id);
     if (!user) {
       res.status(404).json({
@@ -235,8 +246,7 @@ router.get('/profile', authenticateToken, async (req: Request, res: Response): P
     }
 
     // Reset usage if needed and save
-    user.resetUsageIfNeeded();
-    await user.save();
+    await user.resetUsageIfNeeded();
 
     const userResponse = {
       id: user._id,
@@ -255,8 +265,8 @@ router.get('/profile', authenticateToken, async (req: Request, res: Response): P
       },
       stats: user.stats,
       songLimit: user.getSongLimit(),
-      remainingSongs: user.getRemainingSongs(),
-      canAnalyzeSong: user.canAnalyzeSong()
+      remainingSongs: await user.getRemainingSongs(),
+      canAnalyzeSong: await user.canAnalyzeSong()
     };
 
     res.json({
@@ -434,6 +444,57 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
     res.status(500).json({
       success: false,
       message: 'Failed to resend verification email',
+      error: error.message
+    });
+  }
+});
+
+// Force refresh user subscription data (for testing/manual updates)
+router.post('/refresh-subscription', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+      return;
+    }
+
+    // Get song limit for the current plan
+    const songLimits: Record<string, number> = {
+      free: 3,
+      basic: 10,
+      pro: 100,
+      enterprise: -1 // -1 = unlimited
+    };
+    const songLimit = songLimits[user.subscription.plan] || 0;
+
+    // Reset usage if needed (song limits are calculated by methods)
+    await user.resetUsageIfNeeded();
+
+    res.json({
+      success: true,
+      message: 'Subscription data refreshed successfully',
+      user: {
+        id: user._id,
+        subscription: {
+          plan: user.subscription.plan,
+          status: user.subscription.status,
+          usage: user.subscription.usage
+        },
+        songLimit: user.getSongLimit(),
+        remainingSongs: user.getRemainingSongs(),
+        canAnalyzeSong: user.canAnalyzeSong()
+      }
+    });
+  } catch (error: any) {
+    console.error('Subscription refresh error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh subscription',
       error: error.message
     });
   }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Authentication</title>
+</head>
+<body>
+    <h1>Clearing Authentication State</h1>
+    <p>This will clear all authentication data from localStorage.</p>
+    <button onclick="clearAuth()">Clear Authentication</button>
+    <div id="result"></div>
+
+    <script>
+        function clearAuth() {
+            // Clear all authentication-related localStorage items
+            localStorage.removeItem('songiq_token');
+            localStorage.removeItem('songiq_pending_analysis');
+            localStorage.removeItem('songiq_user');
+            localStorage.removeItem('songiq_auth_state');
+            
+            // Clear any other potential auth keys
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.includes('auth') || key.includes('token') || key.includes('user')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            
+            document.getElementById('result').innerHTML = '<p style="color: green;">Authentication cleared! You can now close this tab and return to the main app.</p>';
+        }
+    </script>
+</body>
+</html>

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
-import LyricsPage from './pages/LyricsPage';
 import UploadPage from './pages/UploadPage';
 import AnalysisPage from './pages/AnalysisPage';
 import RecommendationsPage from './pages/RecommendationsPage';
@@ -17,9 +16,12 @@ import ComparisonPage from './pages/ComparisonPage';
 import VerificationPage from './pages/VerificationPage';
 import SpotifyIntegration from './components/SpotifyIntegration';
 import YouTubeMusicIntegration from './components/YouTubeMusicIntegration';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsConditionsPage from './pages/TermsConditionsPage';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { AuthProvider } from './components/AuthProvider';
 import VerificationGuard from './components/VerificationGuard';
+import AuthGateTest from './components/AuthGateTest';
 
 function App() {
   return (
@@ -31,7 +33,6 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/lyrics" element={<LyricsPage />} />
                 <Route path="/upload" element={<UploadPage />} />
                 <Route path="/analysis" element={<AnalysisPage />} />
                 <Route path="/analysis/:songId" element={<AnalysisPage />} />
@@ -47,7 +48,10 @@ function App() {
                 <Route path="/comparison" element={<ComparisonPage />} />
                 <Route path="/spotify" element={<SpotifyIntegration />} />
                 <Route path="/youtube-music" element={<YouTubeMusicIntegration />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsConditionsPage />} />
                 <Route path="/test" element={<HomePage />} />
+                <Route path="/auth-gate-test" element={<AuthGateTest />} />
               </Routes>
             </VerificationGuard>
           </Layout>

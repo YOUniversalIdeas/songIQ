@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 
@@ -7,11 +7,10 @@ interface VerificationGuardProps {
 }
 
 const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated, markAsVerified } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-
+  const hasCheckedVerification = useRef(false);
 
   useEffect(() => {
     // Only run verification check if we're not on auth or verify pages
@@ -19,9 +18,17 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
       return;
     }
 
+    // Prevent multiple verification checks
+    if (hasCheckedVerification.current) {
+      return;
+    }
+
     // If user has a token but is not authenticated, they need verification
+    // But be more lenient - only redirect if we're sure they need verification
     if (token && user && !isAuthenticated && location.pathname !== '/verify') {
       console.log('🔍 Running verification check...');
+      hasCheckedVerification.current = true;
+      
       // Check if user is verified on the backend
       const checkVerificationStatus = async () => {
         try {
@@ -36,13 +43,21 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
             const data = await response.json();
             if (!data.isVerified) {
               // User is not verified, redirect to verification page
-              navigate('/verify');
+              console.log('User not verified, redirecting to verification');
+              navigate('/verify', { replace: true });
+            } else {
+              // User is verified, mark as authenticated
+              console.log('User is verified, marking as authenticated');
+              markAsVerified();
             }
+          } else {
+            console.log('Verification check failed, but not redirecting to avoid logout');
+            // Don't redirect on API failure to avoid logout issues
           }
         } catch (error) {
           console.error('Error checking verification status:', error);
-          // If we can't check, redirect to verification to be safe
-          navigate('/verify');
+          // Don't redirect on network errors to avoid logout issues
+          console.log('Verification check error, but not redirecting to avoid logout');
         }
       };
 
@@ -50,12 +65,14 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
     }
   }, [token, user, isAuthenticated, navigate, location.pathname]);
 
-  // If user is not authenticated and not on allowed pages, redirect to auth
-  const allowedUnauthenticatedPaths = ['/auth', '/', '/upload', '/pricing'];
-  if (!token && !isAuthenticated && !allowedUnauthenticatedPaths.includes(location.pathname)) {
-    navigate('/auth');
-    return null;
-  }
+  // Handle unauthenticated user redirects
+  useEffect(() => {
+    const allowedUnauthenticatedPaths = ['/auth', '/', '/upload', '/pricing', '/privacy', '/terms'];
+    if (!token && !isAuthenticated && !allowedUnauthenticatedPaths.includes(location.pathname)) {
+      // Use replace to avoid adding to history stack
+      navigate('/auth', { replace: true });
+    }
+  }, [token, isAuthenticated, navigate, location.pathname]);
 
   // Don't interfere with navigation to auth page
   if (location.pathname === '/auth') {

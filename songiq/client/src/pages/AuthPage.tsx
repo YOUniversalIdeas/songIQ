@@ -24,6 +24,17 @@ const AuthPage = () => {
     }
   }, [searchParams]);
 
+  // Scroll to logo when page loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const element = document.getElementById('logo-section');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
@@ -140,42 +151,33 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Back Button */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Back to Home</span>
-          </button>
-        </div>
-
         {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Logo size={80} className="drop-shadow-sm" />
+        <div id="logo-section" className="text-center mb-6">
+          <div className="flex justify-center mb-3">
+            <Logo size={48} className="drop-shadow-sm" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">songIQ</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            AI-powered music analysis and success prediction
+          <h1 className="text-2xl font-bold text-white mb-1">songIQ</h1>
+          <p className="text-sm text-gray-300">
+            AI-powered music analysis
           </p>
         </div>
 
         {/* Auth Content */}
-        {renderContent()}
+        <div id="auth-content">
+          {renderContent()}
+        </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+        {/* Compact Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-400">
             By continuing, you agree to our{' '}
-            <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
-              Terms of Service
+            <a href="#" className="text-blue-400 hover:underline">
+              Terms
             </a>{' '}
             and{' '}
-            <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <a href="#" className="text-blue-400 hover:underline">
               Privacy Policy
             </a>
           </p>

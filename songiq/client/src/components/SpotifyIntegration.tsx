@@ -382,10 +382,32 @@ const SpotifyIntegration: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {Object.entries(analysis.audioFeatures).map(([key, value]) => {
                         if (typeof value === 'number' && key !== 'duration_ms' && key !== 'time_signature') {
+                          // Handle different feature types with appropriate formatting
+                          let displayValue: string;
+                          let unit: string = '';
+                          
+                          if (key === 'tempo') {
+                            displayValue = Math.round(value).toString();
+                            unit = ' BPM';
+                          } else if (key === 'loudness') {
+                            displayValue = Math.round(value).toString();
+                            unit = ' dB';
+                          } else if (key === 'key') {
+                            displayValue = Math.round(value).toString();
+                            unit = '';
+                          } else if (key === 'mode') {
+                            displayValue = Math.round(value).toString();
+                            unit = '';
+                          } else {
+                            // For percentage-based features (danceability, energy, valence, etc.)
+                            displayValue = Math.round(value * 100).toString();
+                            unit = '%';
+                          }
+                          
                           return (
                             <div key={key} className="text-center">
                               <div className="text-2xl font-bold text-blue-400">
-                                {typeof value === 'number' ? Math.round(value * 100) : value}%
+                                {displayValue}{unit}
                               </div>
                               <div className="text-gray-300 capitalize">{key}</div>
                             </div>

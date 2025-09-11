@@ -1,6 +1,6 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 import { Request } from 'express';
 import { createSongSchema, createTempSongSchema } from '../validations/songValidation';
 
@@ -18,8 +18,14 @@ const ALLOWED_AUDIO_TYPES = {
   'audio/mp4': '.m4a',
   'audio/x-m4a': '.m4a',
   'audio/flac': '.flac',
-  'audio/x-flac': '.flac'
+  'audio/x-flac': '.flac',
+  // Fallback MIME types for when multer can't detect properly
+  'application/octet-stream': '.mp3', // Common fallback for MP3 files
+  'application/x-msdownload': '.mp3'  // Another common fallback
 };
+
+// Create unique extensions list for error messages
+const UNIQUE_EXTENSIONS = [...new Set(Object.values(ALLOWED_AUDIO_TYPES))];
 
 const ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.flac'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -34,7 +40,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
 
   // Check MIME type
   if (!ALLOWED_AUDIO_TYPES[file.mimetype as keyof typeof ALLOWED_AUDIO_TYPES]) {
-    return cb(new Error(`Invalid file type. Allowed types: ${Object.values(ALLOWED_AUDIO_TYPES).join(', ')}`));
+    return cb(new Error(`Invalid file type. Allowed types: ${UNIQUE_EXTENSIONS.join(', ')}`));
   }
 
   // Check if file extension matches MIME type
@@ -139,7 +145,7 @@ export const extractFileMetadata = (file: Express.Multer.File) => {
     sizeInMB: parseFloat(fileSizeInMB),
     extension: fileExtension,
     path: file.path,
-    url: `/uploads/${file.filename}`
+    url: `${process.env.API_BASE_URL || 'http://localhost:5001'}/uploads/${file.filename}`
   };
 };
 

@@ -12,6 +12,7 @@ export default defineConfig({
   },
   server: {
     port: 3001,
+    strictPort: true, // Don't try other ports if 3001 is busy
     proxy: {
       '/api': {
         target: 'http://localhost:5001',
@@ -34,4 +35,12 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
+  define: {
+    // Suppress React Router v7 warnings
+    __REACT_ROUTER_VERSION__: JSON.stringify('6.8.0'),
+  },
+  esbuild: {
+    // Suppress specific warnings
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  }
 }) 

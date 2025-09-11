@@ -8,7 +8,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'staging',
-        PORT: 5000
+        PORT: 5001
       },
       error_file: './logs/staging-api-error.log',
       out_file: './logs/staging-api-out.log',

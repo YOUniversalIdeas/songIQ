@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Globe, Calendar, Target, Share2, Download, BarChart3, Info } from 'lucide-react';
 import TrendAnalysisDashboard from '../components/TrendAnalysisDashboard';
+import RealDataTest from '../components/RealDataTest';
 import { useState, useRef, useEffect } from 'react';
 
 // Custom hook for dynamic tooltip positioning (same as Recommendations page)
@@ -42,6 +43,29 @@ const useTooltipPosition = () => {
 
 const TrendsPage = () => {
   const navigate = useNavigate();
+
+  // Handle anchor scrolling when component mounts or hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
+
+    // Handle initial load
+    handleHashChange();
+
+    // Handle hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
   
   // State for tooltips
   const [showMarketGrowthTooltip, setShowMarketGrowthTooltip] = useState(false);
@@ -82,7 +106,7 @@ const TrendsPage = () => {
   const exportTrendsReport = async () => {
     // Simulate PDF generation
     await new Promise(resolve => setTimeout(resolve, 2000));
-    alert('Career trends report exported successfully!');
+    alert('Trends report exported successfully!');
   };
 
   return (
@@ -100,7 +124,7 @@ const TrendsPage = () => {
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  🚀 Music Industry Trends & Your Career
+                  🚀 Music Industry Trends
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">
                   Stay ahead of the curve with real-time industry insights that directly impact your music career
@@ -114,15 +138,17 @@ const TrendsPage = () => {
                 className="btn-secondary flex items-center space-x-2"
               >
                 <Download className="h-4 w-4" />
-                <span>Export Career Report</span>
+                <span>Export Report</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative">
+        {/* Industry Trends Section */}
+        <div id="industry-trends" className="scroll-mt-20">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100">Industry Growth</p>
@@ -345,12 +371,59 @@ const TrendsPage = () => {
               </div>
             )}
           </div>
+          </div>
+          </div>
+
+          {/* Market Insights */}
+          <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Latest Market Insights</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Pop Music Surge</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    Pop music has seen a 12% increase in popularity this quarter, driven by summer festival releases and viral social media trends.
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Electronic Growth</h4>
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    Electronic music is experiencing 15% growth, particularly in European markets with the return of major festivals.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">Tempo Trends</h4>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    Average tempo has increased to 132 BPM this quarter, reflecting a shift toward more energetic, dance-oriented music.
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-2">Social Media Impact</h4>
+                  <p className="text-gray-400 text-sm">
+                    Social media continues to drive music discovery with 85% of viral songs achieving chart success within 30 days.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Main Dashboard */}
-        <TrendAnalysisDashboard />
+        {/* Charts Section */}
+        <div id="charts" className="scroll-mt-20">
+          {/* Real Data Integration Test */}
+          <div className="mb-8">
+            <RealDataTest />
+          </div>
 
-        {/* Feature Highlights */}
+          {/* Main Dashboard */}
+          <TrendAnalysisDashboard />
+
+          {/* Feature Highlights */}
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">🚀 Career-Boosting Trend Tools</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -464,44 +537,6 @@ const TrendsPage = () => {
                 </div>
               </div>
             </button>
-          </div>
-        </div>
-
-        {/* Market Insights */}
-        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Latest Market Insights</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Pop Music Surge</h4>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Pop music has seen a 12% increase in popularity this quarter, driven by summer festival releases and viral social media trends.
-                </p>
-              </div>
-              
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Electronic Growth</h4>
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  Electronic music is experiencing 15% growth, particularly in European markets with the return of major festivals.
-                </p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">Tempo Trends</h4>
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Average tempo has increased to 132 BPM this quarter, reflecting a shift toward more energetic, dance-oriented music.
-                </p>
-              </div>
-              
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-2">Social Media Impact</h4>
-                <p className="text-gray-400 text-sm">
-                  Social media continues to drive music discovery with 85% of viral songs achieving chart success within 30 days.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

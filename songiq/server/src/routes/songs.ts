@@ -1,5 +1,6 @@
 import express from 'express'
-import path from 'path'
+import * as path from 'path'
+import jwt from 'jsonwebtoken'
 import { Song, User } from '../models'
 import { 
   uploadSingleAudio, 
@@ -21,243 +22,239 @@ import { analyzeAudioSimple, convertToAudioFeatures } from '../services/simpleAu
 
 const router = express.Router()
 
-// POST /api/songs/upload - Upload a new song
-router.post('/upload', authenticateToken, uploadSingleAudio, handleUploadError, async (req: express.Request, res: express.Response) => {
-  let uploadedFile: Express.Multer.File | undefined;
+// Helper function to normalize genre to valid enum values
+function normalizeGenre(genre: string): string {
+  const validGenres = ['pop', 'rock', 'hip-hop', 'electronic', 'country', 'jazz', 'classical', 'r&b', 'folk', 'metal', 'indie', 'latin', 'reggae', 'blues', 'punk', 'alternative', 'dance', 'soul', 'funk', 'disco', 'other'];
   
+  const normalized = genre.toLowerCase().trim();
+  
+  // Direct match
+  if (validGenres.includes(normalized)) {
+    return normalized;
+  }
+  
+  // Handle common variations
+  const genreMap: { [key: string]: string } = {
+    'r&b': 'r&b',
+    'rnb': 'r&b',
+    'rhythm and blues': 'r&b',
+    'hip hop': 'hip-hop',
+    'hiphop': 'hip-hop',
+    'edm': 'electronic',
+    'electronic dance music': 'electronic',
+    'indie rock': 'indie',
+    'alternative rock': 'alternative',
+    'classic rock': 'rock',
+    'heavy metal': 'metal',
+    'death metal': 'metal',
+    'black metal': 'metal',
+    'folk rock': 'folk',
+    'country rock': 'country',
+    'pop rock': 'pop',
+    'dance pop': 'dance',
+    'house': 'electronic',
+    'techno': 'electronic',
+    'trance': 'electronic',
+    'dubstep': 'electronic',
+    'ambient': 'electronic',
+    'jazz fusion': 'jazz',
+    'smooth jazz': 'jazz',
+    'bebop': 'jazz',
+    'swing': 'jazz',
+    'blues rock': 'blues',
+    'delta blues': 'blues',
+    'chicago blues': 'blues',
+    'punk rock': 'punk',
+    'hardcore punk': 'punk',
+    'pop punk': 'punk',
+    'funk rock': 'funk',
+    'disco pop': 'disco',
+    'latin pop': 'latin',
+    'reggaeton': 'reggae',
+    'dancehall': 'reggae'
+  };
+  
+  return genreMap[normalized] || 'other';
+}
+
+// GET /api/songs/count - Get song count for a user (no auth required)
+router.get('/count', async (req: express.Request, res: express.Response) => {
   try {
-    // Check if user can analyze another song
-    const user = await User.findById(req.user?.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
+    const { userId } = req.query;
+    
+    if (!userId) {
+      return res.json({ count: 0 });
+    }
+
+    const user = await User.findById(userId);
+    if (user && user.subscription && user.subscription.usage) {
+      return res.json({ 
+        count: user.subscription.usage.songsAnalyzed || 0 
       });
     }
 
-    if (!user.canAnalyzeSong()) {
-      return res.status(403).json({
-        success: false,
-        error: 'Song analysis limit reached',
-        details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
-        currentUsage: user.subscription.usage.songsAnalyzed,
-        songLimit: user.getSongLimit(),
-        remainingSongs: user.getRemainingSongs()
-      });
-    }
+    return res.json({ count: 0 });
+  } catch (error) {
+    console.error('Error getting song count:', error);
+    return res.json({ count: 0 });
+  }
+});
 
-    // Validate request body
-    validateUploadRequest(req);
-    
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'Audio file is required',
-        details: 'Please provide an audio file using the "audioFile" field'
-      });
-    }
-    
-    uploadedFile = req.file;
-    const { title, artist, isReleased, releaseDate, platforms, genre } = req.body;
-    const userId = req.user!.id; // Use authenticated user's ID
-
-    // Extract file metadata
-    const fileMetadata = extractFileMetadata(req.file);
-    
-    // Validate audio file integrity
-    const validationResult = await validateAudioFile(req.file.path);
-    if (!validationResult.isValid) {
-      await cleanupFile(req.file.path);
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid audio file',
-        details: validationResult.error
-      });
-    }
-    
-    // Extract audio metadata (duration, bitrate, etc.)
-    const audioAnalysis = await extractAudioMetadata(req.file.path);
-    if (!audioAnalysis.isValid) {
-      await cleanupFile(req.file.path);
-      return res.status(400).json({
-        success: false,
-        error: 'Could not analyze audio file',
-        details: audioAnalysis.error
-      });
-    }
-    
-    // Perform local audio analysis (works for both released and unreleased songs)
-    const simpleAnalysis = await analyzeAudioSimple(req.file.path);
-    const audioFeatures = convertToAudioFeatures(simpleAnalysis);
-    
-    // Note: For unreleased songs, we use local analysis
-    // For released songs on Spotify, we could optionally fetch Spotify features later
-    const analysisSource = isReleased === 'true' ? 'local' : 'local';
-    
-    // Calculate success score and market potential
-    const { calculateSuccessScore } = await import('../services/successScoringService');
-    const successScore = await calculateSuccessScore(audioFeatures, genre, releaseDate ? new Date(releaseDate) : undefined);
-    
-    // Prepare song data
-    const songData: any = {
-      title,
-      artist,
-      duration: audioAnalysis.metadata.duration,
-      fileUrl: fileMetadata.url,
-      isReleased: isReleased === 'true',
-      ...(userId && { userId }),
-      ...(isReleased === 'true' && releaseDate && { releaseDate: new Date(releaseDate) }),
-      ...(isReleased === 'true' && platforms && { platforms: Array.isArray(platforms) ? platforms : [platforms] })
-    };
-    
-    // Create and save audio features
-    const { default: AudioFeatures } = await import('../models/AudioFeatures');
-    const audioFeaturesDoc = new AudioFeatures(audioFeatures);
-    await audioFeaturesDoc.save();
-    
-    // Create and save analysis results
-    const { default: Analysis } = await import('../models/Analysis');
-    const analysisDoc = new Analysis({
-      successScore: successScore.overallScore,
-      marketPotential: successScore.marketPotential,
-      socialScore: successScore.socialScore,
-      recommendations: successScore.recommendations,
-      genreAnalysis: {
-        primaryGenre: genre || 'unknown',
-        genreConfidence: successScore.confidence,
-        genreTrends: successScore.breakdown.genreAlignment
-      },
-      audienceAnalysis: {
-        targetAudience: 'general',
-        audienceSize: 'medium',
-        audienceEngagement: successScore.socialScore
-      },
-      competitiveAnalysis: {
-        marketPosition: successScore.overallScore > 70 ? 'strong' : successScore.overallScore > 50 ? 'moderate' : 'weak',
-        competitiveAdvantage: successScore.recommendations.slice(0, 3).map(r => r.title),
-        marketGaps: successScore.riskFactors
-      },
-      productionQuality: {
-        overallQuality: successScore.overallScore,
-        technicalScore: successScore.breakdown.audioFeatures,
-        marketAlignment: successScore.breakdown.marketTrends
-      }
-    });
-    await analysisDoc.save();
-    
-    // Update song data with audio features and analysis references
-    songData.audioFeatures = audioFeaturesDoc._id;
-    songData.analysisResults = analysisDoc._id;
-
-    // Create and save song
-    const song = new Song(songData);
-    await song.save();
-    
-    // Increment user's song analysis usage
-    user.subscription.usage.songsAnalyzed += 1;
-    await user.save();
-    
-    // Get format information
-    const formatInfo = getAudioFormatInfo(fileMetadata.extension);
-    
-    // Prepare response data
-    const responseData = {
-      songId: song._id.toString(),
-      uploadUrl: fileMetadata.url,
-      analysisStatus: 'pending' as const,
+// GET /api/songs/test-auth-gate - Test endpoint for auth gate (no file required)
+router.get('/test-auth-gate', async (req: express.Request, res: express.Response) => {
+  try {
+    // Create a test response that mimics the upload-temp response
+    const testResponse = {
+      songId: 'test-song-123',
+      tempAccessToken: 'test-token-456',
+      requiresAccount: true,
+      uploadUrl: '/uploads/test-song.mp3',
+      analysisStatus: 'completed' as const,
       fileMetadata: {
-        ...fileMetadata,
-        duration: audioAnalysis.metadata.duration,
-        durationFormatted: formatDuration(audioAnalysis.metadata.duration),
-        sizeFormatted: formatFileSize(fileMetadata.size),
-        formatInfo
+        filename: 'test-song.mp3',
+        size: 1024000,
+        url: '/uploads/test-song.mp3'
       },
       audioFeatures: {
-        tempo: audioFeatures.tempo,
-        key: audioFeatures.key,
-        mode: audioFeatures.mode,
-        loudness: audioFeatures.loudness,
-        energy: audioFeatures.energy,
-        danceability: audioFeatures.danceability,
-        valence: audioFeatures.valence,
-        analysisSource: analysisSource,
-        isUnreleased: isReleased !== 'true'
-      },
-      successScore: {
-        overallScore: successScore.overallScore,
-        confidence: successScore.confidence,
-        breakdown: successScore.breakdown,
-        recommendations: successScore.recommendations.slice(0, 3),
-        riskFactors: successScore.riskFactors,
-        marketPotential: successScore.marketPotential,
-        socialScore: successScore.socialScore
+        tempo: 120,
+        key: 1,
+        mode: 1,
+        loudness: -5.2,
+        energy: 0.8
       },
       song: {
-        id: song._id.toString(),
-        title: song.title,
-        artist: song.artist,
-        duration: song.duration,
-        uploadDate: song.uploadDate,
-        isReleased: song.isReleased,
-        createdAt: song.createdAt,
-        updatedAt: song.updatedAt
+        title: 'Test Song',
+        artist: 'Test Artist'
+      },
+      analysis: {
+        successScore: 75,
+        genre: 'Pop'
       }
     };
 
-    return res.status(201).json({
+    return res.json({
       success: true,
-      data: responseData,
-      message: 'Song uploaded successfully'
+      data: testResponse,
+      message: 'Test auth gate response'
     });
-    
   } catch (error) {
-    // Clean up uploaded file if there was an error
-    if (uploadedFile) {
-      await cleanupFile(uploadedFile.path);
-    }
-    
-    console.error('Upload error:', error);
-    
-    if (error instanceof Error) {
-      return res.status(400).json({
-        success: false,
-        error: 'Upload failed',
-        details: error.message
-      });
-    }
-    
+    console.error('Test auth gate error:', error);
     return res.status(500).json({
       success: false,
-      error: 'Internal server error',
-      details: 'Failed to process upload'
+      error: 'Test failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// POST /api/songs/upload-temp - Upload a song without authentication (temporary access)
+// POST /api/songs/upload-simple - Minimal upload for testing (NO AUTH REQUIRED)
+router.post('/upload-simple', uploadSingleAudio, handleUploadError, async (req: express.Request, res: express.Response) => {
+  console.log('=== SIMPLE UPLOAD START (NO AUTH) ===');
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file provided'
+      });
+    }
+
+    console.log('File received:', req.file.originalname);
+
+    // Try to get user info from request body if available
+    let userId = req.body.userId || null;
+    console.log('Uploading without authentication - no logout risk');
+    console.log('User ID from request:', userId);
+    
+    // Create minimal song data
+    const songData = {
+      title: req.body.title || 'Test Song',
+      artist: req.body.artist || 'Test Artist',
+      duration: 180,
+      fileUrl: `/uploads/${req.file.filename}`,
+      isReleased: false,
+      isTemporary: !userId, // Only temporary if not authenticated
+      ...(userId && { userId }) // Add userId if authenticated
+    };
+    
+    console.log('Creating song with data:', songData);
+    
+    const song = new Song(songData);
+    await song.save();
+    
+    console.log('Song created successfully:', song._id);
+
+    // Update user's song analysis usage if userId provided
+    if (userId) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          user.subscription.usage.songsAnalyzed += 1;
+          await user.save();
+          console.log('Updated user usage count for user:', userId);
+        }
+      } catch (error) {
+        console.log('Failed to update user usage:', error);
+      }
+    } else {
+      console.log('No userId provided - skipping user usage tracking');
+    }
+
+    return res.json({
+      success: true,
+      message: 'Upload successful',
+      songId: song._id,
+      userId: userId
+    });
+    
+  } catch (error) {
+    console.error('Simple upload error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Upload failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/songs/upload-temp - Upload a song (supports both authenticated and unauthenticated)
 router.post('/upload-temp', uploadSingleAudio, handleUploadError, async (req: express.Request, res: express.Response) => {
   let uploadedFile: Express.Multer.File | undefined;
   
+  console.log('=== UPLOAD START ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('File:', req.file);
+  
   try {
     // Validate request body (temporary upload - no duration required yet)
+    console.log('Validating request body...');
     validateTempUploadRequest(req);
+    console.log('Request body validation passed');
     
     if (!req.file) {
+      console.log('No file provided');
       return res.status(400).json({
         success: false,
         error: 'Audio file is required',
         details: 'Please provide an audio file using the "audioFile" field'
       });
     }
+    console.log('File validation passed');
     
     uploadedFile = req.file;
     const { title, artist, isReleased, releaseDate, platforms, genre } = req.body;
+    console.log('Extracted form data:', { title, artist, isReleased, releaseDate, platforms, genre });
 
     // Extract file metadata
+    console.log('Extracting file metadata...');
     const fileMetadata = extractFileMetadata(req.file);
+    console.log('File metadata extracted:', fileMetadata);
     
     // Validate audio file integrity
+    console.log('Validating audio file...');
     const validationResult = await validateAudioFile(req.file.path);
+    console.log('Audio file validation result:', validationResult);
     if (!validationResult.isValid) {
       await cleanupFile(req.file.path);
       return res.status(400).json({
@@ -284,16 +281,30 @@ router.post('/upload-temp', uploadSingleAudio, handleUploadError, async (req: ex
     
     // Calculate success score and market potential
     const { calculateSuccessScore } = await import('../services/successScoringService');
-    const successScore = await calculateSuccessScore(audioFeatures, genre, releaseDate ? new Date(releaseDate) : undefined);
+    const successScore = await calculateSuccessScore(audioFeatures, genre, releaseDate ? new Date(releaseDate) : undefined, undefined, isReleased === 'true');
     
-    // Prepare song data (without userId)
+    // Check if user is authenticated (optional)
+    let userId = null;
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.replace('Bearer ', '');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        userId = decoded.userId;
+      } catch (error) {
+        // Invalid token, continue as unauthenticated
+        console.log('Invalid token, proceeding as unauthenticated upload');
+      }
+    }
+
+    // Prepare song data (supports both authenticated and unauthenticated)
     const songData: any = {
       title,
       artist,
       duration: audioAnalysis.metadata.duration,
       fileUrl: fileMetadata.url,
       isReleased: isReleased === 'true',
-      isTemporary: true, // Mark as temporary
+      isTemporary: !userId, // Mark as temporary only if not authenticated
+      ...(userId && { userId }), // Add userId if authenticated
       ...(isReleased === 'true' && releaseDate && { releaseDate: new Date(releaseDate) }),
       ...(isReleased === 'true' && platforms && { platforms: Array.isArray(platforms) ? platforms : [platforms] })
     };
@@ -365,11 +376,23 @@ router.post('/upload-temp', uploadSingleAudio, handleUploadError, async (req: ex
     song.analysisResults = analysisDoc._id;
     await song.save();
     
+    // Update user's song analysis usage if authenticated
+    if (userId) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          user.subscription.usage.songsAnalyzed += 1;
+          await user.save();
+        }
+      } catch (error) {
+        console.log('Failed to update user usage:', error);
+      }
+    }
+    
     // Get format information
     const formatInfo = getAudioFormatInfo(fileMetadata.extension);
     
     // Create temporary access token
-    const jwt = require('jsonwebtoken');
     const tempToken = jwt.sign(
       { 
         songId: song._id.toString(), 
@@ -434,7 +457,7 @@ router.post('/upload-temp', uploadSingleAudio, handleUploadError, async (req: ex
   } catch (error: any) {
     // Cleanup uploaded file if it exists
     if (uploadedFile) {
-      await cleanupFile(uploadedFile.path);
+      await cleanupFile(req.file.path);
     }
     
     console.error('Upload error:', error);
@@ -442,6 +465,261 @@ router.post('/upload-temp', uploadSingleAudio, handleUploadError, async (req: ex
       success: false,
       error: 'Upload failed',
       details: error.message
+    });
+  }
+});
+
+// POST /api/songs/upload - Upload a new song
+router.post('/upload', authenticateToken, uploadSingleAudio, handleUploadError, async (req: express.Request, res: express.Response) => {
+  let uploadedFile: Express.Multer.File | undefined;
+  
+  console.log('=== AUTHENTICATED UPLOAD START ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('File:', req.file);
+  console.log('User:', req.user);
+  
+  try {
+    // Check if user can analyze another song
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    if (!(await user.canAnalyzeSong())) {
+      return res.status(403).json({
+        success: false,
+        error: 'Song analysis limit reached',
+        details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
+        currentUsage: user.subscription.usage.songsAnalyzed,
+        songLimit: user.getSongLimit(),
+        remainingSongs: await user.getRemainingSongs()
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Audio file is required',
+        details: 'Please provide an audio file using the "audioFile" field'
+      });
+    }
+    
+    uploadedFile = req.file;
+    const { title, artist, isReleased, releaseDate, platforms, genre } = req.body;
+    const userId = req.user!.id; // Use authenticated user's ID
+
+    // Extract file metadata
+    const fileMetadata = extractFileMetadata(req.file);
+    
+    // Add fileUrl to request body for validation
+    req.body.fileUrl = fileMetadata.url;
+    
+    // Validate request body after file processing (so fileUrl is available)
+    validateUploadRequest(req);
+    
+    // Validate audio file integrity
+    const validationResult = await validateAudioFile(req.file.path);
+    if (!validationResult.isValid) {
+      await cleanupFile(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid audio file',
+        details: validationResult.error
+      });
+    }
+    
+    // Extract audio metadata (duration, bitrate, etc.)
+    const audioAnalysis = await extractAudioMetadata(req.file.path);
+    if (!audioAnalysis.isValid) {
+      await cleanupFile(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: 'Could not analyze audio file',
+        details: audioAnalysis.error
+      });
+    }
+    
+    // Perform local audio analysis (works for both released and unreleased songs)
+    const simpleAnalysis = await analyzeAudioSimple(req.file.path);
+    const audioFeatures = convertToAudioFeatures(simpleAnalysis);
+    
+    // Note: For unreleased songs, we use local analysis
+    // For released songs on Spotify, we could optionally fetch Spotify features later
+    const analysisSource = isReleased === 'true' ? 'local' : 'local';
+    
+    // Calculate success score and market potential
+    const { calculateSuccessScore } = await import('../services/successScoringService');
+    const successScore = await calculateSuccessScore(audioFeatures, genre, releaseDate ? new Date(releaseDate) : undefined, undefined, isReleased === 'true');
+    
+    // Prepare song data
+    const songData: any = {
+      title,
+      artist,
+      duration: audioAnalysis.metadata.duration,
+      fileUrl: fileMetadata.url,
+      isReleased: isReleased === 'true',
+      ...(userId && { userId }),
+      ...(isReleased === 'true' && releaseDate && { releaseDate: new Date(releaseDate) }),
+      ...(isReleased === 'true' && platforms && { platforms: Array.isArray(platforms) ? platforms : [platforms] })
+    };
+    
+    // Create and save song first
+    const song = new Song(songData);
+    await song.save();
+    
+    // Now create and save audio features with the song ID
+    const { default: AudioFeatures } = await import('../models/AudioFeatures');
+    
+    // Ensure all required fields are present with defaults
+    const audioFeaturesData = {
+      songId: song._id,
+      acousticness: audioFeatures.acousticness || 0.5,
+      danceability: audioFeatures.danceability || 0.5,
+      energy: audioFeatures.energy || 0.5,
+      instrumentalness: audioFeatures.instrumentalness || 0.5,
+      liveness: audioFeatures.liveness || 0.5,
+      loudness: audioFeatures.loudness || -20,
+      speechiness: audioFeatures.speechiness || 0.3,
+      tempo: audioFeatures.tempo || 120,
+      valence: audioFeatures.valence || 0.5,
+      key: audioFeatures.key || 0,
+      mode: audioFeatures.mode || 1,
+      time_signature: audioFeatures.time_signature || 4,
+      duration_ms: audioFeatures.duration_ms || 180000
+    };
+    
+    const audioFeaturesDoc = new AudioFeatures(audioFeaturesData);
+    await audioFeaturesDoc.save();
+    
+    // Create simple Analysis document with just the essential scores
+    const { default: SimpleAnalysis } = await import('../models/SimpleAnalysis');
+    let analysisDoc: any = null;
+    
+    try {
+      console.log('Creating SimpleAnalysis document for song:', song._id);
+      console.log('Success score data:', {
+        overallScore: successScore.overallScore,
+        marketPotential: successScore.marketPotential,
+        socialScore: successScore.socialScore
+      });
+      
+      // Create a simple Analysis document with just the scores
+      analysisDoc = new SimpleAnalysis({
+        songId: song._id,
+        successScore: successScore.overallScore,
+        marketPotential: successScore.marketPotential,
+        socialScore: successScore.socialScore
+      });
+      
+      await analysisDoc.save();
+      console.log('SimpleAnalysis document saved successfully:', analysisDoc._id);
+    } catch (analysisError) {
+      console.error('Error creating SimpleAnalysis document:', analysisError);
+      console.error('Analysis error details:', {
+        message: analysisError.message,
+        name: analysisError.name,
+        stack: analysisError.stack
+      });
+      // Continue without analysis document for now
+    }
+    
+    // Update song with references to both audio features and analysis
+    song.audioFeatures = audioFeaturesDoc._id;
+    if (analysisDoc) {
+      song.analysisResults = analysisDoc._id;
+    }
+    await song.save();
+    
+    // Increment user's song analysis usage if authenticated
+    if (userId) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          user.subscription.usage.songsAnalyzed += 1;
+          await user.save();
+        }
+      } catch (error) {
+        console.log('Failed to update user usage:', error);
+      }
+    }
+    
+    // Get format information
+    const formatInfo = getAudioFormatInfo(fileMetadata.extension);
+    
+    // Prepare response data
+    const responseData = {
+      songId: song._id.toString(),
+      uploadUrl: fileMetadata.url,
+      analysisStatus: analysisDoc ? 'completed' as const : 'pending' as const,
+      fileMetadata: {
+        ...fileMetadata,
+        duration: audioAnalysis.metadata.duration,
+        durationFormatted: formatDuration(audioAnalysis.metadata.duration),
+        sizeFormatted: formatFileSize(fileMetadata.size),
+        formatInfo
+      },
+      audioFeatures: {
+        tempo: audioFeatures.tempo,
+        key: audioFeatures.key,
+        mode: audioFeatures.mode,
+        loudness: audioFeatures.loudness,
+        energy: audioFeatures.energy,
+        danceability: audioFeatures.danceability,
+        valence: audioFeatures.valence,
+        analysisSource: analysisSource,
+        isUnreleased: isReleased !== 'true'
+      },
+      successScore: {
+        overallScore: successScore.overallScore,
+        confidence: successScore.confidence,
+        breakdown: successScore.breakdown,
+        recommendations: successScore.recommendations.slice(0, 3),
+        riskFactors: successScore.riskFactors,
+        marketPotential: successScore.marketPotential,
+        socialScore: successScore.socialScore
+      },
+      song: {
+        id: song._id.toString(),
+        title: song.title,
+        artist: song.artist,
+        duration: song.duration,
+        uploadDate: song.uploadDate,
+        isReleased: song.isReleased,
+        createdAt: song.createdAt,
+        updatedAt: song.updatedAt
+      }
+    };
+
+    return res.status(201).json({
+      success: true,
+      data: responseData,
+      message: 'Song uploaded successfully'
+    });
+    
+  } catch (error) {
+    // Clean up uploaded file if there was an error
+    if (uploadedFile) {
+      await cleanupFile(uploadedFile.path);
+    }
+    
+    console.error('Upload error:', error);
+    
+    if (error instanceof Error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Upload failed',
+        details: error.message
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: 'Failed to process upload'
     });
   }
 });
@@ -457,8 +735,11 @@ router.get('/', authenticateToken, async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('analysisResults', 'successPrediction.score audioFeatures.genre')
+      .populate('analysisResults')
+      .populate('audioFeatures')
       .populate('performanceMetrics', 'streamingData.spotify.streams')
+    
+    console.log('Songs query result:', JSON.stringify(songs, null, 2));
 
     const total = await Song.countDocuments({ userId })
 
@@ -501,7 +782,7 @@ router.get('/stats', async (req, res) => {
     });
     
     // Calculate prediction accuracy based on analysis confidence scores
-    let predictionAccuracy = 95; // Default fallback
+    let predictionAccuracy = 0; // Start with 0, will be calculated from real data
     
     try {
       const analysisConfidence = await Analysis.aggregate([
@@ -528,8 +809,7 @@ router.get('/stats', async (req, res) => {
         }
       }
       
-      // Ensure accuracy is within reasonable bounds
-      predictionAccuracy = Math.max(85, Math.min(99, predictionAccuracy));
+      // Use actual calculated accuracy without artificial bounds
     } catch (error) {
       console.log('Using default prediction accuracy:', predictionAccuracy);
     }
@@ -816,14 +1096,14 @@ router.post('/analyze-unreleased', authenticateToken, uploadSingleAudio, handleU
       });
     }
 
-    if (!user.canAnalyzeSong()) {
+    if (!(await user.canAnalyzeSong())) {
       return res.status(403).json({
         success: false,
         error: 'Song analysis limit reached',
         details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
         currentUsage: user.subscription.usage.songsAnalyzed,
         songLimit: user.getSongLimit(),
-        remainingSongs: user.getRemainingSongs()
+        remainingSongs: await user.getRemainingSongs()
       });
     }
 
@@ -1157,5 +1437,6 @@ router.get('/temp-results/:songId', async (req: express.Request, res: express.Re
     });
   }
 });
+
 
 export default router 

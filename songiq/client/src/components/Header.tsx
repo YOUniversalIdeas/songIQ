@@ -1,12 +1,34 @@
 import { Logo } from '../assets'
 import { Link } from 'react-router-dom'
-import { User, LogIn, Moon, Sun } from 'lucide-react'
+import { User, LogIn, Moon, Sun, ChevronDown, BarChart3, LogOut } from 'lucide-react'
 import { useDarkMode } from '../contexts/DarkModeContext'
 import { useAuth } from './AuthProvider'
+import { useEffect, useState, useRef } from 'react'
 
 const Header = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+
+  // Track auth state changes in Header
+  useEffect(() => {
+  }, [isAuthenticated, isLoading, user]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleToggleDarkMode = () => {
     toggleDarkMode();
@@ -46,7 +68,12 @@ const Header = () => {
             </div>
             
             {/* Authentication Buttons */}
-            {!isAuthenticated ? (
+            {isLoading ? (
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin"></div>
+                <span>Loading...</span>
+              </div>
+            ) : !isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <Link
                   to="/auth"
@@ -69,17 +96,63 @@ const Header = () => {
                 <div className="hidden lg:flex items-center space-x-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {user?.subscription?.usage?.songsAnalyzed || 0}/{user?.subscription?.tier === 'free' ? '3' : '∞'} songs
+                    {user?.subscription?.usage?.songsAnalyzed || 0}/{user?.songLimit === -1 ? '∞' : (user?.songLimit || (user?.subscription?.plan === 'free' ? '3' : '∞'))} songs
                   </span>
-                  {user?.subscription?.tier === 'free' && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      (Free Plan)
-                    </span>
-                  )}
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    ({user?.subscription?.plan === 'free' ? 'Free' : 
+                      user?.subscription?.plan === 'basic' ? 'Basic' :
+                      user?.subscription?.plan === 'pro' ? 'Pro' :
+                      user?.subscription?.plan === 'enterprise' ? 'Enterprise' : 'Free'} Plan)
+                  </span>
                 </div>
                 
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span>Welcome, {user?.firstName || 'User'}!</span>
+                {/* User Dropdown with Welcome Message */}
+                <div className="relative" ref={userDropdownRef}>
+                  <button
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span>Welcome, {user?.firstName || user?.email?.split('@')[0] || 'User'}!</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {isUserDropdownOpen && (
+                    <div 
+                      className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-[9999] border border-gray-200 dark:border-gray-700" 
+                      style={{ display: 'block', visibility: 'visible' }}
+                    >
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <User className="w-4 h-4 mr-3" />
+                        Profile
+                      </Link>
+                      <Link
+                        to="/user-activity"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <BarChart3 className="w-4 h-4 mr-3" />
+                        My Songs
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          logout();
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4 mr-3" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

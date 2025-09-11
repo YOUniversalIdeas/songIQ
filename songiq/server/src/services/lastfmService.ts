@@ -265,7 +265,7 @@ export async function getArtistTrends(artistName: string): Promise<Partial<Lastf
       return {
         topTracks: tracks,
         topTags: tags,
-        trendingGenres: tags.map(tag => tag.name).slice(0, 5)
+        trendingGenres: tags.map((tag: any) => tag.name).slice(0, 5)
       };
     }
     

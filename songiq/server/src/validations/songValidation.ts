@@ -65,6 +65,17 @@ export const createSongSchema = Joi.object({
     })
     .messages({
       'any.required': 'Platforms are required when song is marked as released'
+    }),
+  
+  genre: Joi.string()
+    .optional()
+    .default('Pop'),
+  
+  userId: Joi.string()
+    .optional()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .messages({
+      'string.pattern.base': 'Invalid user ID format'
     })
 });
 
@@ -121,7 +132,12 @@ export const createTempSongSchema = Joi.object({
   
   genre: Joi.string()
     .optional()
-    .default('Pop')
+    .default('Pop'),
+  
+  // Allow forceUnauthenticated for testing unauthenticated uploads
+  forceUnauthenticated: Joi.boolean()
+    .optional()
+    .default(false)
 });
 
 export const updateSongSchema = Joi.object({

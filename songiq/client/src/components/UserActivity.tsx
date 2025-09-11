@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { getStoredToken } from '../utils/auth';
 import { Download, Music, Calendar, FileText, RefreshCw, Filter, SortAsc, SortDesc, Search, TrendingUp, Users, Target } from 'lucide-react';
+import { API_ENDPOINTS } from '../config/api';
 
 interface SongSubmission {
   id: string;
@@ -35,7 +37,7 @@ const UserActivity: React.FC = () => {
   const [filteredSubmissions, setFilteredSubmissions] = useState<SongSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [_error, _setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Filter and sort state
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -53,78 +55,75 @@ const UserActivity: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    // Enhanced demo data with real analysis metrics
-    const demoData: SongSubmission[] = [
-      {
-        id: 'demo-song-1',
-        songName: 'Midnight Dreams',
-        artist: 'Demo Artist',
-        submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'completed',
-        reportUrl: '/api/user-activity/reports/demo-song-1/download',
-        successScore: 87,
-        marketPotential: 92,
-        socialScore: 78,
-        genre: 'Pop',
-        duration: 180,
-        fileSize: '8.2 MB'
-      },
-      {
-        id: 'demo-song-2',
-        songName: 'Electric Vibes',
-        artist: 'Demo Artist',
-        submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'completed',
-        reportUrl: '/api/user-activity/reports/demo-song-2/download',
-        successScore: 73,
-        marketPotential: 68,
-        socialScore: 85,
-        genre: 'Electronic',
-        duration: 210,
-        fileSize: '12.1 MB'
-      },
-      {
-        id: 'demo-song-3',
-        songName: 'Acoustic Soul',
-        artist: 'Demo Artist',
-        submittedAt: new Date().toISOString(),
-        status: 'processing',
-        reportUrl: undefined,
-        genre: 'Acoustic',
-        duration: 195,
-        fileSize: '6.8 MB'
-      },
-      {
-        id: 'demo-song-4',
-        songName: 'Rock Anthem',
-        artist: 'Demo Artist',
-        submittedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'completed',
-        reportUrl: '/api/user-activity/reports/demo-song-4/download',
-        successScore: 91,
-        marketPotential: 88,
-        socialScore: 82,
-        genre: 'Rock',
-        duration: 240,
-        fileSize: '15.3 MB'
-      },
-      {
-        id: 'demo-song-5',
-        songName: 'Hip Hop Flow',
-        artist: 'Demo Artist',
-        submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'failed',
-        reportUrl: undefined,
-        genre: 'Hip Hop',
-        duration: 165,
-        fileSize: '9.7 MB'
-      }
-    ];
-    
-    setSubmissions(demoData);
-    setFilteredSubmissions(demoData);
-    setIsLoading(false);
+    loadUserSubmissions();
   }, [user]);
+
+  const loadUserSubmissions = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = getStoredToken();
+      if (!token) {
+        setError('Please log in to view your songs');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.SONGS.LIST, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Please log in to view your songs');
+        } else {
+          throw new Error(`Failed to fetch songs: ${response.status}`);
+        }
+        return;
+      }
+
+      const result = await response.json();
+      
+      // Handle both response formats: direct array or wrapped in success object
+      let submissionsData;
+      if (Array.isArray(result)) {
+        // Direct array response from /api/user-activity/submissions
+        submissionsData = result;
+      } else if (result.success && Array.isArray(result.data)) {
+        // Wrapped response from /api/songs
+        submissionsData = result.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+      // Transform the songs data to match the SongSubmission interface
+      const transformedSubmissions = submissionsData.map((song: any) => ({
+        id: song.id || song._id,
+        songName: song.songName || song.title,
+        artist: song.artist,
+        submittedAt: song.submittedAt || song.createdAt || song.uploadDate,
+        status: song.status || song.analysisStatus || 'completed',
+        successScore: song.successScore,
+        marketPotential: song.marketPotential,
+        socialScore: song.socialScore,
+        genre: song.genre,
+        duration: song.duration,
+        fileSize: song.fileSize || 'Unknown'
+      }));
+      
+      setSubmissions(transformedSubmissions);
+      setFilteredSubmissions(transformedSubmissions);
+    } catch (err) {
+      console.error('Failed to load user submissions:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load submissions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Apply filters and sorting
   useEffect(() => {
@@ -198,9 +197,9 @@ const UserActivity: React.FC = () => {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => {
+    loadUserSubmissions().finally(() => {
       setIsRefreshing(false);
-    }, 1000);
+    });
   };
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
@@ -585,7 +584,32 @@ const UserActivity: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredSubmissions.map((submission) => (
+              {filteredSubmissions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center space-y-4">
+                      <Music className="h-12 w-12 text-gray-400" />
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                          {error ? 'Error loading submissions' : 'No submissions yet'}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">
+                          {error ? error : 'Upload your first song to get started with analysis'}
+                        </p>
+                        {error && (
+                          <button
+                            onClick={loadUserSubmissions}
+                            className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                          >
+                            Try Again
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredSubmissions.map((submission) => (
                 <tr key={submission.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -675,28 +699,49 @@ const UserActivity: React.FC = () => {
                     )}
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Enhanced Info Section */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex">
+      {/* Enhanced Analysis Reports Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <div className="flex items-start">
           <div className="flex-shrink-0">
-            <FileText className="h-5 w-5 text-blue-400" />
+            <FileText className="h-6 w-6 text-blue-500" />
           </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              Enhanced Analysis Reports
+          <div className="ml-4 flex-1">
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+              Unlock Enhanced Analysis Reports
             </h3>
-            <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
-              <p>
-                Download comprehensive analysis reports including audio features, market insights, 
-                competitive analysis, and actionable recommendations. Reports are generated using 
-                advanced AI algorithms and industry data.
+            <div className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+              <p className="mb-2">
+                Get comprehensive analysis reports with detailed audio features, market insights, 
+                competitive analysis, and actionable recommendations. These reports are generated using 
+                advanced AI algorithms and real-time industry data.
               </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">Audio Analysis</span>
+                <span className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">Market Insights</span>
+                <span className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">Competitive Analysis</span>
+                <span className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">AI Recommendations</span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a
+                href="/pricing"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                View Pricing Plans
+              </a>
+              {user?.subscription?.plan === 'free' && (
+                <span className="inline-flex items-center px-3 py-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-sm font-medium rounded-md">
+                  Upgrade to access enhanced reports
+                </span>
+              )}
             </div>
           </div>
         </div>

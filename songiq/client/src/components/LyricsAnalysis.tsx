@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useAuth } from './AuthProvider';
 import { jsPDF } from 'jspdf';
+import { API_BASE_URL } from '../config/api';
 
 // Remove the complex pdfmake loading logic
 // let pdfMake: any = null;
@@ -35,6 +37,7 @@ interface LyricsAnalysisData {
 }
 
 const LyricsAnalysis = () => {
+  const { isAuthenticated, token } = useAuth();
   const [trackName, setTrackName] = useState('');
   const [artistName, setArtistName] = useState('');
   const [lyricsText, setLyricsText] = useState('');
@@ -91,23 +94,56 @@ const LyricsAnalysis = () => {
       let response;
       
       if (selectedFile) {
-        // For file uploads, we need authentication - show signup prompt
-        setError('File upload requires authentication. Please sign up for full access.');
-        setLoading(false);
-        return;
-      } else {
-        // Try demo endpoint first (no auth required)
-        response = await fetch('/api/lyrics/demo', {
+        // File upload - only for authenticated users
+        if (!isAuthenticated) {
+          setError('File upload requires authentication. Please sign up for full access.');
+          setLoading(false);
+          return;
+        }
+
+        // Use authenticated file upload endpoint
+        const formData = new FormData();
+        formData.append('lyricsFile', selectedFile);
+        formData.append('trackName', trackName);
+        formData.append('artistName', artistName);
+
+        response = await fetch(`${API_BASE_URL}/api/lyrics/upload`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({
-            lyrics: lyricsText,
-            trackName,
-            artistName
-          })
+          body: formData
         });
+      } else {
+        // Text input - use appropriate endpoint based on auth status
+        if (isAuthenticated) {
+          // Use authenticated endpoint for signed-in users
+          response = await fetch(`${API_BASE_URL}/api/lyrics/analyze-text`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              lyrics: lyricsText,
+              trackName,
+              artistName
+            })
+          });
+        } else {
+          // Use demo endpoint for unauthenticated users
+          response = await fetch(`${API_BASE_URL}/api/lyrics/demo`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              lyrics: lyricsText,
+              trackName,
+              artistName
+            })
+          });
+        }
       }
 
       if (!response.ok) {
@@ -129,8 +165,12 @@ const LyricsAnalysis = () => {
     if (file) {
       setSelectedFile(file);
       setLyricsText(''); // Clear text input when file is selected
-      // Show signup prompt for file uploads
-      setError('File upload requires authentication. Please sign up for full access to upload and analyze lyrics files.');
+      setError(null); // Clear any previous errors
+      
+      // Only show signup prompt for unauthenticated users
+      if (!isAuthenticated) {
+        setError('File upload requires authentication. Please sign up for full access to upload and analyze lyrics files.');
+      }
     }
   };
 
@@ -148,11 +188,16 @@ const LyricsAnalysis = () => {
     try {
   
       
-      // Create new PDF document with landscape orientation for better layout
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      // Create new PDF document with proper encoding
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
       
-      // Set font
-      pdf.setFont('helvetica');
+      // Set font with proper encoding
+      pdf.setFont('helvetica', 'normal');
       
       // Page dimensions
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -160,152 +205,219 @@ const LyricsAnalysis = () => {
       const margin = 20;
       const contentWidth = pageWidth - (2 * margin);
       
-      // ===== PAGE 1: COVER PAGE =====
+      // ===== COVER PAGE =====
       
-      // Background gradient effect (simulated with rectangles)
-      // Create orange to white gradient effect
-      const gradientSteps = 20;
+      // Professional gradient background (blue to orange) - matching Dashboard
+      const gradientSteps = 30;
       for (let i = 0; i < gradientSteps; i++) {
-        const alpha = 1 - (i / gradientSteps);
-        const orange = Math.round(255 - (i * 10)); // Start with orange, fade to white
-        const red = Math.round(255 - (i * 8));
-        const green = Math.round(165 - (i * 6));
+        const alpha = 1 - (i / gradientSteps) * 0.3; // Fade to 70% opacity
+        const blue = Math.round(59 + (i * 6)); // Start with blue
+        const green = Math.round(130 + (i * 4));
+        const red = Math.round(246 - (i * 6)); // Transition to orange
         
         const y = (i / gradientSteps) * pageHeight;
         const height = pageHeight / gradientSteps;
         
-        pdf.setFillColor(red, green, orange, alpha);
+        pdf.setFillColor(red, green, blue, alpha);
         pdf.rect(0, y, pageWidth, height, 'F');
       }
       
       // Add subtle pattern overlay
-      pdf.setFillColor(255, 255, 255, 0.1);
-      for (let i = 0; i < pageWidth; i += 20) {
-        for (let j = 0; j < pageHeight; j += 20) {
-          pdf.rect(i, j, 10, 10, 'F');
+      pdf.setFillColor(255, 255, 255, 0.05);
+      for (let i = 0; i < pageWidth; i += 15) {
+        for (let j = 0; j < pageHeight; j += 15) {
+          if ((i + j) % 30 === 0) {
+            pdf.rect(i, j, 8, 8, 'F');
+          }
         }
       }
       
-      // Main logo area
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(margin, margin, contentWidth, 60, 'F');
-      
-      // songIQ logo text
-      pdf.setFontSize(48);
-      pdf.setTextColor(255, 165, 0); // Orange color
-      pdf.text('songIQ', pageWidth / 2, margin + 35, { align: 'center' });
-      
-      // Subtitle
-      pdf.setFontSize(18);
-      pdf.setTextColor(107, 114, 128);
-      pdf.text('AI-Powered Lyrics Analysis Platform', pageWidth / 2, margin + 55, { align: 'center' });
-      
-      // Main title
-      pdf.setFontSize(36);
-      pdf.setTextColor(255, 255, 255);
-      pdf.text('Lyrics Analysis Report', pageWidth / 2, margin + 120, { align: 'center' });
-      
-      // Song details box
+      // Main logo area with enhanced styling
       pdf.setFillColor(255, 255, 255, 0.95);
-      pdf.rect(margin, margin + 140, contentWidth, 80, 'F');
+      pdf.rect(margin, margin, contentWidth, 80, 'F');
       
-      pdf.setFontSize(24);
-      pdf.setTextColor(255, 165, 0); // Orange color
-      pdf.text('Song Information', pageWidth / 2, margin + 165, { align: 'center' });
+      // Add border to logo area
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.rect(margin, margin, contentWidth, 80, 'S');
       
+      // songIQ logo with enhanced styling
+      pdf.setFontSize(52);
+      pdf.setTextColor(255, 165, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('songIQ', pageWidth / 2, margin + 45, { align: 'center' });
+      
+      // Subtitle with better styling
       pdf.setFontSize(16);
-      pdf.setTextColor(255, 165, 0); // Orange color instead of dark
-      pdf.text(`Track: ${trackName || 'Not specified'}`, margin + 30, margin + 185);
-      pdf.text(`Artist: ${artistName || 'Not specified'}`, margin + 30, margin + 200);
+      pdf.setTextColor(59, 130, 246);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('AI-Powered Lyrics Analysis Platform', pageWidth / 2, margin + 65, { align: 'center' });
+      
+      // Report title with enhanced styling
+      pdf.setFontSize(42);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Lyrics Analysis Report', pageWidth / 2, margin + 130, { align: 'center' });
+      
+      // Add decorative line under title
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(3);
+      pdf.line(pageWidth / 2 - 80, margin + 140, pageWidth / 2 + 80, margin + 140);
+      
+      // Song info box with enhanced design
+      pdf.setFillColor(255, 255, 255, 0.98);
+      pdf.rect(margin, margin + 160, contentWidth, 100, 'F');
+      
+      // Add border and shadow effect
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.rect(margin, margin + 160, contentWidth, 100, 'S');
+      
+      // Inner border
+      pdf.setDrawColor(59, 130, 246);
+      pdf.setLineWidth(1);
+      pdf.rect(margin + 5, margin + 165, contentWidth - 10, 90, 'S');
+      
+      pdf.setFontSize(20);
+      pdf.setTextColor(255, 165, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Song Information', pageWidth / 2, margin + 185, { align: 'center' });
+      
+      // Song details with better formatting
+      pdf.setFontSize(14);
+      pdf.setTextColor(59, 130, 246);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Track: ${trackName || 'Not specified'}`, margin + 20, margin + 205);
+      pdf.text(`Artist: ${artistName || 'Not specified'}`, margin + 20, margin + 220);
       pdf.text(`Analysis Date: ${new Date().toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric'
-      })}`, margin + 30, margin + 215);
+      })}`, margin + 20, margin + 235);
       
       // Footer
       pdf.setFontSize(12);
       pdf.setTextColor(255, 255, 255, 0.8);
+      pdf.setFont('helvetica', 'normal');
       pdf.text('Generated by songIQ - Unlocking the hidden insights in your music', pageWidth / 2, pageHeight - 20, { align: 'center' });
       
       // ===== PAGE 2: ANALYSIS DETAILS =====
       pdf.addPage();
       
-      // Header
-      pdf.setFillColor(255, 165, 0); // Orange
-      pdf.rect(0, 0, pageWidth, 40, 'F');
+      // Header with enhanced styling
+      pdf.setFillColor(59, 130, 246); // Blue header
+      pdf.rect(0, 0, pageWidth, 50, 'F');
       
-      pdf.setFontSize(24);
+      // Add gradient effect to header
+      pdf.setFillColor(255, 165, 0, 0.2);
+      pdf.rect(0, 0, pageWidth, 50, 'F');
+      
+      pdf.setFontSize(28);
       pdf.setTextColor(255, 255, 255);
-      pdf.text('songIQ', margin, 25);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('songIQ', margin, 30);
       
-      pdf.setFontSize(14);
+      pdf.setFontSize(16);
       pdf.setTextColor(255, 255, 255, 0.9);
-      pdf.text('Lyrics Analysis Report', pageWidth - margin, 25, { align: 'right' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Lyrics Analysis Report', pageWidth - margin, 30, { align: 'right' });
       
-      // Content starts at y = 60
-      let currentY = 60;
+      // Content starts at y = 70
+      let currentY = 70;
       
-      // Basic Statistics Section
-      pdf.setFontSize(20);
-      pdf.setTextColor(255, 165, 0); // Orange
+      // Basic Statistics Section with enhanced styling
+      pdf.setFontSize(22);
+      pdf.setTextColor(59, 130, 246); // Blue
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Basic Statistics', margin, currentY);
-      currentY += 25;
       
-      // Create statistics boxes
+      // Add underline
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.line(margin, currentY + 5, margin + 60, currentY + 5);
+      
+      currentY += 30;
+      
+      // Create statistics boxes with enhanced styling
       const stats = [
-        { label: 'Word Count', value: lyricsText.split(/\s+/).filter(word => word.length > 0).length, color: [255, 165, 0] },
-        { label: 'Character Count', value: lyricsText.length, color: [255, 140, 0] },
-        { label: 'Line Count', value: lyricsText.split('\n').filter(line => line.trim().length > 0).length, color: [255, 120, 0] },
-        { label: 'Unique Words', value: new Set(lyricsText.toLowerCase().split(/\s+/).filter(word => word.length > 0)).size, color: [255, 100, 0] }
+        { label: 'Word Count', value: lyricsText.split(/\s+/).filter(word => word.length > 0).length, color: [59, 130, 246] },
+        { label: 'Character Count', value: lyricsText.length, color: [255, 165, 0] },
+        { label: 'Line Count', value: lyricsText.split('\n').filter(line => line.trim().length > 0).length, color: [34, 197, 94] },
+        { label: 'Unique Words', value: new Set(lyricsText.toLowerCase().split(/\s+/).filter(word => word.length > 0)).size, color: [168, 85, 247] }
       ];
       
       const boxWidth = (contentWidth - 30) / 4;
-      const boxHeight = 40;
+      const boxHeight = 50;
       
       stats.forEach((stat, index) => {
         const x = margin + (index * (boxWidth + 10));
         const y = currentY;
         
-        // Box background
+        // Enhanced box background with gradient effect
         pdf.setFillColor(stat.color[0], stat.color[1], stat.color[2], 0.1);
         pdf.rect(x, y, boxWidth, boxHeight, 'F');
         
-        // Border
+        // Enhanced border
         pdf.setDrawColor(stat.color[0], stat.color[1], stat.color[2]);
-        pdf.setLineWidth(0.5);
+        pdf.setLineWidth(1.5);
         pdf.rect(x, y, boxWidth, boxHeight, 'S');
         
-        // Text
-        pdf.setFontSize(18);
-        pdf.setTextColor(stat.color[0], stat.color[1], stat.color[2]);
-        pdf.text(stat.value.toString(), x + boxWidth/2, y + 15, { align: 'center' });
+        // Add inner border
+        pdf.setDrawColor(stat.color[0], stat.color[1], stat.color[2], 0.3);
+        pdf.setLineWidth(0.5);
+        pdf.rect(x + 2, y + 2, boxWidth - 4, boxHeight - 4, 'S');
         
-        pdf.setFontSize(10);
+        // Value text with enhanced styling
+        pdf.setFontSize(20);
+        pdf.setTextColor(stat.color[0], stat.color[1], stat.color[2]);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(stat.value.toString(), x + boxWidth/2, y + 20, { align: 'center' });
+        
+        // Label text
+        pdf.setFontSize(11);
         pdf.setTextColor(107, 114, 128);
-        pdf.text(stat.label, x + boxWidth/2, y + 30, { align: 'center' });
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(stat.label, x + boxWidth/2, y + 35, { align: 'center' });
       });
       
       currentY += 60;
       
-      // Lyrics Content Section
-      pdf.setFontSize(20);
-      pdf.setTextColor(255, 165, 0); // Orange
+      // Lyrics Content Section with enhanced styling
+      pdf.setFontSize(22);
+      pdf.setTextColor(59, 130, 246); // Blue
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Lyrics Content', margin, currentY);
-      currentY += 25;
       
-      // Lyrics box
+      // Add underline
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.line(margin, currentY + 5, margin + 70, currentY + 5);
+      
+      currentY += 30;
+      
+      // Enhanced lyrics box
       pdf.setFillColor(248, 250, 252);
       pdf.rect(margin, currentY, contentWidth, 120, 'F');
-      pdf.setDrawColor(226, 232, 240);
-      pdf.setLineWidth(0.5);
+      
+      // Enhanced border
+      pdf.setDrawColor(59, 130, 246);
+      pdf.setLineWidth(1.5);
       pdf.rect(margin, currentY, contentWidth, 120, 'S');
       
-      // Lyrics text
+      // Inner border
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin + 3, currentY + 3, contentWidth - 6, 114, 'S');
+      
+      // Lyrics text with proper encoding
       pdf.setFontSize(11);
       pdf.setTextColor(55, 65, 81);
       const maxWidth = contentWidth - 20;
-      const lyricsLines = pdf.splitTextToSize(lyricsText || 'No lyrics provided', maxWidth);
+      // Clean lyrics text to avoid encoding issues
+      const cleanLyricsText = (lyricsText || 'No lyrics provided')
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+        .replace(/[^\w\s.,!?;:'"()-]/g, ''); // Keep only safe characters
+      const lyricsLines = pdf.splitTextToSize(cleanLyricsText, maxWidth);
       
       // Limit lyrics to fit in the box
       const maxLines = Math.floor(110 / 6); // Approximate line height
@@ -324,25 +436,38 @@ const LyricsAnalysis = () => {
       // ===== PAGE 3: DETAILED ANALYSIS =====
       pdf.addPage();
       
-      // Header
-      pdf.setFillColor(255, 165, 0); // Orange
-      pdf.rect(0, 0, pageWidth, 40, 'F');
+      // Header with enhanced styling
+      pdf.setFillColor(59, 130, 246); // Blue header
+      pdf.rect(0, 0, pageWidth, 50, 'F');
       
-      pdf.setFontSize(24);
+      // Add gradient effect to header
+      pdf.setFillColor(255, 165, 0, 0.2);
+      pdf.rect(0, 0, pageWidth, 50, 'F');
+      
+      pdf.setFontSize(28);
       pdf.setTextColor(255, 255, 255);
-      pdf.text('songIQ', margin, 25);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('songIQ', margin, 30);
       
-      pdf.setFontSize(14);
+      pdf.setFontSize(16);
       pdf.setTextColor(255, 255, 255, 0.9);
-      pdf.text('Detailed Analysis', pageWidth - margin, 25, { align: 'right' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Detailed Analysis', pageWidth - margin, 30, { align: 'right' });
       
-      currentY = 60;
+      currentY = 70;
       
-      // Sentiment Analysis Section
-      pdf.setFontSize(20);
-      pdf.setTextColor(255, 165, 0); // Orange
+      // Sentiment Analysis Section with enhanced styling
+      pdf.setFontSize(22);
+      pdf.setTextColor(59, 130, 246); // Blue
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Sentiment Analysis', margin, currentY);
-      currentY += 25;
+      
+      // Add underline
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.line(margin, currentY + 5, margin + 90, currentY + 5);
+      
+      currentY += 30;
       
       // Sentiment visualization (if analysis data exists)
       if (analysis) {
@@ -390,11 +515,18 @@ const LyricsAnalysis = () => {
         currentY += 25;
       }
       
-      // Themes Section
-      pdf.setFontSize(20);
-      pdf.setTextColor(255, 165, 0); // Orange
+      // Themes Section with enhanced styling
+      pdf.setFontSize(22);
+      pdf.setTextColor(59, 130, 246); // Blue
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Detected Themes', margin, currentY);
-      currentY += 25;
+      
+      // Add underline
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.line(margin, currentY + 5, margin + 80, currentY + 5);
+      
+      currentY += 30;
       
       if (analysis && analysis.themes.length > 0) {
         pdf.setFontSize(12);
@@ -427,11 +559,18 @@ const LyricsAnalysis = () => {
         currentY += 25;
       }
       
-      // Complexity Analysis Section
-      pdf.setFontSize(20);
-      pdf.setTextColor(255, 165, 0); // Orange
+      // Complexity Analysis Section with enhanced styling
+      pdf.setFontSize(22);
+      pdf.setTextColor(59, 130, 246); // Blue
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Complexity Analysis', margin, currentY);
-      currentY += 25;
+      
+      // Add underline
+      pdf.setDrawColor(255, 165, 0);
+      pdf.setLineWidth(2);
+      pdf.line(margin, currentY + 5, margin + 100, currentY + 5);
+      
+      currentY += 30;
       
       if (analysis) {
         const complexityData = [
@@ -705,7 +844,7 @@ const LyricsAnalysis = () => {
             {/* File Upload */}
             <div className="space-y-2">
               <label htmlFor="lyricsFile" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Upload Lyrics File (Requires Sign Up)
+                Upload Lyrics File {!isAuthenticated && "(Requires Sign Up)"}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -718,11 +857,13 @@ const LyricsAnalysis = () => {
                   id="lyricsFile"
                   onChange={handleFileChange}
                   accept=".txt,.lrc,.srt"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-300"
+                  disabled={!isAuthenticated}
+                  className={`w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-300 ${!isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Supported formats: .txt, .lrc, .srt (max 5MB) - <span className="text-blue-600 dark:text-blue-400">Sign up required for file uploads</span>
+                Supported formats: .txt, .lrc, .srt (max 5MB) {!isAuthenticated && '- '}
+                {!isAuthenticated && <span className="text-blue-600 dark:text-blue-400">Sign up required for file uploads</span>}
               </p>
             </div>
 

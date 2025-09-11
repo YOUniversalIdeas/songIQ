@@ -28,7 +28,7 @@ async function testPhase3Emails() {
     console.log('📧 Test 2: Welcome Series - Day 1');
     const welcomeDay1Result = await sendWelcomeSeriesDay1Email({
       userName: 'Test User',
-      baseUrl: 'http://localhost:3000',
+      baseUrl: 'http://localhost:3001',
       email: testEmail
     });
     console.log(`Welcome Day 1 email result: ${welcomeDay1Result}\n`);
@@ -37,7 +37,7 @@ async function testPhase3Emails() {
     console.log('📧 Test 3: Welcome Series - Day 3');
     const welcomeDay3Result = await sendWelcomeSeriesDay3Email({
       userName: 'Test User',
-      baseUrl: 'http://localhost:3000',
+      baseUrl: 'http://localhost:3001',
       email: testEmail
     });
     console.log(`Welcome Day 3 email result: ${welcomeDay3Result}\n`);
@@ -46,7 +46,7 @@ async function testPhase3Emails() {
     console.log('📧 Test 4: Welcome Series - Day 7');
     const welcomeDay7Result = await sendWelcomeSeriesDay7Email({
       userName: 'Test User',
-      baseUrl: 'http://localhost:3000',
+      baseUrl: 'http://localhost:3001',
       email: testEmail
     });
     console.log(`Welcome Day 7 email result: ${welcomeDay7Result}\n`);
@@ -55,11 +55,11 @@ async function testPhase3Emails() {
     console.log('📧 Test 5: Feature Announcement');
     const featureAnnouncementResult = await sendFeatureAnnouncementEmail({
       userName: 'Test User',
-      baseUrl: 'http://localhost:3000',
+      baseUrl: 'http://localhost:3001',
       email: testEmail,
       featureName: 'AI Genre Fusion',
       featureDescription: 'Our new AI-powered feature that analyzes how well your song blends different genres and suggests optimal genre combinations for maximum market appeal.',
-      featureUrl: 'http://localhost:3000/features/ai-genre-fusion',
+      featureUrl: 'http://localhost:3001/features/ai-genre-fusion',
       featureBenefits: [
         'Identify genre crossover potential',
         'Optimize genre blending for target audiences',
@@ -73,7 +73,7 @@ async function testPhase3Emails() {
     console.log('📧 Test 6: Usage Tips');
     const usageTipsResult = await sendUsageTipsEmail({
       userName: 'Test User',
-      baseUrl: 'http://localhost:3000',
+      baseUrl: 'http://localhost:3001',
       email: testEmail,
       tipCategory: 'Advanced Analysis',
       tips: [
@@ -82,7 +82,7 @@ async function testPhase3Emails() {
         'Set up automated analysis for new uploads',
         'Leverage market insights for release timing'
       ],
-      tipsUrl: 'http://localhost:3000/resources/advanced-analysis',
+      tipsUrl: 'http://localhost:3001/resources/advanced-analysis',
       proTipTitle: 'Batch Analysis Strategy',
       proTipDescription: 'Upload multiple songs at once to identify patterns across your catalog. This helps you understand your unique sound signature and areas for improvement.'
     });
@@ -92,7 +92,7 @@ async function testPhase3Emails() {
     console.log('📧 Test 7: Re-engagement Campaign');
     const reEngagementResult = await sendReEngagementEmail({
       userName: 'Test User',
-      baseUrl: 'http://localhost:3000',
+      baseUrl: 'http://localhost:3001',
       email: testEmail
     });
     console.log(`Re-engagement email result: ${reEngagementResult}\n`);

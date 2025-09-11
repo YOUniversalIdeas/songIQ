@@ -60,7 +60,7 @@ export const sendSubscriptionChangeEmail = async (
   amount: string,
   effectiveDate: string
 ): Promise<boolean> => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
   if (isPlanUpgrade(oldPlan, newPlan)) {
     // Send upgrade email
@@ -101,7 +101,7 @@ export const sendPaymentSuccessEmailLocal = async (
   plan: string,
   transactionId: string
 ): Promise<boolean> => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
   const paymentData: EmailTemplateData = {
     userName,
@@ -125,7 +125,7 @@ export const sendPaymentFailedEmailLocal = async (
   plan: string,
   failureReason?: string
 ): Promise<boolean> => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
   const paymentData: EmailTemplateData = {
     userName,
@@ -170,7 +170,7 @@ export const sendCancellationEmail = async (
   // For now, we'll use the downgrade template
   return await sendSubscriptionDowngradeEmail({
     userName,
-    baseUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    baseUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
     email: userEmail,
     oldPlan: plan.charAt(0).toUpperCase() + plan.slice(1),
     newPlan: 'Free',

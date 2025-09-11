@@ -1,31 +1,280 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { TrendingUp, Upload, BarChart3, Target, Users } from 'lucide-react'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { TrendingUp, Upload, BarChart3, Target, Users, CheckCircle } from 'lucide-react'
 import AnalysisDashboard from '../components/AnalysisDashboard'
 import ResultsVisualization from '../components/ResultsVisualization'
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api'
+import { useAuth } from '../components/AuthProvider'
+import { getStoredToken } from '../utils/auth'
 
 const DashboardPage = () => {
   const { songId } = useParams<{ songId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const { user, refreshUserData } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
+  const [upgradeSuccess, setUpgradeSuccess] = useState(false)
+  const [refreshingSubscription, setRefreshingSubscription] = useState(false)
+
+  // Function to manually refresh subscription data
+  const handleRefreshSubscription = async () => {
+    setRefreshingSubscription(true);
+    try {
+      const response = await fetch('/api/auth/refresh-subscription', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getStoredToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Refresh user data to get the updated subscription info
+        await refreshUserData();
+        alert('Subscription data refreshed successfully! Please refresh the page to see the updated credits.');
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        console.error('Error refreshing subscription:', errorData);
+        alert('Error refreshing subscription: ' + (errorData.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error refreshing subscription:', error);
+      alert('Error refreshing subscription: ' + error);
+    } finally {
+      setRefreshingSubscription(false);
+    }
+  };
 
   // TODO: Replace with actual API call to fetch song data
   const [songData, setSongData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // If no songId is provided, show empty state immediately
-    if (!songId) {
+  const fetchMostRecentSong = async () => {
+    try {
+      // Check if we're in the middle of a payment upgrade - don't redirect during this
+      const upgrade = searchParams.get('upgrade');
+      const sessionId = searchParams.get('session_id');
+      if (upgrade === 'success' && sessionId) {
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/user-activity/submissions`, {
+        headers: {
+          'Authorization': `Bearer ${getStoredToken()}`
+        }
+      })
+      
+      if (response.ok) {
+        const submissions = await response.json()
+        
+        // Find the most recent completed analysis
+        const mostRecentCompleted = submissions.find((submission: any) => 
+          submission.status === 'completed' && submission.analysisId
+        )
+        
+        if (mostRecentCompleted) {
+          // Redirect to dashboard with the most recent song ID
+          navigate(`/dashboard/${mostRecentCompleted.id}`, { replace: true })
+          return
+        }
+        
+        // If no completed analysis found, check if user has any songs at all
+        if (submissions.length > 0) {
+          // User has songs but no completed analysis, redirect to upload page
+          navigate('/upload', { replace: true })
+          return
+        }
+      }
+      
+      // If no songs at all, show empty state with upload prompt
       setIsLoading(false)
+    } catch (err) {
+      console.error('Error fetching most recent song:', err)
+      // On error, show empty state
+      setIsLoading(false)
+    }
+  }
+
+  // Handle upgrade success from Stripe checkout
+  useEffect(() => {
+    const upgrade = searchParams.get('upgrade');
+    const sessionId = searchParams.get('session_id');
+    
+    if (upgrade === 'success' && sessionId) {
+      setUpgradeSuccess(true);
+      
+      // Update subscription and refresh user data with debouncing
+      const updateSubscription = async () => {
+        try {
+          // Add a delay to prevent rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Refresh user data to get updated subscription info
+          // Wrap in try-catch to prevent any errors from affecting the user experience
+          try {
+            await refreshUserData();
+            
+            // Also call the manual refresh endpoint to ensure subscription data is updated
+            try {
+              const response = await fetch('/api/auth/refresh-subscription', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${getStoredToken()}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                // Refresh user data again to get the updated subscription info
+                await refreshUserData();
+              }
+            } catch (manualRefreshError) {
+              console.error('Error with manual subscription refresh:', manualRefreshError);
+              // Don't show error to user, just log it
+            }
+          } catch (refreshError) {
+            console.error('Error refreshing user data after payment:', refreshError);
+            // Don't show error to user, just log it - the payment was successful
+          }
+          
+          // Add another delay to ensure user data is fully processed
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Clean up URL parameters
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+          
+          
+          // Now that payment is complete, show success message instead of redirecting
+          setIsLoading(false);
+          setUpgradeSuccess(true);
+        } catch (error) {
+          console.error('Error updating subscription:', error);
+          // Don't show error to user, just log it
+        }
+      };
+      
+      updateSubscription();
+    }
+  }, [searchParams, refreshUserData]);
+
+  useEffect(() => {
+    // Check if we have analysis results from navigation state first
+    if (location.state?.analysisResults) {
+      
+      // Transform the analysis results to match what AnalysisDashboard expects
+      const transformedData = {
+        id: songId || 'uploaded-song',
+        title: location.state.songInfo?.title || 'Your Uploaded Song',
+        artist: location.state.songInfo?.artist || 'Unknown Artist',
+        genre: location.state.songInfo?.genre || 'Pop',
+        duration: 180, // Default duration
+        uploadDate: new Date().toISOString().split('T')[0],
+        audioFeatures: location.state.analysisResults.audioFeatures || {},
+        waveformData: null,
+        successScore: {
+          overallScore: location.state.analysisResults.successPrediction?.score || 0,
+          confidence: location.state.analysisResults.successPrediction?.confidence || 0,
+          breakdown: {
+            audioFeatures: location.state.analysisResults.audioFeatures?.energy ? Math.round(location.state.analysisResults.audioFeatures.energy * 100) : 0,
+            marketTrends: 75,
+            genreAlignment: 85,
+            seasonalFactors: 80
+          },
+          recommendations: location.state.analysisResults.successPrediction?.recommendations?.map((rec: any, index: number) => ({
+            category: 'general',
+            priority: index === 0 ? 'high' : 'medium',
+            title: rec.title || rec,
+            description: rec.description || rec,
+            impact: 80 - (index * 10),
+            implementation: 'Immediate action recommended'
+          })) || [],
+          riskFactors: ['Market saturation', 'Seasonal timing'],
+          marketPotential: location.state.analysisResults.successPrediction?.marketPotential || 0,
+          socialScore: location.state.analysisResults.successPrediction?.score ? Math.round(location.state.analysisResults.successPrediction.score * 0.9) : 0
+        }
+      }
+      
+      setSongData(transformedData)
+      setIsLoading(false)
+      return
+    }
+
+    // Check for pending analysis results in localStorage (from auth gate flow)
+    const pendingAnalysis = localStorage.getItem('songiq_pending_analysis')
+    if (pendingAnalysis) {
+      try {
+        const analysisData = JSON.parse(pendingAnalysis)
+        
+        // Transform the analysis results to match what AnalysisDashboard expects
+        const transformedData = {
+          id: analysisData.songId || songId || 'uploaded-song',
+          title: analysisData.songInfo?.title || 'Your Uploaded Song',
+          artist: analysisData.songInfo?.artist || 'Unknown Artist',
+          genre: analysisData.songInfo?.genre || 'Pop',
+          duration: 180, // Default duration
+          uploadDate: new Date().toISOString().split('T')[0],
+          audioFeatures: analysisData.analysisResults.audioFeatures || {},
+          waveformData: null,
+          successScore: {
+            overallScore: analysisData.analysisResults.successPrediction?.score || 0,
+            confidence: analysisData.analysisResults.successPrediction?.confidence || 0,
+            breakdown: {
+              audioFeatures: analysisData.analysisResults.audioFeatures?.energy ? Math.round(analysisData.analysisResults.audioFeatures.energy * 100) : 0,
+              marketTrends: 75,
+              genreAlignment: 85,
+              seasonalFactors: 80
+            },
+            recommendations: analysisData.analysisResults.successPrediction?.recommendations?.map((rec: any, index: number) => ({
+              category: 'general',
+              priority: index === 0 ? 'high' : 'medium',
+              title: rec.title || rec,
+              description: rec.description || rec,
+              impact: 80 - (index * 10),
+              implementation: 'Immediate action recommended'
+            })) || [],
+            riskFactors: ['Market saturation', 'Seasonal timing'],
+            marketPotential: analysisData.analysisResults.successPrediction?.marketPotential || 0,
+            socialScore: analysisData.analysisResults.successPrediction?.score ? Math.round(analysisData.analysisResults.successPrediction.score * 0.9) : 0
+          }
+        }
+        setSongData(transformedData)
+        setIsLoading(false)
+        
+        // Clear the pending analysis data since we've used it
+        localStorage.removeItem('songiq_pending_analysis')
+        return
+      } catch (error) {
+        console.error('Error parsing pending analysis data:', error)
+        // Clear invalid data
+        localStorage.removeItem('songiq_pending_analysis')
+      }
+    }
+
+    // If no songId is provided, try to get user's most recent song
+    // But don't redirect if we're showing upgrade success message
+    if (!songId) {
+      // Check if we're showing upgrade success - if so, don't fetch songs
+      const upgrade = searchParams.get('upgrade');
+      const sessionId = searchParams.get('session_id');
+      if (upgrade === 'success' && sessionId) {
+        setIsLoading(false);
+        return;
+      }
+      
+      fetchMostRecentSong()
       return
     }
 
     const fetchSongData = async () => {
       try {
         // First fetch song metadata (title, artist, duration, etc.)
-        console.log('Fetching song metadata for song:', songId)
-        const songResponse = await fetch(`/api/songs/public/${songId}`)
-        console.log('Song response status:', songResponse.status)
+        const songResponse = await fetch(`${API_BASE_URL}/api/songs/public/${songId}`)
         
         if (!songResponse.ok) {
           const errorText = await songResponse.text()
@@ -43,9 +292,7 @@ const DashboardPage = () => {
         }
 
         // Then fetch analysis results
-        console.log('Fetching analysis results for song:', songId)
-        const analysisResponse = await fetch(`/api/analysis/results/${songId}`)
-        console.log('Analysis response status:', analysisResponse.status)
+        const analysisResponse = await fetch(`${API_BASE_URL}/api/analysis/results/${songId}`)
         
         if (!analysisResponse.ok) {
           const errorText = await analysisResponse.text()
@@ -94,19 +341,6 @@ const DashboardPage = () => {
             socialScore: analysisData.results.successPrediction?.score ? Math.round(analysisData.results.successPrediction.score * 0.9) : 0
           }
         }
-        
-        console.log('Song metadata received:', songData.data)
-        console.log('Analysis data received:', analysisData.results)
-        console.log('Transformed data for AnalysisDashboard:', transformedData)
-        console.log('Key fields:', {
-          title: transformedData.title,
-          artist: transformedData.artist,
-          genre: transformedData.genre,
-          duration: transformedData.duration,
-          overallScore: transformedData.successScore.overallScore,
-          marketPotential: transformedData.successScore.marketPotential,
-          socialScore: transformedData.successScore.socialScore
-        })
         
         // Validate that we have the minimum required data
         if (!analysisData.results.successPrediction?.score) {
@@ -162,13 +396,18 @@ const DashboardPage = () => {
     }
 
     fetchSongData()
-  }, [songId])
+  }, [songId, location.state])
 
-  // Empty state when no song is selected
-  if (!songId) {
+  // Scroll to top when component mounts or when songData changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+  }, [songData])
+
+  // Empty state when no song is selected, no songData, and we've checked for recent songs
+  if (!songId && !songData && !isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="text-center">
             <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <BarChart3 className="w-12 h-12 text-white" />
@@ -297,6 +536,38 @@ const DashboardPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 p-6">
+      {/* Upgrade Success Message */}
+      {upgradeSuccess && (
+        <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-6 mb-8">
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-8 h-8 text-green-400" />
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-green-300 mb-2">
+                🎉 Subscription Upgraded Successfully!
+              </h3>
+              <p className="text-green-200">
+                Your subscription has been upgraded and you now have access to enhanced features. 
+                You can continue analyzing songs with your new plan benefits.
+              </p>
+              <div className="mt-4">
+                <button
+                  onClick={() => navigate('/upload')}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 mr-4"
+                >
+                  Analyze New Song
+                </button>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+                >
+                  View Plan Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center">

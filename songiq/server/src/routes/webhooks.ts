@@ -133,6 +133,15 @@ async function handleSubscriptionCreated(subscription: any) {
       else if (priceId.includes('enterprise')) planType = 'enterprise';
     }
 
+    // Get song limit for the plan
+    const songLimits: Record<string, number> = {
+      free: 3,
+      basic: 10,
+      pro: 100,
+      enterprise: -1 // -1 = unlimited
+    };
+    const songLimit = songLimits[planType] || 0;
+
     // Update user subscription
     await User.findByIdAndUpdate(userId, {
       'subscription.plan': planType,
@@ -141,7 +150,13 @@ async function handleSubscriptionCreated(subscription: any) {
       'subscription.status': subscription.status,
       'subscription.startDate': new Date(subscription.current_period_start * 1000),
       'subscription.endDate': new Date(subscription.current_period_end * 1000),
-      'subscription.features': getFeaturesForPlan(planType)
+      'subscription.features': getFeaturesForPlan(planType),
+      'songLimit': songLimit,
+      'remainingSongs': songLimit === -1 ? -1 : songLimit, // Reset remaining songs to full limit
+      // Reset usage when upgrading plans - give them the full new plan allowance
+      'subscription.usage.songsAnalyzed': 0,
+      'subscription.usage.currentPeriodStart': new Date(),
+      'subscription.usage.currentPeriodEnd': new Date(subscription.current_period_end * 1000)
     });
 
     console.log(`Subscription created for user ${userId}: ${subscription.id}`);
@@ -172,12 +187,27 @@ async function handleSubscriptionUpdated(subscription: any) {
       else if (priceId.includes('enterprise')) planType = 'enterprise';
     }
 
+    // Get song limit for the plan
+    const songLimits: Record<string, number> = {
+      free: 3,
+      basic: 10,
+      pro: 100,
+      enterprise: -1 // -1 = unlimited
+    };
+    const songLimit = songLimits[planType] || 0;
+
     // Update user subscription
     await User.findByIdAndUpdate(userId, {
       'subscription.plan': planType,
       'subscription.status': subscription.status,
       'subscription.endDate': new Date(subscription.current_period_end * 1000),
-      'subscription.features': getFeaturesForPlan(planType)
+      'subscription.features': getFeaturesForPlan(planType),
+      'songLimit': songLimit,
+      'remainingSongs': songLimit === -1 ? -1 : songLimit, // Reset remaining songs to full limit
+      // Reset usage when upgrading plans - give them the full new plan allowance
+      'subscription.usage.songsAnalyzed': 0,
+      'subscription.usage.currentPeriodStart': new Date(),
+      'subscription.usage.currentPeriodEnd': new Date(subscription.current_period_end * 1000)
     });
 
     console.log(`Subscription updated for user ${userId}: ${subscription.id}`);

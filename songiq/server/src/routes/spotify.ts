@@ -255,14 +255,14 @@ router.post('/analyze', authenticateToken, async (req, res) => {
       });
     }
 
-    if (!user.canAnalyzeSong()) {
+    if (!(await user.canAnalyzeSong())) {
       return res.status(403).json({
         success: false,
         error: 'Song analysis limit reached',
         details: `You have reached your limit of ${user.getSongLimit()} songs for your ${user.subscription.plan} plan. Please upgrade to analyze more songs.`,
         currentUsage: user.subscription.usage.songsAnalyzed,
         songLimit: user.getSongLimit(),
-        remainingSongs: user.getRemainingSongs()
+        remainingSongs: await user.getRemainingSongs()
       });
     }
 

@@ -19,6 +19,8 @@ export interface IUser extends Document {
   emailVerificationExpires?: Date;
   smsVerificationCode?: string;
   smsVerificationExpires?: Date;
+  smsVerificationInitiated?: boolean;
+  smsVerificationServiceSid?: string;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   spotifyToken?: string;
@@ -65,10 +67,10 @@ export interface IUser extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
   getFullName(): string;
   isSubscriptionActive(): boolean;
-  canAnalyzeSong(): boolean;
+  canAnalyzeSong(): Promise<boolean>;
   getSongLimit(): number;
-  getRemainingSongs(): number;
-  resetUsageIfNeeded(): void;
+  getRemainingSongs(): Promise<number>;
+  resetUsageIfNeeded(): Promise<void>;
   generateEmailVerificationToken(): string;
   isEmailVerificationExpired(): boolean;
   generateSMSVerificationCode(): string;
@@ -193,6 +195,14 @@ const UserSchema = new Schema<IUser>({
   },
   smsVerificationExpires: {
     type: Date,
+    default: null
+  },
+  smsVerificationInitiated: {
+    type: Boolean,
+    default: false
+  },
+  smsVerificationServiceSid: {
+    type: String,
     default: null
   },
   passwordResetToken: {
@@ -392,23 +402,23 @@ UserSchema.methods.getSongLimit = function(): number {
 };
 
 // Instance method to check if user can analyze another song
-UserSchema.methods.canAnalyzeSong = function(): boolean {
-  this.resetUsageIfNeeded();
+UserSchema.methods.canAnalyzeSong = async function(): Promise<boolean> {
+  await this.resetUsageIfNeeded();
   const limit = this.getSongLimit();
   if (limit === -1) return true; // unlimited
   return this.subscription.usage.songsAnalyzed < limit;
 };
 
 // Instance method to get remaining songs
-UserSchema.methods.getRemainingSongs = function(): number {
-  this.resetUsageIfNeeded();
+UserSchema.methods.getRemainingSongs = async function(): Promise<number> {
+  await this.resetUsageIfNeeded();
   const limit = this.getSongLimit();
   if (limit === -1) return -1; // unlimited
   return Math.max(0, limit - this.subscription.usage.songsAnalyzed);
 };
 
 // Instance method to reset usage if billing period has ended
-UserSchema.methods.resetUsageIfNeeded = function(): void {
+UserSchema.methods.resetUsageIfNeeded = async function(): Promise<void> {
   const now = new Date();
   if (now > this.subscription.usage.currentPeriodEnd) {
     this.subscription.usage.songsAnalyzed = 0;
@@ -418,6 +428,9 @@ UserSchema.methods.resetUsageIfNeeded = function(): void {
     const nextPeriodEnd = new Date(now);
     nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
     this.subscription.usage.currentPeriodEnd = nextPeriodEnd;
+    
+    // Save the changes to the database
+    await this.save();
   }
 };
 
@@ -468,17 +481,21 @@ UserSchema.methods.isPasswordResetExpired = function(): boolean {
 
 // Pre-save middleware to hash password
 UserSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
-  
-  try {
-    // Hash password with cost of 12
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
+  // Always hash the password if it's a new user or if password is modified
+  if (this.isNew || this.isModified('password')) {
+    try {
+      // Check if password is already hashed
+      if (this.password.startsWith('$2b$')) {
+        return next();
+      }
+      // Hash password with cost of 12
+      const salt = await bcrypt.genSalt(12);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error) {
+      return next(error as Error);
+    }
   }
+  next();
 });
 
 // Pre-save middleware for validation

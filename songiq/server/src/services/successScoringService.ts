@@ -16,7 +16,7 @@ export interface SuccessScoreResult {
 }
 
 export interface Recommendation {
-  category: 'audio' | 'market' | 'timing' | 'genre';
+  category: 'production' | 'marketing' | 'distribution' | 'performance' | 'arrangement' | 'genre' | 'audience' | 'timing';
   priority: 'high' | 'medium' | 'low';
   title: string;
   description: string;
@@ -126,7 +126,8 @@ export async function calculateSuccessScore(
   audioFeatures: Partial<IAudioFeatures>,
   genre?: string,
   releaseDate?: Date,
-  marketTrends?: MarketTrends
+  marketTrends?: MarketTrends,
+  isReleased?: boolean
 ): Promise<SuccessScoreResult> {
   try {
     // Default genre if not provided
@@ -156,8 +157,8 @@ export async function calculateSuccessScore(
     // Calculate confidence based on data completeness
     const confidence = calculateConfidence(audioFeatures, genre, marketTrends);
     
-    // Generate recommendations
-    const recommendations = generateRecommendations(audioFeatures, targetGenre, overallScore);
+    // Generate recommendations based on release status
+    const recommendations = generateRecommendations(audioFeatures, targetGenre, overallScore, isReleased);
     
     // Identify risk factors
     const riskFactors = identifyRiskFactors(audioFeatures, targetGenre);
@@ -425,74 +426,371 @@ function calculateConfidence(
 }
 
 /**
- * Generate recommendations for improvement
+ * Generate comprehensive recommendations for improvement
  */
 function generateRecommendations(
   features: Partial<IAudioFeatures>,
   genre: string,
-  currentScore: number
+  currentScore: number,
+  isReleased?: boolean
 ): Recommendation[] {
   const recommendations: Recommendation[] = [];
   
-  // Audio feature recommendations
-  if (features.danceability !== undefined && features.danceability < OPTIMAL_RANGES.danceability.min) {
-    recommendations.push({
-      category: 'audio',
-      priority: 'high',
-      title: 'Increase Danceability',
-      description: `Current danceability (${features.danceability.toFixed(2)}) is below optimal range. Consider adding more rhythmic elements or adjusting the beat structure.`,
-      impact: 15,
-      implementation: 'Add stronger rhythmic patterns, syncopation, or dance-oriented production elements.'
-    });
+  // === PRODUCTION RECOMMENDATIONS ===
+  // Only provide production recommendations for unreleased songs
+  
+  if (!isReleased) {
+    // Danceability analysis
+    if (features.danceability !== undefined) {
+      if (features.danceability < 0.4) {
+        recommendations.push({
+          category: 'production',
+          priority: 'high',
+          title: 'Dramatically Increase Danceability',
+          description: `Current danceability (${features.danceability.toFixed(2)}) is very low. This severely limits streaming potential and playlist inclusion.`,
+          impact: 25,
+          implementation: 'Add strong 4/4 kick pattern, syncopated hi-hats, bass drops on beat 1, and consider adding a dance break or build-up section.'
+        });
+      } else if (features.danceability < 0.6) {
+        recommendations.push({
+          category: 'production',
+          priority: 'medium',
+          title: 'Enhance Danceability',
+          description: `Current danceability (${features.danceability.toFixed(2)}) could be improved for better club and streaming appeal.`,
+          impact: 15,
+          implementation: 'Add more rhythmic elements: sidechain compression, percussive fills, and ensure the kick pattern is prominent and consistent.'
+        });
+      } else if (features.danceability > 0.9) {
+        recommendations.push({
+          category: 'production',
+          priority: 'low',
+          title: 'Consider More Subtle Rhythms',
+          description: `Very high danceability (${features.danceability.toFixed(2)}) might limit radio play and broader appeal.`,
+          impact: 5,
+          implementation: 'Consider adding more melodic elements or reducing the intensity of the beat in certain sections.'
+        });
+      }
+    }
+  } else {
+    // For released songs, provide analysis insights instead of production recommendations
+    if (features.danceability !== undefined) {
+      if (features.danceability < 0.4) {
+        recommendations.push({
+          category: 'performance',
+          priority: 'medium',
+          title: 'Danceability Analysis - Low Score',
+          description: `Your song's danceability (${features.danceability.toFixed(2)}) is below optimal range. This may explain limited playlist inclusion and streaming performance.`,
+          impact: 10,
+          implementation: 'Consider this insight for future releases. Focus on marketing strategies that don\'t rely on danceability (acoustic versions, live performances, etc.).'
+        });
+      } else if (features.danceability > 0.9) {
+        recommendations.push({
+          category: 'performance',
+          priority: 'low',
+          title: 'Danceability Analysis - High Score',
+          description: `Your song's high danceability (${features.danceability.toFixed(2)}) likely contributed to its success. This is a strength to build upon.`,
+          impact: 5,
+          implementation: 'Leverage this strength in marketing materials and consider similar production approaches for future releases.'
+        });
+      }
+    }
   }
   
-  if (features.energy !== undefined && features.energy < OPTIMAL_RANGES.energy.min) {
-    recommendations.push({
-      category: 'audio',
-      priority: 'medium',
-      title: 'Boost Energy Level',
-      description: `Current energy (${features.energy.toFixed(2)}) could be increased for better market appeal.`,
-      impact: 12,
-      implementation: 'Add more dynamic elements, increase instrumental intensity, or enhance production energy.'
-    });
+  // Energy analysis
+  if (features.energy !== undefined) {
+    if (!isReleased) {
+      // Production recommendations for unreleased songs
+      if (features.energy < 0.3) {
+        recommendations.push({
+          category: 'production',
+          priority: 'high',
+          title: 'Significantly Boost Energy',
+          description: `Very low energy (${features.energy.toFixed(2)}) will struggle to compete in today's high-energy music market.`,
+          impact: 22,
+          implementation: 'Add driving basslines, punchy drums, layered synths, and consider increasing the overall dynamic range. Add energy builds and drops.'
+        });
+      } else if (features.energy < 0.6) {
+        recommendations.push({
+          category: 'production',
+          priority: 'medium',
+          title: 'Increase Energy Level',
+          description: `Current energy (${features.energy.toFixed(2)}) could be enhanced for better streaming and radio performance.`,
+          impact: 12,
+          implementation: 'Layer more instruments, add harmonic content, increase compression, and ensure the chorus has significantly more energy than the verse.'
+        });
+      } else if (features.energy > 0.9) {
+        recommendations.push({
+          category: 'production',
+          priority: 'low',
+          title: 'Consider Dynamic Contrast',
+          description: `Very high energy (${features.energy.toFixed(2)}) throughout might be overwhelming. Consider adding quieter sections.`,
+          impact: 8,
+          implementation: 'Add breakdown sections, softer verses, or instrumental interludes to create more dynamic contrast.'
+        });
+      }
+    } else {
+      // Analysis insights for released songs
+      if (features.energy < 0.3) {
+        recommendations.push({
+          category: 'performance',
+          priority: 'medium',
+          title: 'Energy Analysis - Low Score',
+          description: `Your song's low energy (${features.energy.toFixed(2)}) may have limited its market appeal. This insight can inform future releases.`,
+          impact: 10,
+          implementation: 'Focus on marketing strategies that highlight the song\'s emotional depth rather than energy. Consider acoustic or stripped-down versions.'
+        });
+      } else if (features.energy > 0.9) {
+        recommendations.push({
+          category: 'performance',
+          priority: 'low',
+          title: 'Energy Analysis - High Score',
+          description: `Your song's high energy (${features.energy.toFixed(2)}) likely contributed to its success and streaming performance.`,
+          impact: 5,
+          implementation: 'This is a strength to leverage in marketing and consider for future releases.'
+        });
+      }
+    }
   }
   
+  // Tempo analysis
   if (features.tempo !== undefined) {
     const optimalTempo = OPTIMAL_RANGES.tempo.peak;
     const tempoDiff = Math.abs(features.tempo - optimalTempo);
-    if (tempoDiff > 20) {
+    
+    if (tempoDiff > 30) {
       recommendations.push({
-        category: 'audio',
+        category: 'production',
+        priority: 'high',
+        title: 'Optimize Tempo for Market',
+        description: `Current tempo (${features.tempo} BPM) is significantly outside the optimal range (${optimalTempo} BPM ±20). This affects streaming algorithms and playlist inclusion.`,
+        impact: 18,
+        implementation: `Consider adjusting to ${optimalTempo} BPM. If the current tempo is essential to the song's character, ensure the production compensates with stronger rhythmic elements.`
+      });
+    } else if (tempoDiff > 15) {
+      recommendations.push({
+        category: 'production',
         priority: 'medium',
-        title: 'Adjust Tempo',
-        description: `Current tempo (${features.tempo} BPM) is ${tempoDiff > 0 ? 'faster' : 'slower'} than optimal range.`,
+        title: 'Fine-tune Tempo',
+        description: `Current tempo (${features.tempo} BPM) is slightly outside optimal range. Small adjustments can improve streaming performance.`,
         impact: 10,
-        implementation: `Consider adjusting tempo to around ${optimalTempo} BPM for better market alignment.`
+        implementation: `Consider adjusting to ${optimalTempo} BPM or ensure the production elements strongly support the current tempo choice.`
       });
     }
   }
   
-  // Market timing recommendations
-  if (currentScore < 70) {
+  // Valence (mood) analysis
+  if (features.valence !== undefined) {
+    if (features.valence < 0.2) {
+      recommendations.push({
+        category: 'production',
+        priority: 'medium',
+        title: 'Consider Uplifting Elements',
+        description: `Very low valence (${features.valence.toFixed(2)}) creates a dark, melancholic mood that may limit mainstream appeal.`,
+        impact: 12,
+        implementation: 'Add major chord progressions, brighter instrumentation, or consider adding a more uplifting bridge or outro section.'
+      });
+    } else if (features.valence > 0.8) {
+      recommendations.push({
+        category: 'production',
+        priority: 'low',
+        title: 'Add Emotional Depth',
+        description: `Very high valence (${features.valence.toFixed(2)}) might lack emotional complexity for sustained listener engagement.`,
+        impact: 6,
+        implementation: 'Consider adding minor chord progressions, more complex harmonies, or contrasting sections with different emotional tones.'
+      });
+    }
+  }
+  
+  // Acousticness analysis
+  if (features.acousticness !== undefined) {
+    if (genre === 'pop' && features.acousticness > 0.5) {
+      recommendations.push({
+        category: 'production',
+        priority: 'medium',
+        title: 'Modernize Production for Pop Market',
+        description: `High acousticness (${features.acousticness.toFixed(2)}) in pop music may limit streaming and radio play.`,
+        impact: 15,
+        implementation: 'Add electronic elements, modern production techniques, and consider hybrid acoustic-electronic arrangements.'
+      });
+    } else if (genre === 'folk' && features.acousticness < 0.3) {
+      recommendations.push({
+        category: 'production',
+        priority: 'medium',
+        title: 'Embrace Acoustic Elements',
+        description: `Low acousticness (${features.acousticness.toFixed(2)}) may not align with folk genre expectations.`,
+        impact: 12,
+        implementation: 'Consider adding more acoustic instruments, natural reverb, and organic production techniques.'
+      });
+    }
+  }
+  
+  // === MARKETING RECOMMENDATIONS ===
+  
+  if (currentScore < 60) {
     recommendations.push({
-      category: 'timing',
+      category: 'marketing',
       priority: 'high',
-      title: 'Consider Release Timing',
-      description: 'Current score suggests timing could be optimized for better market reception.',
+      title: 'Focus on Niche Marketing Strategy',
+      description: 'With a lower overall score, target specific communities and platforms where your sound will resonate most.',
       impact: 20,
-      implementation: 'Analyze seasonal trends and consider releasing during peak periods for your genre.'
+      implementation: 'Identify 3-5 specific communities (Reddit, Discord, Facebook groups) that match your genre. Create content specifically for these audiences.'
+    });
+  } else if (currentScore < 80) {
+    recommendations.push({
+      category: 'marketing',
+      priority: 'medium',
+      title: 'Build Momentum Before Major Release',
+      description: 'Your track has potential but needs strategic marketing to maximize impact.',
+      impact: 15,
+      implementation: 'Release teasers 2-3 weeks before, build anticipation on social media, and consider collaborating with micro-influencers in your genre.'
+    });
+  } else {
+    recommendations.push({
+      category: 'marketing',
+      priority: 'high',
+      title: 'Aggressive Mainstream Marketing Push',
+      description: 'High-scoring track ready for major marketing investment and playlist pitching.',
+      impact: 25,
+      implementation: 'Submit to major playlists, invest in paid promotion, reach out to music blogs, and consider hiring a PR firm for maximum exposure.'
     });
   }
   
-  // Genre-specific recommendations
-  if (genre === 'pop' && features.acousticness && features.acousticness > 0.3) {
+  // === DISTRIBUTION RECOMMENDATIONS ===
+  
+  if (features.energy && features.energy > 0.7) {
     recommendations.push({
-      category: 'genre',
+      category: 'distribution',
       priority: 'medium',
-      title: 'Reduce Acoustic Elements',
-      description: 'Pop music typically benefits from more electronic/produced elements.',
+      title: 'Prioritize Club and Festival Distribution',
+      description: 'High-energy track perfect for club and festival playlists.',
+      impact: 12,
+      implementation: 'Submit to Beatport, Traxsource, and festival playlist curators. Create extended mixes and DJ-friendly versions.'
+    });
+  }
+  
+  if (features.danceability && features.danceability > 0.7) {
+    recommendations.push({
+      category: 'distribution',
+      priority: 'medium',
+      title: 'Target Streaming Playlists',
+      description: 'High danceability makes this perfect for streaming platform playlists.',
+      impact: 15,
+      implementation: 'Submit to Spotify editorial playlists, Apple Music playlists, and create your own playlist featuring similar artists.'
+    });
+  }
+  
+  // === PERFORMANCE RECOMMENDATIONS ===
+  
+  if (features.liveness && features.liveness > 0.5) {
+    recommendations.push({
+      category: 'performance',
+      priority: 'medium',
+      title: 'Leverage Live Performance Potential',
+      description: 'High liveness score indicates strong live performance potential.',
+      impact: 10,
+      implementation: 'Plan live performances, create acoustic versions, and consider live streaming sessions to build audience connection.'
+    });
+  }
+  
+  // === ARRANGEMENT RECOMMENDATIONS ===
+  
+  if (features.duration_ms && features.duration_ms < 180000) { // 3 minutes in milliseconds
+    recommendations.push({
+      category: 'arrangement',
+      priority: 'medium',
+      title: 'Consider Extended Arrangement',
+      description: `Short duration (${Math.round(features.duration_ms / 1000)}s) may limit streaming revenue and playlist inclusion.`,
       impact: 8,
-      implementation: 'Consider adding more electronic production elements or reducing acoustic instrumentation.'
+      implementation: 'Add instrumental sections, extended outro, or consider creating a longer version for streaming platforms.'
+    });
+  } else if (features.duration_ms && features.duration_ms > 300000) { // 5 minutes in milliseconds
+    recommendations.push({
+      category: 'arrangement',
+      priority: 'low',
+      title: 'Consider Radio Edit',
+      description: `Long duration (${Math.round(features.duration_ms / 1000)}s) may limit radio play and some playlist inclusion.`,
+      impact: 6,
+      implementation: 'Create a 3-4 minute radio edit while keeping the full version for streaming platforms.'
+    });
+  }
+  
+  // === AUDIENCE RECOMMENDATIONS ===
+  
+  if (features.speechiness && features.speechiness > 0.1) {
+    recommendations.push({
+      category: 'audience',
+      priority: 'medium',
+      title: 'Target Hip-Hop and Rap Audiences',
+      description: 'Speech-like vocals suggest crossover potential with hip-hop audiences.',
+      impact: 12,
+      implementation: 'Collaborate with rappers, submit to hip-hop playlists, and consider creating remixes with featured artists.'
+    });
+  }
+  
+  // === GENRE-SPECIFIC RECOMMENDATIONS ===
+  
+  if (genre === 'pop') {
+    if (features.instrumentalness && features.instrumentalness > 0.5) {
+      recommendations.push({
+        category: 'genre',
+        priority: 'high',
+        title: 'Add Strong Vocal Hook',
+        description: 'Pop music requires memorable vocal melodies and hooks for commercial success.',
+        impact: 20,
+        implementation: 'Write a catchy chorus melody, add vocal harmonies, and ensure the vocal is the focal point of the track.'
+      });
+    }
+  }
+  
+  if (genre === 'electronic') {
+    if (features.acousticness && features.acousticness > 0.3) {
+      recommendations.push({
+        category: 'genre',
+        priority: 'medium',
+        title: 'Embrace Electronic Production',
+        description: 'Electronic genre benefits from more synthetic and processed sounds.',
+        impact: 10,
+        implementation: 'Add more synthesizers, electronic drums, and digital effects. Consider sidechain compression and modern EDM production techniques.'
+      });
+    }
+  }
+  
+  // === TIMING RECOMMENDATIONS ===
+  
+  const currentMonth = new Date().getMonth() + 1;
+  const seasonalFactors = {
+    1: { factor: 0.9, reason: 'Post-holiday slump' },
+    2: { factor: 0.95, reason: 'Valentine\'s boost' },
+    3: { factor: 1.0, reason: 'Spring awakening' },
+    4: { factor: 1.05, reason: 'Spring momentum' },
+    5: { factor: 1.1, reason: 'Summer anticipation' },
+    6: { factor: 1.15, reason: 'Summer peak' },
+    7: { factor: 1.1, reason: 'Summer continuation' },
+    8: { factor: 1.05, reason: 'Summer wind-down' },
+    9: { factor: 1.0, reason: 'Back to school' },
+    10: { factor: 1.05, reason: 'Fall momentum' },
+    11: { factor: 1.1, reason: 'Holiday prep' },
+    12: { factor: 1.2, reason: 'Holiday peak' }
+  };
+  
+  const seasonalFactor = seasonalFactors[currentMonth as keyof typeof seasonalFactors];
+  if (seasonalFactor.factor < 1.0) {
+    recommendations.push({
+      category: 'timing',
+      priority: 'medium',
+      title: 'Consider Delaying Release',
+      description: `Current month has lower market activity (${seasonalFactor.factor * 100}% of peak). ${seasonalFactor.reason}.`,
+      impact: 8,
+      implementation: 'Consider waiting 1-2 months for better market conditions, or focus on building anticipation during this period.'
+    });
+  } else if (seasonalFactor.factor > 1.1) {
+    recommendations.push({
+      category: 'timing',
+      priority: 'high',
+      title: 'Strike While Market is Hot',
+      description: `Current month has high market activity (${seasonalFactor.factor * 100}% of peak). ${seasonalFactor.reason}.`,
+      impact: 15,
+      implementation: 'Accelerate your release timeline and marketing push to capitalize on peak market conditions.'
     });
   }
   

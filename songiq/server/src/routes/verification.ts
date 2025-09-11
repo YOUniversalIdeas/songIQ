@@ -1,5 +1,5 @@
 import express from 'express';
-import { sendVerificationCodes, verifySMSCode, verifyEmailCode } from '../services/verificationService';
+import { sendVerificationCodes, verifySMSCode, verifyEmailCode } from '../services/verifyService';
 import User from '../models/User';
 import { authenticateToken } from '../middleware/auth';
 
@@ -17,19 +17,25 @@ router.post('/send', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Generate and store verification codes
-    const emailCode = user.generateEmailVerificationToken();
-    const smsCode = user.generateSMSVerificationCode();
-    
-    // Save user with verification codes
-    await user.save();
-
-    // Send verification codes
+    // Send verification codes using new Verify service
     const results = await sendVerificationCodes(
       email || user.email,
       phoneNumber || user.telephone,
       user.firstName || user.username
     );
+
+    // Store verification data in user model
+    if (results.email.success) {
+      user.emailVerificationToken = results.email.code;
+      user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    }
+    
+    if (results.sms.success) {
+      user.smsVerificationInitiated = true;
+      user.smsVerificationServiceSid = results.sms.serviceSid;
+    }
+    
+    await user.save();
 
     // Check if both were sent successfully
     if (results.email.success && results.sms.success) {
@@ -37,7 +43,7 @@ router.post('/send', authenticateToken, async (req, res) => {
         success: true,
         message: 'Verification codes sent successfully',
         email: { success: true, messageId: results.email.messageId },
-        sms: { success: true, messageId: results.sms.messageId }
+        sms: { success: true, serviceSid: results.sms.serviceSid }
       });
     } else {
       // Partial success - some codes were sent
@@ -83,21 +89,22 @@ router.post('/verify-sms', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if code matches and is not expired
-    if (!user.smsVerificationCode || user.smsVerificationCode !== code) {
-      return res.status(400).json({ error: 'Invalid verification code' });
-    }
-
-    if (user.isSMSVerificationExpired()) {
-      return res.status(400).json({ error: 'Verification code has expired' });
-    }
-
-    // Mark SMS as verified and clear the code
-    user.smsVerificationCode = null;
-    user.smsVerificationExpires = null;
+    // Use Twilio Verify API to verify the SMS code
+    const verifyResult = await verifySMSCode(user.telephone, code);
     
-    // Check if both verifications are complete (both tokens are null)
-    if (!user.emailVerificationToken && !user.smsVerificationCode) {
+    if (!verifyResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid verification code',
+        details: verifyResult.error 
+      });
+    }
+
+    // Mark SMS as verified
+    user.smsVerificationInitiated = false;
+    user.smsVerificationServiceSid = null;
+    
+    // Check if both verifications are complete
+    if (!user.emailVerificationToken && verifyResult.success) {
       user.isVerified = true;
       console.log('🎉 Both verifications complete! Marking user as verified.');
     } else {
@@ -109,7 +116,7 @@ router.post('/verify-sms', authenticateToken, async (req, res) => {
     console.log('💾 User saved. Final verification status:', {
       isVerified: user.isVerified,
       emailToken: user.emailVerificationToken,
-      smsCode: user.smsVerificationCode
+      smsVerified: verifyResult.success
     });
 
     return res.json({
@@ -165,13 +172,18 @@ router.post('/verify-email', authenticateToken, async (req, res) => {
     user.emailVerificationToken = null;
     user.emailVerificationExpires = null;
     
+    // TEMPORARILY DISABLED: SMS verification requirement
     // Check if both verifications are complete (both tokens are null)
-    if (!user.emailVerificationToken && !user.smsVerificationCode) {
-      user.isVerified = true;
-      console.log('🎉 Both verifications complete! Marking user as verified.');
-    } else {
-      console.log('⏳ Email verified, but still waiting for SMS verification.');
-    }
+    // if (!user.emailVerificationToken && !user.smsVerificationCode) {
+    //   user.isVerified = true;
+    //   console.log('🎉 Both verifications complete! Marking user as verified.');
+    // } else {
+    //   console.log('⏳ Email verified, but still waiting for SMS verification.');
+    // }
+    
+    // TEMPORARILY: Mark user as verified since SMS is disabled
+    user.isVerified = true;
+    console.log('🎉 TEMPORARILY: User marked as verified (SMS verification disabled)');
 
     await user.save();
 
@@ -207,19 +219,25 @@ router.post('/resend', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Generate new verification codes
-    const emailCode = user.generateEmailVerificationToken();
-    const smsCode = user.generateSMSVerificationCode();
-    
-    // Save user with new verification codes
-    await user.save();
-
-    // Send new verification codes
+    // Send new verification codes using new Verify service
     const results = await sendVerificationCodes(
       user.email,
       user.telephone,
       user.firstName || user.username
     );
+
+    // Store verification data in user model
+    if (results.email.success) {
+      user.emailVerificationToken = results.email.code;
+      user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    }
+    
+    if (results.sms.success) {
+      user.smsVerificationInitiated = true;
+      user.smsVerificationServiceSid = results.sms.serviceSid;
+    }
+    
+    await user.save();
 
     return res.json({
       success: true,
@@ -250,7 +268,7 @@ router.get('/status', authenticateToken, async (req, res) => {
 
     // Determine verification status based on whether tokens exist and are not expired
     const emailVerified = !user.emailVerificationToken; // If token is null, email is verified
-    const smsVerified = !user.smsVerificationCode; // If code is null, SMS is verified
+    const smsVerified = !user.smsVerificationInitiated; // If not initiated, SMS is verified
     
     console.log('📊 Verification status check:', {
       userId: user._id,
@@ -258,9 +276,9 @@ router.get('/status', authenticateToken, async (req, res) => {
       emailVerified,
       smsVerified,
       emailToken: user.emailVerificationToken,
-      smsCode: user.smsVerificationCode,
-      emailExpires: user.emailVerificationExpires,
-      smsExpires: user.smsVerificationExpires
+      smsInitiated: user.smsVerificationInitiated,
+      smsServiceSid: user.smsVerificationServiceSid,
+      emailExpires: user.emailVerificationExpires
     });
 
     return res.json({
@@ -269,7 +287,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       emailVerified,
       smsVerified,
       hasEmailVerification: !!user.emailVerificationToken,
-      hasSMSVerification: !!user.smsVerificationCode
+      hasSMSVerification: !!user.smsVerificationInitiated
     });
 
   } catch (error) {

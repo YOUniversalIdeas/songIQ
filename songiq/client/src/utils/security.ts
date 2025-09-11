@@ -23,7 +23,7 @@ export const CSP_CONFIG = {
   ],
   'connect-src': [
     "'self'",
-    import.meta.env.VITE_API_URL || 'http://localhost:5001', // Development API
+    import.meta.env.VITE_API_URL || '', // Development API
     'https://api.songiq.com', // Production API
   ],
   'media-src': [

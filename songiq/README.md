@@ -83,27 +83,46 @@ songiq/
 
 3. **Set up environment variables**
    
+   **Quick Setup (Recommended):**
+   ```bash
+   ./setup-apis.sh
+   ```
+   
+   **Manual Setup:**
    Create `.env` files in both `client/` and `server/` directories:
    
    **server/.env:**
    ```env
-   PORT=5000
+   PORT=5001
    MONGODB_URI=mongodb://localhost:27017/songiq
    NODE_ENV=development
    JWT_SECRET=your-secret-key
+   
+   # Music Industry APIs
+   SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+   LASTFM_API_KEY=your_lastfm_api_key_here
+   YOUTUBE_API_KEY=your_youtube_api_key_here
+   
+   # Social Media APIs
+   TWITTER_BEARER_TOKEN=your_twitter_bearer_token_here
+   INSTAGRAM_ACCESS_TOKEN=your_instagram_access_token_here
+   TIKTOK_ACCESS_TOKEN=your_tiktok_access_token_here
    ```
    
    **client/.env:**
    ```env
    VITE_API_URL=http://localhost:5001/api
    ```
+   
+   📚 **For detailed API setup instructions, see:** [API_SETUP_GUIDE.md](API_SETUP_GUIDE.md)
 
 4. **Start the development servers**
    ```bash
    npm run dev
    ```
 
-   This will start both the frontend (http://localhost:3000) and backend (http://localhost:5001) servers.
+   This will start both the frontend (http://localhost:3001) and backend (http://localhost:5001) servers.
 
 ### Development Scripts
 

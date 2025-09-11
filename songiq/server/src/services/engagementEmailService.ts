@@ -25,7 +25,7 @@ export class WelcomeSeriesManager {
   // Start welcome series for new user
   async startWelcomeSeries(userEmail: string, userName: string): Promise<boolean> {
     try {
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
       
       // Send Day 1 email immediately
       const day1Result = await sendWelcomeSeriesDay1Email({
@@ -53,7 +53,7 @@ export class WelcomeSeriesManager {
       const progress = this.userProgress.get(userEmail);
       if (!progress) return false;
 
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
       const now = new Date();
       const daysSinceLastEmail = Math.floor((now.getTime() - progress.lastEmail.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -139,7 +139,7 @@ export class FeatureAnnouncementManager {
         try {
           const result = await sendFeatureAnnouncementEmail({
             userName,
-            baseUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+            baseUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
             email,
             featureName,
             featureDescription,
@@ -207,7 +207,7 @@ export class UsageTipsManager {
         try {
           const result = await sendUsageTipsEmail({
             userName,
-            baseUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+            baseUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
             email,
             tipCategory,
             tips,
@@ -267,7 +267,7 @@ export class ReEngagementManager {
         try {
           const result = await sendReEngagementEmail({
             userName,
-            baseUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+            baseUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
             email
           });
           

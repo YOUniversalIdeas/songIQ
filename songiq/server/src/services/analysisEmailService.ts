@@ -14,7 +14,7 @@ export const sendAnalysisCompleteNotification = async (
   analysisType: string,
   analysisId: string
 ): Promise<boolean> => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
   const analysisData: EmailTemplateData = {
     userName,
@@ -38,7 +38,7 @@ export const sendAnalysisFailureNotification = async (
   artistName: string,
   errorMessage: string
 ): Promise<boolean> => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
   const analysisData: EmailTemplateData = {
     userName,
@@ -91,7 +91,7 @@ export const sendAnalysisProgressUpdate = async (
 ): Promise<boolean> => {
   // This would use a new template for progress updates
   // For now, we'll use the analysis complete template with progress info
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
   const progressData: EmailTemplateData = {
     userName,

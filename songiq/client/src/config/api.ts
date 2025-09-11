@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -12,7 +12,7 @@ export const API_ENDPOINTS = {
     UPLOAD: `${API_BASE_URL}/api/songs/upload`,
     UPLOAD_TEMP: `${API_BASE_URL}/api/songs/upload-temp`,
     SONG: `${API_BASE_URL}/api/songs/upload`,
-    LIST: `${API_BASE_URL}/api/songs`,
+    LIST: `${API_BASE_URL}/api/user-activity/submissions`,
     ANALYSIS: `${API_BASE_URL}/api/analysis`,
   },
   UPLOAD: {
