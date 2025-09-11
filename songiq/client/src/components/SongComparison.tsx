@@ -85,6 +85,25 @@ interface SongData {
   genre?: string;
   duration: number;
   uploadDate: string;
+  audioFeatures?: AudioFeatures;
+  successScore?: {
+    overallScore: number;
+    confidence: number;
+    breakdown: {
+      audioFeatures: number;
+      marketTrends: number;
+      genreAlignment: number;
+      seasonalFactors: number;
+    };
+    recommendations: Array<{
+      category: string;
+      priority: 'high' | 'medium' | 'low';
+      title: string;
+      description: string;
+    }>;
+    marketPotential: number;
+    socialScore: number;
+  };
   analysisResults?: {
     successPrediction?: {
       score: number;
@@ -131,7 +150,7 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
       artist: song.artist,
       analysisResults: song.analysisResults,
       audioFeatures: song.audioFeatures || song.analysisResults?.audioFeatures,
-      successScore: song.successScore?.overallScore || song.analysisResults?.successScore
+      successScore: song.successScore?.overallScore || song.analysisResults?.successPrediction?.score
     });
   });
 
@@ -218,9 +237,7 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
   const chartData = selectedSongs.map((song, index) => {
     // Try different possible data structures
     let score = 0;
-    if (song.analysisResults?.successScore) {
-      score = song.analysisResults.successScore;
-    } else if (song.analysisResults?.successPrediction?.score) {
+    if (song.analysisResults?.successPrediction?.score) {
       score = song.analysisResults.successPrediction.score;
     } else if (song.successScore?.overallScore) {
       score = song.successScore.overallScore;
@@ -508,13 +525,13 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
                   <div className="text-center space-y-2">
                     <h4 className="font-medium text-gray-900 dark:text-white truncate">{song.title}</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{song.artist}</p>
-                    <div className={`text-3xl font-bold ${getScoreColor(song.analysisResults?.successScore || song.successScore?.overallScore || 65)}`}>
-                      {Math.round(song.analysisResults?.successScore || song.successScore?.overallScore || 65)}%
+                    <div className={`text-3xl font-bold ${getScoreColor(song.analysisResults?.successPrediction?.score || song.successScore?.overallScore || 65)}`}>
+                      {Math.round(song.analysisResults?.successPrediction?.score || song.successScore?.overallScore || 65)}%
                     </div>
                     <div className="flex items-center justify-center space-x-1">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {Math.round((song.analysisResults?.confidence || 0.75) * 100)}% confidence
+                        {Math.round((song.analysisResults?.successPrediction?.confidence || song.successScore?.confidence || 0.75) * 100)}% confidence
                       </span>
                     </div>
                   </div>
@@ -652,19 +669,19 @@ const SongComparison: React.FC<SongComparisonProps> = ({ songs, className = '' }
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Market Potential</span>
                       <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        {Math.round(song.analysisResults?.marketPotential || 0)}%
+                        {Math.round(song.analysisResults?.successPrediction?.marketPotential || song.successScore?.marketPotential || 0)}%
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Social Score</span>
                       <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                        {Math.round(song.analysisResults?.socialScore || 0)}%
+                        {Math.round(song.analysisResults?.successPrediction?.socialScore || song.successScore?.socialScore || 0)}%
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Risk Level</span>
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {song.analysisResults?.riskFactors?.length || 0} factors
+                        {song.analysisResults?.successPrediction?.riskFactors?.length || 0} factors
                       </span>
                     </div>
                   </div>

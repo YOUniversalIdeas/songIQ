@@ -4,7 +4,7 @@ export interface SongData {
   artist: string;
   genre: string;
   duration: number;
-  successScore: {
+  successScore?: {
     overallScore: number;
     confidence: number;
     breakdown: {
@@ -22,7 +22,7 @@ export interface SongData {
     marketPotential: number;
     socialScore: number;
   };
-  audioFeatures: {
+  audioFeatures?: {
     danceability: number;
     energy: number;
     valence: number;
