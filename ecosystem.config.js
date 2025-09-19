@@ -106,7 +106,7 @@ module.exports = {
     },
     production: {
       user: 'deploy',
-      host: 'songiq.com',
+      host: 'songiq.ai',
       ref: 'origin/main',
       repo: 'https://github.com/YOUniversalIdeas/songIQ.git',
       path: '/var/www/songiq',

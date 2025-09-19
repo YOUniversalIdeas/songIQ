@@ -1,10 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import { loadEnvironment, logEnvironmentStatus } from './utils/envLoader';
 
 // Load environment variables
-dotenv.config();
+console.log('🚀 Starting Simple Server...');
+const envResult = loadEnvironment();
+
+if (!envResult.success) {
+  console.warn('⚠️  Environment loading failed, but continuing with defaults:', envResult.error);
+}
+
+logEnvironmentStatus();
 
 const app = express();
 const PORT = 9002;

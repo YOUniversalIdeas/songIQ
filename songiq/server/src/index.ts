@@ -1,17 +1,25 @@
-import dotenv from 'dotenv'
-
 // Load environment variables FIRST, before any other imports
-console.log('Current working directory:', process.cwd());
-console.log('Loading environment from:', './env.development');
-const envResult = dotenv.config({ path: './env.development' });
-console.log('Environment loading result:', envResult.error ? envResult.error.message : 'Success');
+import { loadEnvironment, validateRequiredEnvVars, logEnvironmentStatus } from './utils/envLoader';
 
-// Debug: Log environment variables
-console.log('🔑 Environment check:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('PORT:', process.env.PORT);
-console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Loaded' : '❌ Not loaded');
-console.log('STRIPE_BASIC_PLAN_PRICE_ID:', process.env.STRIPE_BASIC_PLAN_PRICE_ID || '❌ Not loaded');
+// Load environment configuration
+const envResult = loadEnvironment();
+
+if (!envResult.success) {
+  console.error('❌ Failed to load environment configuration:', envResult.error);
+  process.exit(1);
+}
+
+// Log environment status
+logEnvironmentStatus();
+
+// Validate required environment variables
+const requiredVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingVars = validateRequiredEnvVars(requiredVars);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables. Server cannot start.');
+  process.exit(1);
+}
 
 import express from 'express'
 import cors from 'cors'
@@ -23,11 +31,12 @@ import * as path from 'path'
 import { createServer } from 'http'
 import WebSocketService from './services/websocketService'
 
-// Debug: Check if YouTube API key is loaded
-console.log('🔑 Environment check:')
-console.log('YOUTUBE_API_KEY:', process.env.YOUTUBE_API_KEY ? '✅ Loaded' : '❌ Not loaded')
-console.log('LASTFM_API_KEY:', process.env.LASTFM_API_KEY ? '✅ Loaded' : '❌ Not loaded')
-console.log('NODE_ENV:', process.env.NODE_ENV || 'development')
+// Additional API key validation (optional services)
+const optionalVars = ['YOUTUBE_API_KEY', 'LASTFM_API_KEY', 'SPOTIFY_CLIENT_ID'];
+const missingOptional = validateRequiredEnvVars(optionalVars);
+if (missingOptional.length > 0) {
+  console.warn('⚠️  Some optional API keys are missing. Some features may not work:', missingOptional);
+}
 
 // Import routes
 import authRoutes from './routes/auth';
