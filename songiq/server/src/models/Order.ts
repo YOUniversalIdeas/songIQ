@@ -2,12 +2,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IOrder extends Document {
   userId: mongoose.Types.ObjectId;
-  tradingPairId: mongoose.Types.ObjectId;
+  tradingPairId?: mongoose.Types.ObjectId; // Optional for multi-currency trading
+  marketId?: mongoose.Types.ObjectId; // For prediction markets
+  outcomeId?: string; // For prediction markets
   type: 'market' | 'limit' | 'stop' | 'stop-limit';
   side: 'buy' | 'sell';
   price?: number; // For limit orders
   stopPrice?: number; // For stop orders
-  amount: number; // Amount of base currency
+  amount: number; // Amount of base currency or shares
   filled: number; // Amount filled
   remaining: number; // Amount remaining
   total: number; // Total value in quote currency
@@ -35,8 +37,14 @@ const OrderSchema = new Schema({
   },
   tradingPairId: {
     type: Schema.Types.ObjectId,
-    ref: 'TradingPair',
-    required: true
+    ref: 'TradingPair'
+  },
+  marketId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Market'
+  },
+  outcomeId: {
+    type: String
   },
   type: {
     type: String,

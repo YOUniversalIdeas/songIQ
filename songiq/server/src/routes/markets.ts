@@ -2,6 +2,7 @@ import express from 'express';
 import Market from '../models/Market';
 import Position from '../models/Position';
 import Trade from '../models/Trade';
+import PriceHistory from '../models/PriceHistory';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -222,6 +223,20 @@ router.post('/:id/trade', authenticateToken, async (req, res) => {
     await position!.save();
     await market.save();
 
+    // Record price history for all outcomes
+    const priceHistoryRecords = market.outcomes.map(outcome => ({
+      marketId: market._id,
+      outcomeId: outcome.id,
+      price: outcome.price,
+      volume: outcome.totalVolume,
+      liquidity: market.totalLiquidity,
+      timestamp: new Date()
+    }));
+    await PriceHistory.insertMany(priceHistoryRecords).catch(err => {
+      console.error('Error saving price history:', err);
+      // Don't fail the trade if price history fails
+    });
+
     res.json({ 
       trade, 
       position: position!,
@@ -364,6 +379,240 @@ router.get('/meta/categories', async (req, res) => {
     res.json({ categories });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// GET /api/markets/:id/price-history - Get price history for market outcomes
+router.get('/:id/price-history', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { outcomeId, period = '24h' } = req.query;
+
+    // Calculate time filter based on period
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (period) {
+      case '1h':
+        startDate = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case '24h':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+        startDate = new Date(0); // Beginning of time
+        break;
+      default:
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    }
+
+    const filter: any = {
+      marketId: id,
+      timestamp: { $gte: startDate }
+    };
+
+    if (outcomeId) {
+      filter.outcomeId = outcomeId;
+    }
+
+    const priceHistory = await PriceHistory.find(filter)
+      .sort({ timestamp: 1 })
+      .limit(1000); // Limit to 1000 points
+
+    // Group by outcome if no specific outcome requested
+    const groupedByOutcome: { [key: string]: any[] } = {};
+    
+    priceHistory.forEach(record => {
+      if (!groupedByOutcome[record.outcomeId]) {
+        groupedByOutcome[record.outcomeId] = [];
+      }
+      groupedByOutcome[record.outcomeId].push({
+        price: record.price,
+        volume: record.volume,
+        liquidity: record.liquidity,
+        timestamp: record.timestamp
+      });
+    });
+
+    res.json({
+      marketId: id,
+      period,
+      outcomeId: outcomeId || 'all',
+      history: outcomeId ? priceHistory : groupedByOutcome
+    });
+  } catch (error) {
+    console.error('Error fetching price history:', error);
+    res.status(500).json({ error: 'Failed to fetch price history' });
+  }
+});
+
+// GET /api/markets/leaderboard - Get top performers
+router.get('/meta/leaderboard', async (req, res) => {
+  try {
+    const { period = 'all', limit = 10 } = req.query;
+
+    // Calculate date filter
+    let dateFilter = {};
+    const now = new Date();
+    
+    switch (period) {
+      case 'day':
+        dateFilter = { createdAt: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } };
+        break;
+      case 'week':
+        dateFilter = { createdAt: { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } };
+        break;
+      case 'month':
+        dateFilter = { createdAt: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } };
+        break;
+      case 'all':
+      default:
+        dateFilter = {};
+    }
+
+    // Aggregate user performance
+    const leaderboard = await Position.aggregate([
+      dateFilter.createdAt ? { $match: dateFilter } : { $match: {} },
+      {
+        $group: {
+          _id: '$userId',
+          totalPnL: { $sum: { $add: ['$realizedPnL', '$unrealizedPnL'] } },
+          realizedPnL: { $sum: '$realizedPnL' },
+          totalInvested: { $sum: '$totalInvested' },
+          activePositions: { 
+            $sum: { 
+              $cond: [{ $gt: ['$shares', 0] }, 1, 0] 
+            } 
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $project: {
+          userId: '$_id',
+          username: '$user.username',
+          firstName: '$user.firstName',
+          lastName: '$user.lastName',
+          email: '$user.email',
+          totalPnL: 1,
+          realizedPnL: 1,
+          totalInvested: 1,
+          activePositions: 1,
+          roi: {
+            $cond: [
+              { $gt: ['$totalInvested', 0] },
+              { $multiply: [{ $divide: ['$totalPnL', '$totalInvested'] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { totalPnL: -1 } },
+      { $limit: Number(limit) }
+    ]);
+
+    // Add rank to each entry
+    const rankedLeaderboard = leaderboard.map((entry, index) => ({
+      ...entry,
+      rank: index + 1
+    }));
+
+    res.json({
+      leaderboard: rankedLeaderboard,
+      period,
+      total: rankedLeaderboard.length
+    });
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// GET /api/markets/activity - Get public activity feed
+router.get('/meta/activity', async (req, res) => {
+  try {
+    const { limit = 20, type = 'all' } = req.query;
+
+    const activities: any[] = [];
+
+    // Recent trades
+    if (type === 'all' || type === 'trades') {
+      const trades = await Trade.find({ status: 'completed' })
+        .sort({ createdAt: -1 })
+        .limit(Number(limit))
+        .populate('userId', 'username firstName lastName')
+        .populate('marketId', 'title category')
+        .lean();
+
+      activities.push(...trades.map(trade => ({
+        type: 'trade',
+        data: trade,
+        timestamp: trade.createdAt
+      })));
+    }
+
+    // Recent markets
+    if (type === 'all' || type === 'markets') {
+      const markets = await Market.find()
+        .sort({ createdAt: -1 })
+        .limit(Number(limit))
+        .populate('creatorId', 'username firstName lastName')
+        .lean();
+
+      activities.push(...markets.map(market => ({
+        type: 'market_created',
+        data: market,
+        timestamp: market.createdAt
+      })));
+    }
+
+    // Recent resolutions
+    if (type === 'all' || type === 'resolutions') {
+      const resolvedMarkets = await Market.find({ 
+        status: 'resolved',
+        resolutionDate: { $exists: true }
+      })
+        .sort({ resolutionDate: -1 })
+        .limit(Number(limit))
+        .populate('creatorId', 'username firstName lastName')
+        .lean();
+
+      activities.push(...resolvedMarkets.map(market => ({
+        type: 'market_resolved',
+        data: market,
+        timestamp: market.resolutionDate
+      })));
+    }
+
+    // Sort all activities by timestamp
+    activities.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    // Limit to requested number
+    const limitedActivities = activities.slice(0, Number(limit));
+
+    res.json({
+      activities: limitedActivities,
+      total: limitedActivities.length
+    });
+  } catch (error) {
+    console.error('Error fetching activity feed:', error);
+    res.status(500).json({ error: 'Failed to fetch activity feed' });
   }
 });
 

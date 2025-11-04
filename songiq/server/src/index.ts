@@ -61,6 +61,9 @@ import walletsRoutes from './routes/wallets';
 import transactionsRoutes from './routes/transactions';
 import tradingRoutes from './routes/trading';
 import adminCurrencyRoutes from './routes/adminCurrency';
+// Prediction markets routes
+import commentsRoutes from './routes/comments';
+import ordersRoutes from './routes/orders';
 
 const app = express()
 const server = createServer(app)
@@ -160,6 +163,9 @@ app.use('/api/wallets', walletsRoutes)
 app.use('/api/transactions', transactionsRoutes)
 app.use('/api/trading', tradingRoutes)
 app.use('/api/admin/currency', adminCurrencyRoutes)
+// Prediction markets routes
+app.use('/api', commentsRoutes)
+app.use('/api/orders', ordersRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
