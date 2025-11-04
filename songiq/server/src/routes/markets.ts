@@ -4,6 +4,7 @@ import Position from '../models/Position';
 import Trade from '../models/Trade';
 import PriceHistory from '../models/PriceHistory';
 import { authenticateToken } from '../middleware/auth';
+import { MarketNotificationService } from '../services/marketNotificationService';
 
 const router = express.Router();
 
@@ -350,6 +351,12 @@ router.post('/:id/resolve', authenticateToken, async (req, res) => {
       position.currentValue = payout;
       await position.save();
     }
+
+    // Send email notifications to participants
+    MarketNotificationService.notifyMarketResolution(market._id.toString()).catch(err => {
+      console.error('Error sending resolution notifications:', err);
+      // Don't fail the request if emails fail
+    });
 
     res.json({ 
       market,

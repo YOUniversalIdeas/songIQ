@@ -1,0 +1,379 @@
+/* Mobile-Specific Styles for songIQ */
+
+/* Safe area insets for notched devices */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top);
+  --safe-area-inset-right: env(safe-area-inset-right);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  --safe-area-inset-left: env(safe-area-inset-left);
+}
+
+/* Mobile viewport height fix for iOS */
+.min-h-screen-mobile {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Safe area bottom padding for devices with notches/home indicators */
+.safe-area-bottom {
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+
+.safe-area-top {
+  padding-top: var(--safe-area-inset-top);
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Smooth scrolling for mobile */
+@media screen and (max-width: 768px) {
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media screen and (max-width: 768px) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Improve text readability on mobile */
+@media screen and (max-width: 768px) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Pull to refresh indicator */
+.pull-to-refresh {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-center;
+  background: linear-gradient(to bottom, rgba(59, 130, 246, 0.1), transparent);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.pull-to-refresh.pulling {
+  transform: translateY(0);
+}
+
+.pull-to-refresh-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Slide up animation for install prompt */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Improved touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  a:active,
+  [role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+  }
+}
+
+/* Mobile-optimized card spacing */
+@media screen and (max-width: 768px) {
+  .mobile-card {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .mobile-card:first-child {
+    border-top: none;
+  }
+}
+
+/* Mobile bottom navigation spacing */
+@media screen and (max-width: 768px) {
+  .content-with-mobile-nav {
+    padding-bottom: 5rem; /* Space for bottom nav */
+  }
+}
+
+/* Swipe indicators */
+.swipe-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.swipe-indicator.left {
+  left: 10px;
+}
+
+.swipe-indicator.right {
+  right: 10px;
+}
+
+.swipe-indicator.visible {
+  opacity: 1;
+}
+
+/* Mobile modal overlay */
+@media screen and (max-width: 768px) {
+  .modal-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+}
+
+/* Improved mobile form styling */
+@media screen and (max-width: 768px) {
+  .mobile-form input,
+  .mobile-form select,
+  .mobile-form textarea {
+    padding: 0.875rem;
+    font-size: 16px;
+  }
+  
+  .mobile-form label {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+
+/* Mobile-optimized tables */
+@media screen and (max-width: 768px) {
+  .mobile-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-table table {
+    min-width: 600px;
+  }
+}
+
+/* Hide desktop-only elements on mobile */
+@media screen and (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Show mobile-only elements */
+.mobile-only {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .mobile-only-flex {
+    display: flex;
+  }
+  
+  .mobile-only-grid {
+    display: grid;
+  }
+}
+
+/* Improved touch scrolling */
+@media screen and (max-width: 768px) {
+  .touch-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Mobile sticky header */
+@media screen and (max-width: 768px) {
+  .mobile-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .dark .mobile-sticky-header {
+    background: #1f2937;
+    border-bottom-color: #374151;
+  }
+}
+
+/* Loading skeleton for mobile */
+.mobile-skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Mobile haptic feedback class */
+.haptic-feedback {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Improved mobile chart sizing */
+@media screen and (max-width: 768px) {
+  .mobile-chart {
+    width: 100%;
+    height: 250px;
+  }
+}
+
+/* Mobile-optimized stat cards */
+@media screen and (max-width: 640px) {
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .stat-grid-2col {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+@media screen and (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Mobile-friendly dropdown */
+@media screen and (max-width: 768px) {
+  .mobile-dropdown {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 80vh;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* PWA splash screen */
+@media (display-mode: standalone) {
+  .pwa-splash {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  }
+}
+
+/* Network status indicator */
+.network-offline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #ef4444;
+  color: white;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 9999;
+  animation: slide-down 0.3s ease;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Mobile responsive images */
+@media screen and (max-width: 768px) {
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Touch-optimized slider */
+@media screen and (max-width: 768px) {
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+}
+

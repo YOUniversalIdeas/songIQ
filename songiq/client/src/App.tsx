@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
@@ -23,6 +23,9 @@ import PredictionMarketPage from './pages/PredictionMarketPage';
 import TradingPage from './pages/TradingPage';
 import TradingPageRealtime from './pages/TradingPageRealtime';
 import PortfolioPage from './pages/PortfolioPage';
+import MarketsHub from './pages/MarketsHub';
+import MarketDetailPage from './pages/MarketDetailPage';
+import UserProfilePage from './pages/UserProfilePage';
 import WalletsPage from './pages/WalletsPage';
 import CurrencyExchangePage from './pages/CurrencyExchangePage';
 import TransactionsPage from './pages/TransactionsPage';
@@ -32,7 +35,20 @@ import { TradingWebSocketProvider } from './contexts/TradingWebSocketContext';
 import VerificationGuard from './components/VerificationGuard';
 import AuthGateTest from './components/AuthGateTest';
 
+// Mobile & PWA Components
+import MobileNav from './components/MobileNav';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import { registerServiceWorker } from './utils/pwaUtils';
+
+// Mobile Styles
+import './styles/mobile.css';
+
 function App() {
+  // Register service worker for PWA on mount
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <DarkModeProvider>
       <AuthProvider>
@@ -58,8 +74,9 @@ function App() {
                 <Route path="/comparison" element={<ComparisonPage />} />
                 <Route path="/spotify" element={<SpotifyIntegration />} />
                 <Route path="/youtube-music" element={<YouTubeMusicIntegration />} />
-                <Route path="/markets" element={<MarketsPage />} />
-                <Route path="/markets/:id" element={<PredictionMarketPage />} />
+                <Route path="/markets" element={<MarketsHub />} />
+                <Route path="/markets/:id" element={<MarketDetailPage />} />
+                <Route path="/profile/:userId" element={<UserProfilePage />} />
                 <Route path="/trading" element={<TradingPageRealtime />} />
                 <Route path="/portfolio" element={<PortfolioPage />} />
                 <Route path="/wallets" element={<WalletsPage />} />
@@ -71,6 +88,12 @@ function App() {
                 <Route path="/auth-gate-test" element={<AuthGateTest />} />
                 </Routes>
               </VerificationGuard>
+              
+              {/* Mobile Navigation */}
+              <MobileNav />
+              
+              {/* PWA Install Prompt */}
+              <PWAInstallPrompt />
             </Layout>
           </Router>
         </TradingWebSocketProvider>

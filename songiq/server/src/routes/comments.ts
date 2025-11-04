@@ -2,6 +2,7 @@ import express from 'express';
 import Comment from '../models/Comment';
 import Market from '../models/Market';
 import { authenticateToken } from '../middleware/auth';
+import { MarketNotificationService } from '../services/marketNotificationService';
 
 const router = express.Router();
 
@@ -138,6 +139,14 @@ router.post('/markets/:marketId/comments', authenticateToken, async (req, res) =
 
     await comment.save();
     await comment.populate('userId', 'firstName lastName username email');
+
+    // Send email notifications to users with positions in this market
+    if (!parentCommentId) { // Only for top-level comments, not replies
+      MarketNotificationService.notifyNewComment(comment._id.toString()).catch(err => {
+        console.error('Error sending comment notifications:', err);
+        // Don't fail the request if emails fail
+      });
+    }
 
     res.status(201).json({ 
       comment,
