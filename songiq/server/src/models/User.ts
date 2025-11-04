@@ -60,6 +60,14 @@ export interface IUser extends Document {
     totalPlays: number;
     memberSince: Date;
   };
+  gamification: {
+    level: number;
+    xp: number;
+    totalXp: number;
+    coins: number;
+    tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'legend';
+    lastDailyReward?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
   
@@ -77,6 +85,9 @@ export interface IUser extends Document {
   isSMSVerificationExpired(): boolean;
   generatePasswordResetToken(): string;
   isPasswordResetExpired(): boolean;
+  addXP(amount: number): Promise<{ newLevel: boolean; level: number; xp: number; xpForNext: number }>;
+  addCoins(amount: number): Promise<number>;
+  updateTier(): Promise<string>;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -225,6 +236,30 @@ const UserSchema = new Schema<IUser>({
     type: Schema.Types.ObjectId,
     ref: 'Song'
   }],
+  gamification: {
+    level: {
+      type: Number,
+      default: 1
+    },
+    xp: {
+      type: Number,
+      default: 0
+    },
+    totalXp: {
+      type: Number,
+      default: 0
+    },
+    coins: {
+      type: Number,
+      default: 0
+    },
+    tier: {
+      type: String,
+      enum: ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'legend'],
+      default: 'bronze'
+    },
+    lastDailyReward: Date
+  },
   subscription: {
     plan: {
       type: String,
@@ -477,6 +512,56 @@ UserSchema.methods.generatePasswordResetToken = function(): string {
 UserSchema.methods.isPasswordResetExpired = function(): boolean {
   if (!this.passwordResetExpires) return true;
   return new Date() > this.passwordResetExpires;
+};
+
+// Gamification methods
+UserSchema.methods.addXP = async function(amount: number) {
+  const XP_PER_LEVEL = 100; // Base XP needed for level 1->2
+  const XP_MULTIPLIER = 1.5; // Each level needs 1.5x more XP
+  
+  this.gamification.xp += amount;
+  this.gamification.totalXp += amount;
+  
+  // Calculate XP needed for next level
+  const xpForNext = Math.floor(XP_PER_LEVEL * Math.pow(XP_MULTIPLIER, this.gamification.level - 1));
+  
+  let newLevel = false;
+  while (this.gamification.xp >= xpForNext) {
+    this.gamification.xp -= xpForNext;
+    this.gamification.level += 1;
+    newLevel = true;
+  }
+  
+  // Update tier based on level
+  if (newLevel) {
+    await this.updateTier();
+  }
+  
+  return {
+    newLevel,
+    level: this.gamification.level,
+    xp: this.gamification.xp,
+    xpForNext
+  };
+};
+
+UserSchema.methods.addCoins = async function(amount: number) {
+  this.gamification.coins += amount;
+  return this.gamification.coins;
+};
+
+UserSchema.methods.updateTier = async function() {
+  const level = this.gamification.level;
+  let tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'legend' = 'bronze';
+  
+  if (level >= 50) tier = 'legend';
+  else if (level >= 40) tier = 'diamond';
+  else if (level >= 30) tier = 'platinum';
+  else if (level >= 20) tier = 'gold';
+  else if (level >= 10) tier = 'silver';
+  
+  this.gamification.tier = tier;
+  return tier;
 };
 
 // Pre-save middleware to hash password

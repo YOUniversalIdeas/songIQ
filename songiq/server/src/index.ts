@@ -65,6 +65,7 @@ import adminCurrencyRoutes from './routes/adminCurrency';
 import commentsRoutes from './routes/comments';
 import ordersRoutes from './routes/orders';
 import socialRoutes from './routes/social';
+import gamificationRoutes from './routes/gamification';
 
 const app = express()
 const server = createServer(app)
@@ -168,6 +169,7 @@ app.use('/api/admin/currency', adminCurrencyRoutes)
 app.use('/api', commentsRoutes)
 app.use('/api/orders', ordersRoutes)
 app.use('/api/social', socialRoutes)
+app.use('/api/gamification', gamificationRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
