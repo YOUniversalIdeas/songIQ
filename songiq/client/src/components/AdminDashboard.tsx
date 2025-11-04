@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ArtistImpersonationDashboard from './ArtistImpersonationDashboard';
+import EnhancedMarketsAdmin from './EnhancedMarketsAdmin';
+import UsersManagement from './UsersManagement';
+import AdminOverview from './AdminOverview';
+import PlatformSettings from './PlatformSettings';
+import FlaggedContent from './FlaggedContent';
 import {
   BarChart3,
   TrendingUp,
@@ -20,7 +25,10 @@ import {
   MoreHorizontal,
   ArrowUpRight,
   ArrowDownRight,
-  Minus
+  Minus,
+  LineChart,
+  Settings,
+  Flag
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -90,7 +98,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'ai-models' | 'content' | 'users' | 'business' | 'artist-management'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'markets' | 'users' | 'flagged' | 'settings' | 'analytics' | 'ai-models' | 'content' | 'business' | 'artist-management'>('overview');
   const [poseAsArtist, setPoseAsArtist] = useState<any>(null);
 
   const [metrics, setMetrics] = useState<AdminMetrics>({
@@ -261,13 +269,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
 
         {/* Navigation Tabs */}
         <div className="px-6">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-8 overflow-x-auto">
             {[
               { id: 'overview', label: 'Overview', icon: BarChart3 },
+              { id: 'markets', label: 'Markets', icon: LineChart },
+              { id: 'users', label: 'Users', icon: Users },
+              { id: 'flagged', label: 'Flagged Content', icon: Flag },
+              { id: 'settings', label: 'Settings', icon: Settings },
               { id: 'analytics', label: 'Analytics', icon: TrendingUp },
               { id: 'ai-models', label: 'AI Models', icon: Zap },
               { id: 'content', label: 'Content', icon: Music },
-              { id: 'users', label: 'Users', icon: Users },
               { id: 'business', label: 'Business', icon: DollarSign },
               { id: 'artist-management', label: 'Artist Management', icon: Users },
             ].map((tab) => {
@@ -276,7 +287,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors duration-200 border-b-2 ${
+                  className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors duration-200 border-b-2 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400'
                       : 'text-gray-600 border-transparent hover:text-gray-900 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-100'
@@ -326,130 +337,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
           </div>
         )}
 
-        {/* Dashboard Content - Only show when not loading and no errors */}
-        {!isLoading && !error && activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Recommendation Accuracy</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.recommendationAccuracy}%</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                    <Target className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600 ml-1">+2.3%</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">vs last week</span>
-                </div>
-              </div>
+        {/* Dashboard Content */}
+        {activeTab === 'overview' && <AdminOverview />}
+        {activeTab === 'markets' && <EnhancedMarketsAdmin />}
+        {activeTab === 'users' && <UsersManagement />}
+        {activeTab === 'flagged' && <FlaggedContent />}
+        {activeTab === 'settings' && <PlatformSettings />}
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Users</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.activeUsers.toLocaleString()}</p>
-                  </div>
-                  <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                    <Users className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600 ml-1">+5.2%</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">vs last week</span>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">API Response Time</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.apiResponseTime}ms</p>
-                  </div>
-                  <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
-                    <Activity className="w-6 h-6 text-yellow-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <ArrowDownRight className="w-4 h-4 text-red-600" />
-                  <span className="text-red-600 ml-1">+12ms</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">vs last week</span>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">${(metrics.revenue / 1000).toFixed(0)}k</p>
-                  </div>
-                  <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-purple-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600 ml-1">+8.7%</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">vs last month</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Performance Trends</h3>
-                <Line data={performanceData} options={chartOptions} />
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">User Engagement</h3>
-                <Doughnut data={userEngagementData} options={doughnutOptions} />
-              </div>
-            </div>
-
-            {/* System Health */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">System Health</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Uptime</p>
-                    <p className="text-lg font-bold text-green-600">{metrics.uptime}%</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Error Rate</p>
-                    <p className="text-lg font-bold text-yellow-600">{metrics.errorRate}%</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Response Time</p>
-                    <p className="text-lg font-bold text-blue-600">{metrics.apiResponseTime}ms</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'analytics' && (
+        {/* Legacy tabs - Only show when not loading and no errors */}
+        {!isLoading && !error && activeTab === 'analytics' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
