@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, ThumbsUp, Reply, Edit, Trash2, Send, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api';
 import { useAuth } from './AuthProvider';
 
@@ -28,6 +29,7 @@ interface MarketCommentsProps {
 
 const MarketComments: React.FC<MarketCommentsProps> = ({ marketId }) => {
   const { user, token, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
@@ -239,9 +241,12 @@ const MarketComments: React.FC<MarketCommentsProps> = ({ marketId }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-900 dark:text-white">
+                  <button
+                    onClick={() => navigate(`/profile/${comment.userId._id}`)}
+                    className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                  >
                     {getUserDisplayName(comment)}
-                  </span>
+                  </button>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     {formatDate(comment.createdAt)}
                   </span>

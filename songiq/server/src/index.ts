@@ -64,6 +64,7 @@ import adminCurrencyRoutes from './routes/adminCurrency';
 // Prediction markets routes
 import commentsRoutes from './routes/comments';
 import ordersRoutes from './routes/orders';
+import socialRoutes from './routes/social';
 
 const app = express()
 const server = createServer(app)
@@ -166,6 +167,7 @@ app.use('/api/admin/currency', adminCurrencyRoutes)
 // Prediction markets routes
 app.use('/api', commentsRoutes)
 app.use('/api/orders', ordersRoutes)
+app.use('/api/social', socialRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

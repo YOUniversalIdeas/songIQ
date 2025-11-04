@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, TrendingUp, TrendingDown, Medal, Crown, Award } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api';
 
 interface LeaderboardEntry {
@@ -17,6 +18,7 @@ interface LeaderboardEntry {
 }
 
 const Leaderboard: React.FC = () => {
+  const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'all'>('all');
@@ -144,13 +146,14 @@ const Leaderboard: React.FC = () => {
                     {getRankIcon(entry.rank)}
                   </div>
                   <div>
-                    <h3
-                      className={`text-lg font-semibold ${
-                        entry.rank <= 3 ? '' : 'text-gray-900 dark:text-white'
+                    <button
+                      onClick={() => navigate(`/profile/${entry.userId}`)}
+                      className={`text-lg font-semibold hover:underline text-left ${
+                        entry.rank <= 3 ? '' : 'text-gray-900 dark:text-white hover:text-primary-600'
                       }`}
                     >
                       {getUserDisplayName(entry)}
-                    </h3>
+                    </button>
                     <p
                       className={`text-sm ${
                         entry.rank <= 3

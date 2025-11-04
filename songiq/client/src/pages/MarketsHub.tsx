@@ -6,6 +6,7 @@ import { useAuth } from '../components/AuthProvider';
 import MarketCard from '../components/MarketCard';
 import Leaderboard from '../components/Leaderboard';
 import ActivityFeed from '../components/ActivityFeed';
+import SocialFeed from '../components/SocialFeed';
 
 interface Market {
   _id: string;
@@ -174,6 +175,13 @@ const MarketsHub: React.FC = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Social Feed (for authenticated users) */}
+            {isAuthenticated && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                <SocialFeed />
+              </div>
+            )}
+
             {/* Leaderboard */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6">
               <Leaderboard />
