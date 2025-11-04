@@ -1,44 +1,46 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
-import AuthPage from './pages/AuthPage';
-import UploadPage from './pages/UploadPage';
-import AnalysisPage from './pages/AnalysisPage';
-import RecommendationsPage from './pages/RecommendationsPage';
-import TrendsPage from './pages/TrendsPage';
-import ProfilePage from './pages/ProfilePage';
-import PricingPage from './pages/PricingPage';
-import UserActivityPage from './pages/UserActivityPage';
-import AdminPage from './pages/AdminPage';
-import DashboardPage from './pages/DashboardPage';
-import ComparisonPage from './pages/ComparisonPage';
-import VerificationPage from './pages/VerificationPage';
-import SpotifyIntegration from './components/SpotifyIntegration';
-import YouTubeMusicIntegration from './components/YouTubeMusicIntegration';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsConditionsPage from './pages/TermsConditionsPage';
-import MarketsPage from './pages/MarketsPage';
-import PredictionMarketPage from './pages/PredictionMarketPage';
-import TradingPage from './pages/TradingPage';
-import TradingPageRealtime from './pages/TradingPageRealtime';
-import PortfolioPage from './pages/PortfolioPage';
-import MarketsHub from './pages/MarketsHub';
-import MarketDetailPage from './pages/MarketDetailPage';
-import UserProfilePage from './pages/UserProfilePage';
-import WalletsPage from './pages/WalletsPage';
-import CurrencyExchangePage from './pages/CurrencyExchangePage';
-import TransactionsPage from './pages/TransactionsPage';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { AuthProvider } from './components/AuthProvider';
 import { TradingWebSocketProvider } from './contexts/TradingWebSocketContext';
-import VerificationGuard from './components/VerificationGuard';
-import AuthGateTest from './components/AuthGateTest';
+import { registerServiceWorker } from './utils/pwaUtils';
 
-// Mobile & PWA Components
+// Core Components (not lazy-loaded)
+import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
+import ToastProvider from './components/Toast';
+import { PageLoader } from './components/LoadingStates';
 import MobileNav from './components/MobileNav';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import { registerServiceWorker } from './utils/pwaUtils';
+import VerificationGuard from './components/VerificationGuard';
+
+// Lazy-loaded pages for code splitting
+const HomePage = lazy(() => import('./pages/HomePage'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const UploadPage = lazy(() => import('./pages/UploadPage'));
+const AnalysisPage = lazy(() => import('./pages/AnalysisPage'));
+const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage'));
+const TrendsPage = lazy(() => import('./pages/TrendsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const UserActivityPage = lazy(() => import('./pages/UserActivityPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
+const VerificationPage = lazy(() => import('./pages/VerificationPage'));
+const SpotifyIntegration = lazy(() => import('./components/SpotifyIntegration'));
+const YouTubeMusicIntegration = lazy(() => import('./components/YouTubeMusicIntegration'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const MarketsHub = lazy(() => import('./pages/MarketsHub'));
+const MarketDetailPage = lazy(() => import('./pages/MarketDetailPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const WalletsPage = lazy(() => import('./pages/WalletsPage'));
+const CurrencyExchangePage = lazy(() => import('./pages/CurrencyExchangePage'));
+const TransactionsPage = lazy(() => import('./pages/TransactionsPage'));
+const TradingPageRealtime = lazy(() => import('./pages/TradingPageRealtime'));
+const AuthGateTest = lazy(() => import('./components/AuthGateTest'));
 
 // Mobile Styles
 import './styles/mobile.css';
@@ -50,13 +52,16 @@ function App() {
   }, []);
 
   return (
-    <DarkModeProvider>
-      <AuthProvider>
-        <TradingWebSocketProvider>
-          <Router>
-            <Layout>
-              <VerificationGuard>
-                <Routes>
+    <ErrorBoundary>
+      <DarkModeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <TradingWebSocketProvider>
+              <Router>
+                <Layout>
+                  <VerificationGuard>
+                    <Suspense fallback={<PageLoader message="Loading page..." />}>
+                      <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/upload" element={<UploadPage />} />
@@ -86,19 +91,22 @@ function App() {
                 <Route path="/terms" element={<TermsConditionsPage />} />
                 <Route path="/test" element={<HomePage />} />
                 <Route path="/auth-gate-test" element={<AuthGateTest />} />
-                </Routes>
-              </VerificationGuard>
-              
-              {/* Mobile Navigation */}
-              <MobileNav />
-              
-              {/* PWA Install Prompt */}
-              <PWAInstallPrompt />
-            </Layout>
-          </Router>
-        </TradingWebSocketProvider>
-      </AuthProvider>
-    </DarkModeProvider>
+                      </Routes>
+                    </Suspense>
+                  </VerificationGuard>
+                  
+                  {/* Mobile Navigation */}
+                  <MobileNav />
+                  
+                  {/* PWA Install Prompt */}
+                  <PWAInstallPrompt />
+                </Layout>
+              </Router>
+            </TradingWebSocketProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </DarkModeProvider>
+    </ErrorBoundary>
   );
 }
 
