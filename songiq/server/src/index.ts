@@ -49,18 +49,35 @@ import userActivityRoutes from './routes/userActivity';
 import spotifyRoutes from './routes/spotify';
 import youtubeMusicRoutes from './routes/youtubeMusic';
 import marketSignalsRoutes from './routes/market';
+import marketsRoutes from './routes/markets';
 import webhookRoutes from './routes/webhooks';
 import successRoutes from './routes/success';
 import recommendationsRoutes from './routes/recommendations';
 import verificationRoutes from './routes/verification';
 import contactRoutes from './routes/contact';
+// Multi-currency routes
+import currenciesRoutes from './routes/currencies';
+import walletsRoutes from './routes/wallets';
+import transactionsRoutes from './routes/transactions';
+import tradingRoutes from './routes/trading';
+import adminCurrencyRoutes from './routes/adminCurrency';
 
 const app = express()
 const server = createServer(app)
 const PORT = parseInt(process.env.PORT || '5001', 10)
 
-// Initialize WebSocket service
+// Initialize WebSocket services
 const webSocketService = new WebSocketService(server)
+
+// Import and initialize trading WebSocket service
+import TradingWebSocketService from './services/tradingWebSocketService'
+const tradingWebSocketService = new TradingWebSocketService(server)
+
+// Make trading WebSocket service globally available
+declare global {
+  var tradingWS: TradingWebSocketService;
+}
+global.tradingWS = tradingWebSocketService
 
 // Security middleware
 app.use(helmet())
@@ -125,6 +142,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/songs', songsRoutes)
 app.use('/api/analysis', analysisRoutes)
 app.use('/api/market', marketSignalsRoutes)
+app.use('/api/markets', marketsRoutes)
 app.use('/api/spotify', spotifyRoutes)
 app.use('/api/youtube-music', youtubeMusicRoutes)
 app.use('/api/success', successRoutes)
@@ -136,6 +154,12 @@ app.use('/api/lyrics', lyricsRoutes)
 app.use('/api/recommendations', recommendationsRoutes)
 app.use('/api/verification', verificationRoutes)
 app.use('/api/contact', contactRoutes)
+// Multi-currency routes
+app.use('/api/currencies', currenciesRoutes)
+app.use('/api/wallets', walletsRoutes)
+app.use('/api/transactions', transactionsRoutes)
+app.use('/api/trading', tradingRoutes)
+app.use('/api/admin/currency', adminCurrencyRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -200,6 +224,13 @@ const startServer = async () => {
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
       console.log(`🔗 Health check: http://0.0.0.0:${PORT}/api/health`)
       console.log(`🔌 WebSocket service: ws://0.0.0.0:${PORT}`)
+      console.log(`📈 Trading WebSocket: ws://0.0.0.0:${PORT}/ws/trading`)
+      
+      // Start real-time trading service
+      import('./services/realtimeTradingService').then(module => {
+        module.default.start();
+        console.log(`✓ Real-time trading updates enabled`)
+      });
     })
   } catch (error) {
     console.error('Failed to start server:', error)

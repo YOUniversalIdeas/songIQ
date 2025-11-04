@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Upload, BarChart3, TrendingUp, BarChart, Zap, Settings, CreditCard, ChevronDown, Music, Globe, BarChart2, Star } from 'lucide-react'
+import { Home, Upload, BarChart3, TrendingUp, BarChart, Zap, Settings, CreditCard, ChevronDown, Music, Globe, BarChart2, Star, LineChart, ArrowUpDown, Wallet, PieChart, ArrowDownUp, History } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 
@@ -55,9 +55,12 @@ const Navigation = () => {
   ];
   
   const secondRowItems: NavigationItem[] = [
-    { path: '/comparison', label: 'Compare', icon: BarChart },
-    { path: '/user-activity', label: 'My Songs', icon: BarChart3 },
-    { path: '/pricing', label: 'Pricing', icon: CreditCard },
+    { path: '/trading', label: 'Trading', icon: ArrowUpDown },
+    { path: '/portfolio', label: 'Portfolio', icon: PieChart },
+    { path: '/wallets', label: 'Wallets', icon: Wallet },
+    { path: '/exchange', label: 'Exchange', icon: ArrowDownUp },
+    { path: '/transactions', label: 'History', icon: History },
+    { path: '/markets', label: 'Prediction Markets', icon: LineChart },
     ...(isSuperAdmin ? [{ path: '/admin', label: 'SuperAdmin', icon: Settings }] : []),
   ];
   
