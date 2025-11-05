@@ -6,7 +6,7 @@ import Balance from '../models/Balance';
 
 // Initialize Stripe
 const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-11-20.acacia' })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' })
   : null;
 
 interface FiatDepositResult {

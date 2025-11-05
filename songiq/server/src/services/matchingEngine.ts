@@ -75,7 +75,7 @@ class MatchingEngine {
     }).sort({ price: sortOrder, createdAt: 1 });
 
     for (const matchingOrder of matchingOrders) {
-      if (order.remaining === 0 || order.status === 'filled') {
+      if (order.remaining === 0) {
         break;
       }
 

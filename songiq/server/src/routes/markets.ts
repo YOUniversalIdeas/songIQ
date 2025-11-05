@@ -465,7 +465,7 @@ router.get('/meta/leaderboard', async (req, res) => {
     const { period = 'all', limit = 10 } = req.query;
 
     // Calculate date filter
-    let dateFilter = {};
+    let dateFilter: { createdAt?: any } = {};
     const now = new Date();
     
     switch (period) {
@@ -485,7 +485,7 @@ router.get('/meta/leaderboard', async (req, res) => {
 
     // Aggregate user performance
     const leaderboard = await Position.aggregate([
-      dateFilter.createdAt ? { $match: dateFilter } : { $match: {} },
+      Object.keys(dateFilter).length > 0 ? { $match: dateFilter } : { $match: {} },
       {
         $group: {
           _id: '$userId',

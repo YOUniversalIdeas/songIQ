@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Comment from '../models/Comment';
 import Market from '../models/Market';
 import { authenticateToken } from '../middleware/auth';

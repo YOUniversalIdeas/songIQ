@@ -15,6 +15,7 @@ export interface ICurrency extends Document {
   icon?: string;
   description?: string;
   priceUSD: number; // Current price in USD
+  price24hChange?: number; // 24h price change percentage
   priceLastUpdated: Date;
   totalSupply?: number; // For crypto tracking
   circulatingSupply?: number;
@@ -107,6 +108,10 @@ const CurrencySchema = new Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  price24hChange: {
+    type: Number,
+    default: 0
   },
   priceLastUpdated: {
     type: Date,

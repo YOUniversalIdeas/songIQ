@@ -11,6 +11,11 @@ export interface IBalance extends Document {
   lastUpdated: Date;
   createdAt: Date;
   updatedAt: Date;
+  // Methods
+  lock(amount: number): Promise<IBalance>;
+  unlock(amount: number): Promise<IBalance>;
+  deduct(amount: number): Promise<IBalance>;
+  credit(amount: number): Promise<IBalance>;
 }
 
 const BalanceSchema = new Schema({

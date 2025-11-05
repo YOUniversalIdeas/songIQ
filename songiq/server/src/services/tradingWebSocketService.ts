@@ -119,7 +119,7 @@ class TradingWebSocketService {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    let channel = subscription.type;
+    let channel: string = subscription.type;
     
     if (subscription.tradingPairId) {
       channel = `${subscription.type}:${subscription.tradingPairId}`;
@@ -155,7 +155,7 @@ class TradingWebSocketService {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    let channel = subscription.type;
+    let channel: string = subscription.type;
     
     if (subscription.tradingPairId) {
       channel = `${subscription.type}:${subscription.tradingPairId}`;
