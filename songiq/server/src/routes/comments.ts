@@ -213,7 +213,7 @@ router.delete('/comments/:commentId', authenticateToken, async (req, res) => {
     // Only the comment author or admin can delete
     const user = req.user!;
     const isOwner = comment.userId.toString() === userId;
-    const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+    const isAdmin = user.isAdmin || false;
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'You can only delete your own comments' });
