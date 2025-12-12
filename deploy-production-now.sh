@@ -98,17 +98,31 @@ cd $PROJECT_ROOT/songiq/client
 npm run build
 echo "${GREEN}✅ Frontend built${NC}"
 
-# Step 8: Restart backend service
-echo "${BLUE}Step 8: Restarting backend service...${NC}"
-cd $PROJECT_ROOT/songiq/server
-pm2 restart songiq-server
-echo "${GREEN}✅ Backend restarted${NC}"
+# Step 8: Start/Restart backend service
+echo "${BLUE}Step 8: Starting/Restarting backend service...${NC}"
+cd $PROJECT_ROOT
+# Check if process exists, restart if it does, start if it doesn't
+if pm2 list | grep -q "songiq-api"; then
+    pm2 restart songiq-api --update-env
+    echo "${GREEN}✅ Backend restarted${NC}"
+else
+    pm2 start ecosystem.config.js --only songiq-api --env production
+    echo "${GREEN}✅ Backend started${NC}"
+fi
 
-# Step 9: Restart frontend service
-echo "${BLUE}Step 9: Restarting frontend service...${NC}"
-cd $PROJECT_ROOT/songiq/client
-pm2 restart songiq-client
-echo "${GREEN}✅ Frontend restarted${NC}"
+# Step 9: Start/Restart frontend service
+echo "${BLUE}Step 9: Starting/Restarting frontend service...${NC}"
+# Check if process exists, restart if it does, start if it doesn't
+if pm2 list | grep -q "songiq-client"; then
+    pm2 restart songiq-client --update-env
+    echo "${GREEN}✅ Frontend restarted${NC}"
+else
+    pm2 start ecosystem.config.js --only songiq-client --env production
+    echo "${GREEN}✅ Frontend started${NC}"
+fi
+
+# Save PM2 configuration
+pm2 save
 
 # Step 10: Verify deployment
 echo "${BLUE}Step 10: Verifying deployment...${NC}"
@@ -128,7 +142,7 @@ if echo "$HEALTH_RESPONSE" | grep -q "OK"; then
     echo "${GREEN}✅ API health check passed${NC}"
 else
     echo "${RED}❌ API health check failed${NC}"
-    echo "${YELLOW}Check logs: pm2 logs songiq-server${NC}"
+    echo "${YELLOW}Check logs: pm2 logs songiq-api${NC}"
 fi
 
 echo ""
