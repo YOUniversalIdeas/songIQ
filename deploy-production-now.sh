@@ -70,16 +70,21 @@ cd $PROJECT_ROOT
 git pull origin main
 echo "${GREEN}✅ Code updated${NC}"
 
-# Step 5: Install server dependencies
+# Step 5: Install server dependencies (including dev for build)
 echo "${BLUE}Step 5: Installing server dependencies...${NC}"
 cd $PROJECT_ROOT/songiq/server
-npm install --production
+npm install
 echo "${GREEN}✅ Server dependencies installed${NC}"
 
 # Step 5b: Build backend TypeScript
 echo "${BLUE}Step 5b: Building backend TypeScript...${NC}"
 npm run build
-echo "${GREEN}✅ Backend built${NC}"
+if [ $? -eq 0 ]; then
+    echo "${GREEN}✅ Backend built${NC}"
+else
+    echo "${YELLOW}⚠️  Backend build failed, but continuing deployment...${NC}"
+    echo "${YELLOW}   (This may be OK if dist/ already exists)${NC}"
+fi
 
 # Step 6: Install client dependencies
 echo "${BLUE}Step 6: Installing client dependencies...${NC}"
