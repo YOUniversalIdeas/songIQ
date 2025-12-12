@@ -4,7 +4,8 @@
 # Date: November 4, 2025
 # Deploys: 51 complete features
 
-set -e  # Exit on error
+# Don't exit on error for backup directory creation - we'll handle it gracefully
+set +e
 
 echo "🚀 Starting Production Deployment..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -30,18 +31,38 @@ echo ""
 
 # Step 1: Create backup directory
 echo "${BLUE}Step 1: Creating backup directory...${NC}"
-mkdir -p $BACKUP_DIR
+# Try to create backup directory with sudo, fallback to user directory if needed
+if sudo mkdir -p $BACKUP_DIR 2>/dev/null; then
+    sudo chown -R $USER:$USER $BACKUP_DIR 2>/dev/null || true
+    echo "${GREEN}✅ Backup directory created at $BACKUP_DIR${NC}"
+elif mkdir -p $BACKUP_DIR 2>/dev/null; then
+    echo "${GREEN}✅ Backup directory created at $BACKUP_DIR${NC}"
+else
+    # Fallback to user's home directory
+    BACKUP_DIR="$HOME/backups/songiq"
+    mkdir -p $BACKUP_DIR
+    echo "${YELLOW}⚠️  Using user backup directory: $BACKUP_DIR${NC}"
+fi
+
+# Re-enable exit on error for the rest of the script
+set -e
 
 # Step 2: Backup database
 echo "${BLUE}Step 2: Backing up database...${NC}"
-mongodump --db=songiq --out=$BACKUP_DIR/db-$TIMESTAMP
-echo "${GREEN}✅ Database backed up${NC}"
+if mongodump --db=songiq --out=$BACKUP_DIR/db-$TIMESTAMP 2>/dev/null; then
+    echo "${GREEN}✅ Database backed up${NC}"
+else
+    echo "${YELLOW}⚠️  Database backup skipped (mongodump may not be available)${NC}"
+fi
 
 # Step 3: Backup current code
 echo "${BLUE}Step 3: Backing up current code...${NC}"
-cd /var/www
-tar -czf $BACKUP_DIR/code-$TIMESTAMP.tar.gz songiq/
-echo "${GREEN}✅ Code backed up${NC}"
+if [ -d "/var/www/songiq" ]; then
+    cd /var/www
+    tar -czf $BACKUP_DIR/code-$TIMESTAMP.tar.gz songiq/ 2>/dev/null && echo "${GREEN}✅ Code backed up${NC}" || echo "${YELLOW}⚠️  Code backup skipped (permission issue)${NC}"
+else
+    echo "${YELLOW}⚠️  Code backup skipped (/var/www/songiq not found)${NC}"
+fi
 
 # Step 4: Pull latest code
 echo "${BLUE}Step 4: Pulling latest code from main...${NC}"
@@ -54,6 +75,11 @@ echo "${BLUE}Step 5: Installing server dependencies...${NC}"
 cd $PROJECT_ROOT/songiq/server
 npm install --production
 echo "${GREEN}✅ Server dependencies installed${NC}"
+
+# Step 5b: Build backend TypeScript
+echo "${BLUE}Step 5b: Building backend TypeScript...${NC}"
+npm run build
+echo "${GREEN}✅ Backend built${NC}"
 
 # Step 6: Install client dependencies
 echo "${BLUE}Step 6: Installing client dependencies...${NC}"
