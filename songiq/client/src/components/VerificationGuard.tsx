@@ -12,9 +12,22 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
   const location = useLocation();
   const hasCheckedVerification = useRef(false);
 
+  // Check if this is a charts, markets, or news path - we'll use this in useEffects
+  const isChartsPath = location.pathname.startsWith('/charts');
+  const isMarketsPath = location.pathname.startsWith('/markets');
+  const isNewsPath = location.pathname.startsWith('/news');
+  const isPublicPath = isChartsPath || isMarketsPath || isNewsPath;
+  
+  // Always allow charts and markets pages - they're public (check FIRST before any other logic)
+  // But we still need to call hooks, so we'll handle redirects in useEffects
+  if (isPublicPath) {
+    console.log('✅ VerificationGuard: Allowing public path without authentication:', location.pathname);
+    // Still render children, but skip all redirect logic in useEffects
+  }
+
   useEffect(() => {
-    // Only run verification check if we're not on auth or verify pages
-    if (location.pathname === '/auth' || location.pathname === '/verify') {
+    // Skip verification check for charts, markets, auth, and verify pages
+    if (isPublicPath || location.pathname === '/auth' || location.pathname === '/verify') {
       return;
     }
 
@@ -63,16 +76,35 @@ const VerificationGuard: React.FC<VerificationGuardProps> = ({ children }) => {
 
       checkVerificationStatus();
     }
-  }, [token, user, isAuthenticated, navigate, location.pathname]);
+  }, [token, user, isAuthenticated, navigate, location.pathname, isPublicPath]);
 
   // Handle unauthenticated user redirects
   useEffect(() => {
-    const allowedUnauthenticatedPaths = ['/auth', '/', '/upload', '/pricing', '/privacy', '/terms'];
+    // ALWAYS allow charts and markets paths - check this FIRST
+    if (isPublicPath) {
+      console.log('✅ VerificationGuard useEffect: Allowing public path:', location.pathname);
+      return; // Don't run any redirect logic for public paths
+    }
+
+    const allowedUnauthenticatedPaths = [
+      '/auth', 
+      '/', 
+      '/upload', 
+      '/pricing', 
+      '/privacy', 
+      '/terms',
+      '/markets',  // Prediction markets should be public
+      '/charts',   // Charts should be public
+      '/news'      // News should be public
+    ];
+    
+    // Don't redirect if user is on an allowed path
     if (!token && !isAuthenticated && !allowedUnauthenticatedPaths.includes(location.pathname)) {
       // Use replace to avoid adding to history stack
+      console.log('Redirecting to auth - path not allowed:', location.pathname);
       navigate('/auth', { replace: true });
     }
-  }, [token, isAuthenticated, navigate, location.pathname]);
+  }, [token, isAuthenticated, navigate, location.pathname, isPublicPath]);
 
   // Don't interfere with navigation to auth page
   if (location.pathname === '/auth') {

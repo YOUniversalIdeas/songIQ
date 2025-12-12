@@ -12,7 +12,10 @@ class WebSocketService {
   private clients: Map<string, WebSocket> = new Map();
 
   constructor(server: Server) {
-    this.wss = new WebSocketServer({ server });
+    this.wss = new WebSocketServer({ 
+      server,
+      path: '/ws'
+    });
     this.setupWebSocketServer();
   }
 

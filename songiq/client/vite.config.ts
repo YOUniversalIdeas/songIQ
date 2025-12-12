@@ -9,8 +9,15 @@ export default defineConfig({
     alias: {
       // Path aliases removed to fix build issues
     },
+    dedupe: ['react', 'react-dom'], // Ensure only one copy of React
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
+    exclude: [], // Don't exclude anything
+    force: true, // Force re-optimization
   },
   server: {
+    host: '127.0.0.1',
     port: 3001,
     strictPort: true, // Don't try other ports if 3001 is busy
     proxy: {

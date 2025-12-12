@@ -2,7 +2,7 @@ import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { AuthProvider } from './components/AuthProvider';
-import { TradingWebSocketProvider } from './contexts/TradingWebSocketContext';
+// TradingWebSocketProvider removed (crypto trading feature)
 import { registerServiceWorker } from './utils/pwaUtils';
 
 // Core Components (not lazy-loaded)
@@ -25,21 +25,23 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const UserActivityPage = lazy(() => import('./pages/UserActivityPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+// Temporarily remove lazy loading to fix module resolution
+import DashboardPage from './pages/DashboardPage';
 const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
 const VerificationPage = lazy(() => import('./pages/VerificationPage'));
 const SpotifyIntegration = lazy(() => import('./components/SpotifyIntegration'));
 const YouTubeMusicIntegration = lazy(() => import('./components/YouTubeMusicIntegration'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
-const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const MarketsHub = lazy(() => import('./pages/MarketsHub'));
 const MarketDetailPage = lazy(() => import('./pages/MarketDetailPage'));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
-const WalletsPage = lazy(() => import('./pages/WalletsPage'));
-const CurrencyExchangePage = lazy(() => import('./pages/CurrencyExchangePage'));
-const TransactionsPage = lazy(() => import('./pages/TransactionsPage'));
-const TradingPageRealtime = lazy(() => import('./pages/TradingPageRealtime'));
+// Temporarily remove lazy loading to fix module resolution
+import ChartsPage from './pages/ChartsPage';
+const ChartArtistPage = lazy(() => import('./pages/ChartArtistPage'));
+const TracksPage = lazy(() => import('./pages/TracksPage'));
+// Temporarily remove lazy loading to fix module resolution
+import NewsPage from './pages/NewsPage';
 const AuthGateTest = lazy(() => import('./components/AuthGateTest'));
 
 // Mobile Styles
@@ -56,7 +58,6 @@ function App() {
       <DarkModeProvider>
         <ToastProvider>
           <AuthProvider>
-            <TradingWebSocketProvider>
               <Router>
                 <Layout>
                   <VerificationGuard>
@@ -82,11 +83,10 @@ function App() {
                 <Route path="/markets" element={<MarketsHub />} />
                 <Route path="/markets/:id" element={<MarketDetailPage />} />
                 <Route path="/profile/:userId" element={<UserProfilePage />} />
-                <Route path="/trading" element={<TradingPageRealtime />} />
-                <Route path="/portfolio" element={<PortfolioPage />} />
-                <Route path="/wallets" element={<WalletsPage />} />
-                <Route path="/exchange" element={<CurrencyExchangePage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/charts" element={<ChartsPage />} />
+                <Route path="/charts/artist/:id" element={<ChartArtistPage />} />
+                <Route path="/charts/tracks" element={<TracksPage />} />
+                <Route path="/news" element={<NewsPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsConditionsPage />} />
                 <Route path="/test" element={<HomePage />} />
@@ -102,7 +102,6 @@ function App() {
                   <PWAInstallPrompt />
                 </Layout>
               </Router>
-            </TradingWebSocketProvider>
           </AuthProvider>
         </ToastProvider>
       </DarkModeProvider>

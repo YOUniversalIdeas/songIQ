@@ -32,7 +32,7 @@ import { createServer } from 'http'
 import WebSocketService from './services/websocketService'
 
 // Additional API key validation (optional services)
-const optionalVars = ['YOUTUBE_API_KEY', 'LASTFM_API_KEY', 'SPOTIFY_CLIENT_ID'];
+const optionalVars = ['YOUTUBE_API_KEY', 'LASTFM_API_KEY', 'SPOTIFY_CLIENT_ID', 'NEWSAPI_KEY', 'INSTAGRAM_ACCESS_TOKEN', 'INSTAGRAM_BUSINESS_ACCOUNT_ID', 'SOUNDCLOUD_CLIENT_ID'];
 const missingOptional = validateRequiredEnvVars(optionalVars);
 if (missingOptional.length > 0) {
   console.warn('⚠️  Some optional API keys are missing. Some features may not work:', missingOptional);
@@ -55,17 +55,15 @@ import successRoutes from './routes/success';
 import recommendationsRoutes from './routes/recommendations';
 import verificationRoutes from './routes/verification';
 import contactRoutes from './routes/contact';
-// Multi-currency routes
-import currenciesRoutes from './routes/currencies';
-import walletsRoutes from './routes/wallets';
-import transactionsRoutes from './routes/transactions';
-import tradingRoutes from './routes/trading';
-import adminCurrencyRoutes from './routes/adminCurrency';
 // Prediction markets routes
 import commentsRoutes from './routes/comments';
 import ordersRoutes from './routes/orders';
 import socialRoutes from './routes/social';
 import gamificationRoutes from './routes/gamification';
+// Charts routes
+import chartsRoutes from './routes/charts';
+// News routes
+import newsRoutes from './routes/news';
 
 const app = express()
 const server = createServer(app)
@@ -74,15 +72,7 @@ const PORT = parseInt(process.env.PORT || '5001', 10)
 // Initialize WebSocket services
 const webSocketService = new WebSocketService(server)
 
-// Import and initialize trading WebSocket service
-import TradingWebSocketService from './services/tradingWebSocketService'
-const tradingWebSocketService = new TradingWebSocketService(server)
-
-// Make trading WebSocket service globally available
-declare global {
-  var tradingWS: TradingWebSocketService;
-}
-global.tradingWS = tradingWebSocketService
+// Trading WebSocket service removed (crypto trading feature)
 
 // Security middleware
 app.use(helmet())
@@ -159,17 +149,14 @@ app.use('/api/lyrics', lyricsRoutes)
 app.use('/api/recommendations', recommendationsRoutes)
 app.use('/api/verification', verificationRoutes)
 app.use('/api/contact', contactRoutes)
-// Multi-currency routes
-app.use('/api/currencies', currenciesRoutes)
-app.use('/api/wallets', walletsRoutes)
-app.use('/api/transactions', transactionsRoutes)
-app.use('/api/trading', tradingRoutes)
-app.use('/api/admin/currency', adminCurrencyRoutes)
 // Prediction markets routes
 app.use('/api', commentsRoutes)
+// Charts routes
+app.use('/api/charts', chartsRoutes)
 app.use('/api/orders', ordersRoutes)
 app.use('/api/social', socialRoutes)
 app.use('/api/gamification', gamificationRoutes)
+app.use('/api/news', newsRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -234,12 +221,25 @@ const startServer = async () => {
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
       console.log(`🔗 Health check: http://0.0.0.0:${PORT}/api/health`)
       console.log(`🔌 WebSocket service: ws://0.0.0.0:${PORT}`)
-      console.log(`📈 Trading WebSocket: ws://0.0.0.0:${PORT}/ws/trading`)
-      
-      // Start real-time trading service
-      import('./services/realtimeTradingService').then(module => {
-        module.default.start();
-        console.log(`✓ Real-time trading updates enabled`)
+
+      // Start chart update scheduler
+      import('./services/chartUpdateScheduler').then(module => {
+        if (process.env.ENABLE_CHART_SCHEDULER !== 'false') {
+          module.default.start();
+          console.log(`✓ Chart update scheduler enabled`)
+        } else {
+          console.log(`⚠️  Chart update scheduler disabled (set ENABLE_CHART_SCHEDULER=false to disable)`)
+        }
+      });
+
+      // Start news update scheduler
+      import('./services/newsUpdateScheduler').then(module => {
+        if (process.env.ENABLE_NEWS_SCHEDULER !== 'false') {
+          module.default.start();
+          console.log(`✓ News update scheduler enabled`)
+        } else {
+          console.log(`⚠️  News update scheduler disabled (set ENABLE_NEWS_SCHEDULER=false to disable)`)
+        }
       });
     })
   } catch (error) {

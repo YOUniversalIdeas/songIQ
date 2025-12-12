@@ -409,6 +409,76 @@ class SpotifyService {
       return null;
     }
   }
+
+  async getArtist(artistId: string): Promise<any> {
+    try {
+      await this.authenticate();
+      
+      const response = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`
+        }
+      });
+
+      const artist = response.data;
+      
+      return {
+        id: artist.id,
+        name: artist.name,
+        popularity: artist.popularity,
+        followers: {
+          total: artist.followers?.total || 0
+        },
+        genres: artist.genres || [],
+        images: artist.images || []
+      };
+    } catch (error: any) {
+      console.error(`Error fetching Spotify artist ${artistId}:`, error.message);
+      throw error;
+    }
+  }
+
+  async searchArtists(query: string, limit: number = 20, offset: number = 0): Promise<{ artists: any[], total: number }> {
+    try {
+      // Check credentials dynamically
+      const clientId = process.env.SPOTIFY_CLIENT_ID;
+      const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+      
+      if (!clientId || !clientSecret) {
+        console.error('Spotify credentials not configured');
+        throw new Error('Spotify credentials not configured');
+      }
+      
+      // Update instance credentials
+      this.clientId = clientId;
+      this.clientSecret = clientSecret;
+      
+      const response = await this.makeRequest<{ artists: { items: any[], total: number } }>(
+        `/search?q=${encodeURIComponent(query)}&type=artist&limit=${limit}&offset=${offset}`
+      );
+      
+      if (!response.artists || !response.artists.items) {
+        console.error('Invalid API response structure');
+        return { artists: [], total: 0 };
+      }
+      
+      const artists = response.artists.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        popularity: item.popularity,
+        followers: {
+          total: item.followers?.total || 0
+        },
+        genres: item.genres || [],
+        images: item.images || []
+      }));
+      
+      return { artists, total: response.artists.total };
+    } catch (error) {
+      console.error('Spotify artist search failed:', error);
+      throw error;
+    }
+  }
 }
 
 export default new SpotifyService();

@@ -23,9 +23,6 @@ export interface IMarket extends Document {
   totalVolume: number;
   totalLiquidity: number;
   fee: number; // Platform fee percentage (0-1)
-  // Multi-currency support
-  currencyId?: mongoose.Types.ObjectId; // Currency for this market (defaults to platform currency)
-  acceptedCurrencies?: mongoose.Types.ObjectId[]; // Additional accepted currencies
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,15 +109,7 @@ const MarketSchema = new Schema({
     default: 0.02, // 2% platform fee
     min: 0,
     max: 0.1
-  },
-  currencyId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Currency'
-  },
-  acceptedCurrencies: [{
-    type: Schema.Types.ObjectId,
-    ref: 'Currency'
-  }]
+  }
 }, {
   timestamps: true
 });

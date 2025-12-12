@@ -1,7 +1,8 @@
+/// <reference path="../types/express.d.ts" />
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 // import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from '../services/emailService';
 
 const router = express.Router();
@@ -233,7 +234,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get current user profile
-router.get('/profile', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     console.log(`Profile API called for user: ${req.user?.id} at ${new Date().toISOString()}`);
     const user = await User.findById(req.user?.id);
@@ -284,7 +285,7 @@ router.get('/profile', authenticateToken, async (req: Request, res: Response): P
 });
 
 // Refresh token
-router.post('/refresh', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/refresh', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = await User.findById(req.user?.id);
     if (!user) {
@@ -450,9 +451,9 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
 });
 
 // Force refresh user subscription data (for testing/manual updates)
-router.post('/refresh-subscription', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/refresh-subscription', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
     const user = await User.findById(userId);
     
     if (!user) {
@@ -501,9 +502,9 @@ router.post('/refresh-subscription', authenticateToken, async (req: Request, res
 });
 
 // Update user profile
-router.put('/profile', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
     const { firstName, lastName, bandName, telephone, profile } = req.body;
 
     const user = await User.findById(userId);
@@ -684,7 +685,7 @@ router.post('/reset-password', async (req: Request, res: Response): Promise<void
 });
 
 // Logout (client-side token removal)
-router.post('/logout', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/logout', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   res.json({
     success: true,
       message: 'Logout successful'

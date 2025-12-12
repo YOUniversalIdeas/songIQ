@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { authenticateToken } from './auth';
+import { authenticateToken, AuthRequest } from './auth';
 
 // Extend the Request interface to include admin user
 declare global {
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export const requireSuperAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const requireSuperAdmin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // First authenticate the token
     await new Promise<void>((resolve, reject) => {
@@ -63,7 +63,7 @@ export const requireSuperAdmin = async (req: Request, res: Response, next: NextF
   }
 };
 
-export const requireAdminOrSuperAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const requireAdminOrSuperAdmin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // First authenticate the token
     await new Promise<void>((resolve, reject) => {

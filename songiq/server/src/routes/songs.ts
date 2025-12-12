@@ -10,7 +10,7 @@ import {
   validateUploadRequest,
   validateTempUploadRequest
 } from '../middleware/uploadMiddleware'
-import { authenticateToken } from '../middleware/auth'
+import { authenticateToken, AuthRequest } from '../middleware/auth'
 import { 
   extractAudioMetadata, 
   validateAudioFile,
@@ -470,7 +470,7 @@ router.post('/upload-temp', uploadSingleAudio, handleUploadError, async (req: ex
 });
 
 // POST /api/songs/upload - Upload a new song
-router.post('/upload', authenticateToken, uploadSingleAudio, handleUploadError, async (req: express.Request, res: express.Response) => {
+router.post('/upload', authenticateToken, uploadSingleAudio, handleUploadError, async (req: AuthRequest, res: express.Response) => {
   let uploadedFile: Express.Multer.File | undefined;
   
   console.log('=== AUTHENTICATED UPLOAD START ===');
@@ -725,7 +725,7 @@ router.post('/upload', authenticateToken, uploadSingleAudio, handleUploadError, 
 });
 
 // GET /api/songs - Get all songs with pagination
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
@@ -876,7 +876,7 @@ router.get('/public/:id', async (req, res) => {
 })
 
 // GET /api/songs/:id - Get song details (authenticated)
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const song = await Song.findById(req.params.id)
       .populate('analysisResults')
@@ -911,7 +911,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 })
 
 // PUT /api/songs/:id - Update song information
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const { title, artist, isReleased, releaseDate, platforms } = req.body
 
@@ -1004,7 +1004,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // GET /api/songs/upload/status/:songId - Get upload and analysis status
-router.get('/upload/status/:songId', authenticateToken, async (req, res) => {
+router.get('/upload/status/:songId', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const { songId } = req.params;
     
@@ -1083,7 +1083,7 @@ router.get('/upload/status/:songId', authenticateToken, async (req, res) => {
 });
 
 // POST /api/songs/analyze-unreleased - Analyze unreleased song with local processing
-router.post('/analyze-unreleased', authenticateToken, uploadSingleAudio, handleUploadError, async (req: express.Request, res: express.Response) => {
+router.post('/analyze-unreleased', authenticateToken, uploadSingleAudio, handleUploadError, async (req: AuthRequest, res: express.Response) => {
   let uploadedFile: Express.Multer.File | undefined;
   
   try {

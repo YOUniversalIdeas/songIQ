@@ -4,7 +4,7 @@
 import express from 'express';
 import multer from 'multer';
 import { LyricsAnalysisService } from '../services/lyricsAnalysisService';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { User } from '../models';
 
 const router = express.Router();
@@ -278,7 +278,7 @@ router.get('/complexity/:trackId', requireSpotifyAuth, async (req: express.Reque
 // UNRELEASED SONGS ROUTES - ACTIVE
 
 // Analyze lyrics from uploaded file (for unreleased songs)
-router.post('/upload', authenticateToken, upload.single('lyricsFile'), async (req: express.Request, res: express.Response) => {
+router.post('/upload', authenticateToken, upload.single('lyricsFile'), async (req: AuthRequest, res: express.Response) => {
   try {
     // Check if user can analyze another song
     const user = await User.findById(req.user?.id);
@@ -402,7 +402,7 @@ router.post('/demo', async (req: express.Request, res: express.Response) => {
 });
 
 // Analyze lyrics from plain text (for unreleased songs)
-router.post('/analyze-text', authenticateToken, async (req: express.Request, res: express.Response) => {
+router.post('/analyze-text', authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     // Check if user can analyze another song
     const user = await User.findById(req.user?.id);

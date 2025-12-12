@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, TrendingUp, Wallet, Trophy, User } from 'lucide-react';
+import { Home, TrendingUp, Wallet, Trophy, User, Newspaper } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 
 const MobileNav: React.FC = () => {
@@ -26,10 +26,10 @@ const MobileNav: React.FC = () => {
       show: true
     },
     {
-      icon: Wallet,
-      label: 'Portfolio',
-      path: '/portfolio',
-      show: isAuthenticated
+      icon: Newspaper,
+      label: 'News',
+      path: '/news',
+      show: true
     },
     {
       icon: Trophy,

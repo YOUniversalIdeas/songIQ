@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Upload, BarChart3, TrendingUp, BarChart, Zap, Settings, CreditCard, ChevronDown, Music, Globe, BarChart2, Star, LineChart, ArrowUpDown, Wallet, PieChart, ArrowDownUp, History } from 'lucide-react'
+import { Home, Upload, BarChart3, TrendingUp, BarChart, Zap, Settings, CreditCard, ChevronDown, Music, Globe, BarChart2, Star, LineChart, Newspaper } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 
@@ -55,12 +55,8 @@ const Navigation = () => {
   ];
   
   const secondRowItems: NavigationItem[] = [
-    { path: '/trading', label: 'Trading', icon: ArrowUpDown },
-    { path: '/portfolio', label: 'Portfolio', icon: PieChart },
-    { path: '/wallets', label: 'Wallets', icon: Wallet },
-    { path: '/exchange', label: 'Exchange', icon: ArrowDownUp },
-    { path: '/transactions', label: 'History', icon: History },
     { path: '/markets', label: 'Prediction Markets', icon: LineChart },
+    { path: '/news', label: 'News', icon: Newspaper },
     ...(isSuperAdmin ? [{ path: '/admin', label: 'SuperAdmin', icon: Settings }] : []),
   ];
   
@@ -132,7 +128,7 @@ const Navigation = () => {
                             <button
                               onClick={() => {
                                 setIsTrendsDropdownOpen(false);
-                                navigate('/trends#charts');
+                                navigate('/charts');
                               }}
                               className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >

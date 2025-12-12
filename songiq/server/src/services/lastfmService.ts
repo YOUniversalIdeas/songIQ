@@ -140,6 +140,110 @@ export async function getTopTags(limit: number = 50): Promise<LastfmTag[]> {
 }
 
 /**
+ * Get top artists by tag (genre)
+ */
+export async function getTopArtistsByTag(tag: string, limit: number = 50): Promise<LastfmArtist[]> {
+  try {
+    const data = await makeLastfmRequest('tag.gettopartists', { 
+      tag: tag,
+      limit 
+    });
+    
+    if (data.topartists && data.topartists.artist) {
+      return data.topartists.artist.map((artist: any) => ({
+        name: artist.name,
+        listeners: parseInt(artist.listeners) || 0,
+        playcount: parseInt(artist.playcount) || 0,
+        url: artist.url,
+        image: artist.image || []
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.error(`Error fetching top artists for tag ${tag}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Get top tracks by tag (genre)
+ */
+export async function getTopTracksByTag(tag: string, limit: number = 50): Promise<LastfmTrack[]> {
+  try {
+    const data = await makeLastfmRequest('tag.gettoptracks', { 
+      tag: tag,
+      limit 
+    });
+    
+    if (data.tracks && data.tracks.track) {
+      const tracks = data.tracks.track.map((track: any) => ({
+        name: track.name,
+        artist: track.artist.name,
+        url: track.url,
+        listeners: parseInt(track.listeners) || 0,
+        playcount: parseInt(track.playcount) || 0,
+        image: track.image || []
+      }));
+      
+      // If listeners/playcount are 0, try to get detailed info for each track
+      // This is slower but ensures we have metrics
+      const tracksWithMetrics = await Promise.all(
+        tracks.map(async (track: { name: string; artist: string; url: string; listeners: number; playcount: number; image: any[] }) => {
+          if (track.listeners === 0 && track.playcount === 0) {
+            try {
+              const trackInfo = await getTrackInfo(track.name, track.artist);
+              if (trackInfo) {
+                track.listeners = trackInfo.listeners;
+                track.playcount = trackInfo.playcount;
+              }
+            } catch (error) {
+              // If track.getInfo fails, keep original values
+            }
+          }
+          return track;
+        })
+      );
+      
+      return tracksWithMetrics;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error(`Error fetching top tracks for tag ${tag}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Get detailed track information including listeners and playcount
+ */
+export async function getTrackInfo(trackName: string, artistName: string): Promise<LastfmTrack | null> {
+  try {
+    const data = await makeLastfmRequest('track.getinfo', {
+      track: trackName,
+      artist: artistName
+    });
+    
+    if (data.track) {
+      return {
+        name: data.track.name,
+        artist: data.track.artist.name,
+        url: data.track.url,
+        listeners: parseInt(data.track.listeners) || 0,
+        playcount: parseInt(data.track.playcount) || 0,
+        image: data.track.album?.image || []
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error fetching track info for ${trackName} by ${artistName}:`, error);
+    return null;
+  }
+}
+
+/**
  * Get genre-specific trends
  */
 export async function getGenreTrends(genre: string): Promise<Partial<LastfmTrends>> {
@@ -149,6 +253,9 @@ export async function getGenreTrends(genre: string): Promise<Partial<LastfmTrend
     
     // Get top tags (which often represent genres/moods)
     const tags = await getTopTags(30);
+    
+    // Get top artists by this genre tag
+    const topArtists = await getTopArtistsByTag(genre, 20);
     
     // Extract trending genres from tags
     const trendingGenres = tags
@@ -175,6 +282,7 @@ export async function getGenreTrends(genre: string): Promise<Partial<LastfmTrend
     
     return {
       topTracks: tracks,
+      topArtists,
       topTags: tags,
       trendingGenres,
       popularTempos,
