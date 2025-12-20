@@ -4,6 +4,7 @@ import Position from '../models/Position';
 import Trade from '../models/Trade';
 import PriceHistory from '../models/PriceHistory';
 import { authenticateToken } from '../middleware/auth';
+import { requireAdminOrSuperAdmin } from '../middleware/adminAuth';
 import { MarketNotificationService } from '../services/marketNotificationService';
 
 const router = express.Router();
@@ -74,8 +75,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/markets - Create new market (authenticated)
-router.post('/', authenticateToken, async (req, res) => {
+// POST /api/markets - Create new market (admin only)
+router.post('/', requireAdminOrSuperAdmin, async (req, res) => {
   try {
     const { title, description, category, outcomes, endDate, relatedSongId } = req.body;
 

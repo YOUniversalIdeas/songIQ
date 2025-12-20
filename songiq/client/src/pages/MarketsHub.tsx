@@ -86,15 +86,6 @@ const MarketsHub: React.FC = () => {
               Trade on the future of music
             </p>
           </div>
-          {isAuthenticated && (
-            <button
-              onClick={() => navigate('/markets/create')}
-              className="flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create Market
-            </button>
-          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

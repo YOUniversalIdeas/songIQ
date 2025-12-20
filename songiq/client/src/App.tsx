@@ -35,6 +35,7 @@ const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const MarketsHub = lazy(() => import('./pages/MarketsHub'));
 const MarketDetailPage = lazy(() => import('./pages/MarketDetailPage'));
+const CreateMarketPage = lazy(() => import('./pages/CreateMarketPage'));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 // Temporarily remove lazy loading to fix module resolution
 import ChartsPage from './pages/ChartsPage';
@@ -81,6 +82,7 @@ function App() {
                 <Route path="/spotify" element={<SpotifyIntegration />} />
                 <Route path="/youtube-music" element={<YouTubeMusicIntegration />} />
                 <Route path="/markets" element={<MarketsHub />} />
+                <Route path="/markets/create" element={<CreateMarketPage />} />
                 <Route path="/markets/:id" element={<MarketDetailPage />} />
                 <Route path="/profile/:userId" element={<UserProfilePage />} />
                 <Route path="/charts" element={<ChartsPage />} />

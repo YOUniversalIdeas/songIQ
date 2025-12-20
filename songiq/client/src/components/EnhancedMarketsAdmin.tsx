@@ -14,7 +14,9 @@ import {
   Filter,
   TrendingUp,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  X,
+  Calendar
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
@@ -65,7 +67,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
   const [marketAnalytics, setMarketAnalytics] = useState<MarketAnalytics | null>(null);
   const [actionModal, setActionModal] = useState<{
-    type: 'resolve' | 'suspend' | 'flag' | 'delete' | 'details' | null;
+    type: 'resolve' | 'suspend' | 'flag' | 'delete' | 'details' | 'create' | null;
     market: Market | null;
   }>({ type: null, market: null });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -265,7 +267,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => (window.location.href = '/markets/create')}
+          onClick={() => setActionModal({ type: 'create', market: null })}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -526,7 +528,17 @@ const EnhancedMarketsAdmin: React.FC = () => {
       )}
 
       {/* Action Modals */}
-      {actionModal.type && actionModal.market && (
+      {actionModal.type === 'create' && (
+        <CreateMarketModal
+          onClose={() => setActionModal({ type: null, market: null })}
+          onSuccess={() => {
+            setActionModal({ type: null, market: null });
+            fetchMarkets();
+            showMessage('success', 'Market created successfully!');
+          }}
+        />
+      )}
+      {actionModal.type && actionModal.type !== 'create' && actionModal.market && (
         <ActionModal
           type={actionModal.type}
           market={actionModal.market}
@@ -775,6 +787,397 @@ const ActionModal: React.FC<ActionModalProps> = ({
               </button>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Create Market Modal Component
+interface CreateMarketModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+interface Outcome {
+  name: string;
+  description: string;
+}
+
+const categories = [
+  { id: 'chart_position', name: 'Chart Position', icon: '📊' },
+  { id: 'streaming_numbers', name: 'Streaming Numbers', icon: '🎵' },
+  { id: 'awards', name: 'Awards', icon: '🏆' },
+  { id: 'genre_trend', name: 'Genre Trends', icon: '📈' },
+  { id: 'artist_popularity', name: 'Artist Popularity', icon: '⭐' },
+  { id: 'release_success', name: 'Release Success', icon: '🚀' },
+  { id: 'other', name: 'Other', icon: '💡' }
+];
+
+const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: '',
+    endDate: '',
+    relatedSongId: ''
+  });
+
+  const [outcomes, setOutcomes] = useState<Outcome[]>([
+    { name: '', description: '' },
+    { name: '', description: '' }
+  ]);
+
+  const addOutcome = () => {
+    if (outcomes.length < 10) {
+      setOutcomes([...outcomes, { name: '', description: '' }]);
+    }
+  };
+
+  const removeOutcome = (index: number) => {
+    if (outcomes.length > 2) {
+      setOutcomes(outcomes.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateOutcome = (index: number, field: keyof Outcome, value: string) => {
+    const updated = [...outcomes];
+    updated[index] = { ...updated[index], [field]: value };
+    setOutcomes(updated);
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.title.trim()) {
+      setMessage({ type: 'error', text: 'Title is required' });
+      return false;
+    }
+
+    if (!formData.description.trim()) {
+      setMessage({ type: 'error', text: 'Description is required' });
+      return false;
+    }
+
+    if (!formData.category) {
+      setMessage({ type: 'error', text: 'Please select a category' });
+      return false;
+    }
+
+    if (!formData.endDate) {
+      setMessage({ type: 'error', text: 'End date is required' });
+      return false;
+    }
+
+    const endDate = new Date(formData.endDate);
+    if (endDate <= new Date()) {
+      setMessage({ type: 'error', text: 'End date must be in the future' });
+      return false;
+    }
+
+    const validOutcomes = outcomes.filter(o => o.name.trim());
+    if (validOutcomes.length < 2) {
+      setMessage({ type: 'error', text: 'At least 2 outcomes are required' });
+      return false;
+    }
+
+    if (validOutcomes.length > 10) {
+      setMessage({ type: 'error', text: 'Maximum 10 outcomes allowed' });
+      return false;
+    }
+
+    // Check for duplicate outcome names
+    const names = validOutcomes.map(o => o.name.trim().toLowerCase());
+    const uniqueNames = new Set(names);
+    if (names.length !== uniqueNames.size) {
+      setMessage({ type: 'error', text: 'Outcome names must be unique' });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const validOutcomes = outcomes.filter(o => o.name.trim());
+
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        outcomes: validOutcomes.map(o => ({
+          name: o.name.trim(),
+          description: o.description.trim() || o.name.trim()
+        })),
+        endDate: new Date(formData.endDate).toISOString(),
+        ...(formData.relatedSongId && { relatedSongId: formData.relatedSongId })
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/markets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create market');
+      }
+
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        category: '',
+        endDate: '',
+        relatedSongId: ''
+      });
+      setOutcomes([
+        { name: '', description: '' },
+        { name: '', description: '' }
+      ]);
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error creating market:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.message || 'Failed to create market. Please try again.' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Create Prediction Market
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Message Alert */}
+          {message && (
+            <div
+              className={`mb-4 p-4 rounded-lg flex items-center ${
+                message.type === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800'
+                  : 'bg-red-50 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-800'
+              }`}
+            >
+              {message.type === 'success' ? (
+                <CheckCircle className="w-5 h-5 mr-2" />
+              ) : (
+                <AlertCircle className="w-5 h-5 mr-2" />
+              )}
+              {message.text}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Market Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g., Will 'Summer Vibes 2025' reach Top 10?"
+                maxLength={200}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+              />
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {formData.title.length}/200 characters
+              </p>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Description *
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Provide details about what this market predicts..."
+                rows={3}
+                maxLength={1000}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+              />
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {formData.description.length}/1000 characters
+              </p>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select a category...</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.icon} {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Outcomes */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Outcomes * (2-10 required)
+                </label>
+                {outcomes.length < 10 && (
+                  <button
+                    type="button"
+                    onClick={addOutcome}
+                    className="flex items-center px-3 py-1 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Outcome
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {outcomes.map((outcome, index) => (
+                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Outcome {index + 1}
+                      </span>
+                      {outcomes.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOutcome(index)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={outcome.name}
+                        onChange={(e) => updateOutcome(index, 'name', e.target.value)}
+                        placeholder="Outcome name (e.g., 'Yes, Top 10')"
+                        required={index < 2}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-sm"
+                      />
+                      <textarea
+                        value={outcome.description}
+                        onChange={(e) => updateOutcome(index, 'description', e.target.value)}
+                        placeholder="Optional description"
+                        rows={1}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                {outcomes.filter(o => o.name.trim()).length} valid outcomes
+              </p>
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                End Date *
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="datetime-local"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  min={new Date().toISOString().slice(0, 16)}
+                  required
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* Related Song (Optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Related Song ID (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.relatedSongId}
+                onChange={(e) => setFormData({ ...formData, relatedSongId: e.target.value })}
+                placeholder="MongoDB ObjectId of related song"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Market'
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
