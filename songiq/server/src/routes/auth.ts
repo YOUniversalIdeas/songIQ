@@ -208,6 +208,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       lastName: user.lastName,
       username: user.username,
       telephone: user.telephone,
+      role: user.role,
       subscription: {
         plan: user.subscription.plan,
         status: user.subscription.status,
