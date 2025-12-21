@@ -203,6 +203,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else {
             // Token is invalid, remove it
             localStorage.removeItem('songiq_token');
+            sessionStorage.removeItem('songiq_token');
+            localStorage.removeItem('songiq_remember_me');
             setAuthState({
               user: null,
               token: null,
@@ -223,6 +225,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Auth initialization error:', error);
         localStorage.removeItem('songiq_token');
+        sessionStorage.removeItem('songiq_token');
+        localStorage.removeItem('songiq_remember_me');
         setAuthState({
           user: null,
           token: null,
@@ -259,17 +263,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
       const { token, user } = data;
 
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+
+      console.log('✅ Login successful, storing token...');
+      console.log('Token length:', token.length);
+      console.log('Remember me:', rememberMe);
+
       // Store token based on remember me choice
       if (rememberMe) {
         // Store in localStorage for persistent login (longer expiration)
         localStorage.setItem('songiq_token', token);
         localStorage.setItem('songiq_remember_me', 'true');
+        sessionStorage.removeItem('songiq_token'); // Clear session storage
+        console.log('✅ Token stored in localStorage');
       } else {
         // Store in sessionStorage for session-only login (shorter expiration)
         sessionStorage.setItem('songiq_token', token);
         localStorage.removeItem('songiq_token');
         localStorage.removeItem('songiq_remember_me');
+        console.log('✅ Token stored in sessionStorage');
       }
+      
+      // Verify token was stored
+      const storedToken = rememberMe 
+        ? localStorage.getItem('songiq_token')
+        : sessionStorage.getItem('songiq_token');
+      console.log('✅ Token verification - stored:', !!storedToken, 'length:', storedToken?.length || 0);
       
       setAuthState({
         user,
