@@ -19,6 +19,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { getStoredToken } from '../utils/auth';
 
 interface Market {
   _id: string;
@@ -79,7 +80,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
   const fetchMarkets = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       const params = new URLSearchParams();
       
       if (filter !== 'all') params.append('status', filter);
@@ -104,7 +105,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
 
   const fetchMarketDetails = async (marketId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/markets/${marketId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -122,7 +123,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
 
   const suspendMarket = async (marketId: string, suspend: boolean, reason: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/markets/${marketId}/suspend`, {
         method: 'PATCH',
         headers: {
@@ -145,7 +146,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
 
   const flagMarket = async (marketId: string, flagged: boolean, reason: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/markets/${marketId}/flag`, {
         method: 'PATCH',
         headers: {
@@ -168,7 +169,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
 
   const deleteMarket = async (marketId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/markets/${marketId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -189,7 +190,7 @@ const EnhancedMarketsAdmin: React.FC = () => {
 
   const forceResolveMarket = async (marketId: string, outcomeId: string, reason: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/markets/${marketId}/force-resolve`, {
         method: 'POST',
         headers: {
@@ -267,7 +268,12 @@ const EnhancedMarketsAdmin: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setActionModal({ type: 'create', market: null })}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setActionModal({ type: 'create', market: null });
+          }}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -909,7 +915,7 @@ const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ onClose, onSucces
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
       if (!token) {
         throw new Error('Not authenticated');
       }

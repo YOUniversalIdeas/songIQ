@@ -81,7 +81,10 @@ const AdminOverview: React.FC = () => {
       
       // Fetch platform stats
       const statsResponse = await fetch(`${API_BASE_URL}/api/admin/stats/platform`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
 
       if (statsResponse.ok) {
@@ -94,6 +97,9 @@ const AdminOverview: React.FC = () => {
       } else {
         const errorText = await statsResponse.text();
         console.error('Failed to fetch platform stats:', statsResponse.status, statsResponse.statusText, errorText);
+        if (statsResponse.status === 403) {
+          console.error('403 Forbidden - Check if user has admin/superadmin role');
+        }
       }
 
       // Fetch activity feed
