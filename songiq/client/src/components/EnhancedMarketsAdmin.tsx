@@ -255,6 +255,14 @@ const EnhancedMarketsAdmin: React.FC = () => {
     market.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Debug: Log when modal should be visible
+  useEffect(() => {
+    if (actionModal.type === 'create') {
+      console.log('🟢 Create Market modal should be visible now');
+      console.log('🟢 actionModal state:', actionModal);
+    }
+  }, [actionModal.type]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
