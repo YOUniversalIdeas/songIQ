@@ -286,7 +286,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab(tab.id as any);
+                  }}
                   className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors duration-200 border-b-2 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400'

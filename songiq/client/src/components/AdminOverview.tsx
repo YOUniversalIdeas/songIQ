@@ -86,9 +86,14 @@ const AdminOverview: React.FC = () => {
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
-        setStats(statsData.data);
+        if (statsData.success && statsData.data) {
+          setStats(statsData.data);
+        } else {
+          console.error('Invalid response format:', statsData);
+        }
       } else {
-        console.error('Failed to fetch platform stats:', statsResponse.status, statsResponse.statusText);
+        const errorText = await statsResponse.text();
+        console.error('Failed to fetch platform stats:', statsResponse.status, statsResponse.statusText, errorText);
       }
 
       // Fetch activity feed
@@ -145,7 +150,13 @@ const AdminOverview: React.FC = () => {
   if (!stats) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400">Failed to load platform statistics</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-4">Failed to load platform statistics</p>
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }
