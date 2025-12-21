@@ -74,31 +74,41 @@ const AdminOverview: React.FC = () => {
       const token = getStoredToken();
       
       if (!token) {
-        console.error('No authentication token found');
+        console.error('❌ No authentication token found');
         setLoading(false);
         return;
       }
       
+      console.log('🔑 Token found, length:', token.length);
+      console.log('📡 Fetching platform stats from:', `${API_BASE_URL}/api/admin/stats/platform`);
+      
       // Fetch platform stats
       const statsResponse = await fetch(`${API_BASE_URL}/api/admin/stats/platform`, {
+        method: 'GET',
         headers: { 
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include'
       });
+
+      console.log('📊 Stats response status:', statsResponse.status);
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
+        console.log('✅ Stats data received:', statsData);
         if (statsData.success && statsData.data) {
           setStats(statsData.data);
         } else {
-          console.error('Invalid response format:', statsData);
+          console.error('❌ Invalid response format:', statsData);
         }
       } else {
         const errorText = await statsResponse.text();
-        console.error('Failed to fetch platform stats:', statsResponse.status, statsResponse.statusText, errorText);
+        console.error('❌ Failed to fetch platform stats:', statsResponse.status, statsResponse.statusText);
+        console.error('❌ Error details:', errorText);
         if (statsResponse.status === 403) {
-          console.error('403 Forbidden - Check if user has admin/superadmin role');
+          console.error('❌ 403 Forbidden - Token might be invalid or user lacks admin role');
+          console.error('💡 Try signing out and signing back in to refresh your token');
         }
       }
 

@@ -272,7 +272,14 @@ const EnhancedMarketsAdmin: React.FC = () => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            console.log('🟢 Create Market button clicked');
+            console.log('🟢 Current actionModal state:', actionModal);
             setActionModal({ type: 'create', market: null });
+            console.log('🟢 Set actionModal to create');
+            // Force a small delay to ensure state update
+            setTimeout(() => {
+              console.log('🟢 After timeout, actionModal should be:', { type: 'create', market: null });
+            }, 100);
           }}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center"
         >
@@ -535,14 +542,20 @@ const EnhancedMarketsAdmin: React.FC = () => {
 
       {/* Action Modals */}
       {actionModal.type === 'create' && (
-        <CreateMarketModal
-          onClose={() => setActionModal({ type: null, market: null })}
-          onSuccess={() => {
-            setActionModal({ type: null, market: null });
-            fetchMarkets();
-            showMessage('success', 'Market created successfully!');
-          }}
-        />
+        <div style={{ position: 'fixed', zIndex: 9999 }}>
+          <CreateMarketModal
+            onClose={() => {
+              console.log('🔴 Closing Create Market modal');
+              setActionModal({ type: null, market: null });
+            }}
+            onSuccess={() => {
+              console.log('✅ Market created successfully');
+              setActionModal({ type: null, market: null });
+              fetchMarkets();
+              showMessage('success', 'Market created successfully!');
+            }}
+          />
+        </div>
       )}
       {actionModal.type && actionModal.type !== 'create' && actionModal.market && (
         <ActionModal
