@@ -13,6 +13,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { getStoredToken } from '../utils/auth';
 
 interface PlatformStats {
   users: {
@@ -70,7 +71,13 @@ const AdminOverview: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getStoredToken();
+      
+      if (!token) {
+        console.error('No authentication token found');
+        setLoading(false);
+        return;
+      }
       
       // Fetch platform stats
       const statsResponse = await fetch(`${API_BASE_URL}/api/admin/stats/platform`, {
@@ -80,6 +87,8 @@ const AdminOverview: React.FC = () => {
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setStats(statsData.data);
+      } else {
+        console.error('Failed to fetch platform stats:', statsResponse.status, statsResponse.statusText);
       }
 
       // Fetch activity feed
@@ -90,6 +99,8 @@ const AdminOverview: React.FC = () => {
       if (activityResponse.ok) {
         const activityData = await activityResponse.json();
         setActivity(activityData.data);
+      } else {
+        console.error('Failed to fetch activity feed:', activityResponse.status, activityResponse.statusText);
       }
 
       setLastUpdate(new Date());
